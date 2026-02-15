@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+
+# IntelliJ / JetBrains
+.idea/
+*.iml
+out/
+
+# Maven / Gradle / build outputs
+target/
+build/
+bin/
+classes/
+*.class
+
+# Logs
+*.log
+
+# Temporary / swap files
+*.swp
+*.swo
+*~
+
+# Generated documentation
+doc/
+
+# Archives
+*.jar
+*.war
+*.ear
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# PDFs (specs/handouts typically provided externally)
+*.pdf
