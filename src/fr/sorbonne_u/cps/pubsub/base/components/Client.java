@@ -8,6 +8,8 @@ import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnecto
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
+
 
 import fr.sorbonne_u.components.AbstractComponent;
 
@@ -20,6 +22,7 @@ public class Client extends AbstractComponent {
 
 	private ClientInboundPort receptionPortIN;
 	private ClientPublishingOutboundPort publishingPortOUT;
+	private ClientPrivilegedOutboundPort privilegedPortOUT;
 
 	private ClientRegistrationOutboundPort registrationPortOUT;
 
@@ -132,6 +135,14 @@ public class Client extends AbstractComponent {
 		}
 	}
 	
-
+	//méthodes clients privilégiés
+	public void createChannel(String channel, String autorisedUsers) throws Exception {
+		if (!(this.rcCurrent == RegistrationClass.FREE)) {
+			this.privilegedPortOUT.createChannel(
+					this.receptionPortIN.getPortURI(),
+					channel,
+					autorisedUsers);
+		}
+	}
 
 }

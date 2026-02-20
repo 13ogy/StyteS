@@ -11,7 +11,9 @@ import fr.sorbonne_u.cps.pubsub.base.connectors.BrokerClientReceivingConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.BrokerPublishingInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.BrokerReceptionOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.BrokerRegistrationInboundPort;
+import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
+import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
 import fr.sorbonne_u.cps.pubsub.exceptions.NotSubscribedChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
@@ -37,6 +39,8 @@ public class Broker extends AbstractComponent
 
 	/** Number of FREE channels: channel0..channel{NB_FREE_CHANNELS-1}. */
 	public static final int NB_FREE_CHANNELS = 3;
+	public static final int lIMIT_CHANNELS_STANDARD= 5;
+	public static final int LIMIT_CHANNELS_PREMIUM = 10;
 
 	// -------------------------------------------------------------------------
 	// Ports
@@ -57,6 +61,8 @@ public class Broker extends AbstractComponent
 	private final Set<String> channels = new HashSet<>();
 	/** Subscriptions: channel -> (client receptionPortURI -> filter). */
 	private final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
+	/** privChannels: piviledged Client -> (channels) */
+	private final Map<String,  Set<String>> privChannels = new HashMap<>();
 
 	// -------------------------------------------------------------------------
 	// Constructor
@@ -295,5 +301,29 @@ public class Broker extends AbstractComponent
 		for (MessageI m : messages) {
 			this.publish(publisherReceptionPortURI, channel, m);
 		}
+	}
+	
+	public void createChannel(String receptionPortURI, String channel, String autorisedUsers) throws Exception {
+		
+		if( ! this.registered(receptionPortURI)) {
+			throw new UnknownClientException(receptionPortURI);
+		}
+		if (this.channelExist(channel) ) {
+			throw new AlreadyExistingChannelException(channel);
+		}
+		if (this.privChannels.containsKey(receptionPortURI)) {
+			if((this.registered(receptionPortURI, RegistrationClass.STANDARD)) && ((this.privChannels.get(receptionPortURI).size())==lIMIT_CHANNELS_STANDARD)) {
+				throw new ChannelQuotaExceededException(receptionPortURI);
+			}
+			if((this.registered(receptionPortURI, RegistrationClass.PREMIUM)) && ((this.privChannels.get(receptionPortURI).size())==LIMIT_CHANNELS_PREMIUM)) {
+				throw new ChannelQuotaExceededException(receptionPortURI);
+			}
+			else {
+				privChannels.get(receptionPortURI).add(channel);
+			}
+		}
+		Set <String> newChannels=new HashSet<>();
+		newChannels.add(channel);
+		privChannels.put(autorisedUsers, newChannels);
 	}
 }
