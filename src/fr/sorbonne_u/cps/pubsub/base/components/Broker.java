@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.cps.pubsub.base.connectors.BrokerClientReceivingConnector;
@@ -61,7 +63,7 @@ public class Broker extends AbstractComponent
 	private final Set<String> channels = new HashSet<>();
 	/** Subscriptions: channel -> (client receptionPortURI -> filter). */
 	private final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
-	/** privChannels: piviledged Client -> (channels) */
+	/** privChannels: piviledged Client -> (channels,authorissedUsers) */
 	private final Map<String,  Set<String>> privChannels = new HashMap<>();
 
 	// -------------------------------------------------------------------------
@@ -303,6 +305,31 @@ public class Broker extends AbstractComponent
 		}
 	}
 	
+	public boolean hasCreatedChannel(String receptionPortURI, String channel) {
+		return privChannels.get(receptionPortURI).contains(channel);
+	}
+	
+	public boolean channelQuotaReached(String receptionPortURI, String channel) {
+		try {
+			if((this.registered(receptionPortURI, RegistrationClass.STANDARD)) && ((this.privChannels.get(receptionPortURI).size())==lIMIT_CHANNELS_STANDARD)) {
+				return false;
+			}
+			if((this.registered(receptionPortURI, RegistrationClass.PREMIUM)) && ((this.privChannels.get(receptionPortURI).size())==LIMIT_CHANNELS_PREMIUM)) {
+				return false;
+			}
+			
+		}catch (Exception e){
+			return false;
+		}
+		return true;
+	}
+	
+	public boolean isAuthorisedUser(String user, String authorisedUsers) {
+		Pattern pattern=Pattern.compile(authorisedUsers, Pattern.CASE_INSENSITIVE);
+		Matcher matcher = pattern.matcher(user);
+		return matcher.find();
+		
+	}
 	public void createChannel(String receptionPortURI, String channel, String autorisedUsers) throws Exception {
 		
 		if( ! this.registered(receptionPortURI)) {
@@ -312,10 +339,8 @@ public class Broker extends AbstractComponent
 			throw new AlreadyExistingChannelException(channel);
 		}
 		if (this.privChannels.containsKey(receptionPortURI)) {
-			if((this.registered(receptionPortURI, RegistrationClass.STANDARD)) && ((this.privChannels.get(receptionPortURI).size())==lIMIT_CHANNELS_STANDARD)) {
-				throw new ChannelQuotaExceededException(receptionPortURI);
-			}
-			if((this.registered(receptionPortURI, RegistrationClass.PREMIUM)) && ((this.privChannels.get(receptionPortURI).size())==LIMIT_CHANNELS_PREMIUM)) {
+			
+			if(channelQuotaReached(receptionPortURI, channel)) {
 				throw new ChannelQuotaExceededException(receptionPortURI);
 			}
 			else {
@@ -325,5 +350,12 @@ public class Broker extends AbstractComponent
 		Set <String> newChannels=new HashSet<>();
 		newChannels.add(channel);
 		privChannels.put(autorisedUsers, newChannels);
+	}
+	
+	public void destroyChannel(String receptionPortURI, String channel)throws Exception{
+		
+	}
+	public void destroyChannelNow(String receptionPortURI, String channel)throws Exception{
+		
 	}
 }
