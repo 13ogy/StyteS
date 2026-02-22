@@ -12,12 +12,16 @@ import fr.sorbonne_u.cps.pubsub.meteo.WindDataI;
 import fr.sorbonne_u.cps.pubsub.meteo.impl.Position2D;
 import fr.sorbonne_u.cps.pubsub.messages.MessageFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
+import fr.sorbonne_u.cps.pubsub.messages.filters.DistanceWindFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.EqualsValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.PropertyFilter;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+
+import fr.sorbonne_u.components.utils.tests.TestScenario;
+import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
 /**
  * CDC §3.4 wind turbine component.
@@ -29,6 +33,13 @@ import java.util.List;
  */
 public class WindTurbine extends AbstractComponent
 {
+	// -------------------------------------------------------------------------
+	// Optional timed test scenario support (CDC annexe B)
+	// -------------------------------------------------------------------------
+
+	/** When non-null, the component will execute its part of the scenario at start(). */
+	private final TestScenario testScenario;
+
 	private final Client psClient;
 	private final String turbineId;
 	private final PositionI position;
@@ -62,6 +73,20 @@ public class WindTurbine extends AbstractComponent
 		long recentWindowMillis,
 		MeteoAlertI.Level threshold) throws Exception
 	{
+		this(null, turbineId, position, maxDistance, recentWindowMillis, threshold);
+	}
+
+	/**
+	 * Constructor variant used by timed integration demos using BCM4Java test scenarios.
+	 */
+	protected WindTurbine(
+		TestScenario testScenario,
+		String turbineId,
+		PositionI position,
+		double maxDistance,
+		long recentWindowMillis,
+		MeteoAlertI.Level threshold) throws Exception
+	{
 		super(1, 0);
 		if (turbineId == null || turbineId.isEmpty()) {
 			throw new IllegalArgumentException("turbineId cannot be null/empty");
@@ -75,6 +100,7 @@ public class WindTurbine extends AbstractComponent
 		this.recentWindowMillis = recentWindowMillis;
 		this.threshold = threshold;
 		this.safetyMode = false;
+		this.testScenario = testScenario;
 
 		this.psClient = new Client(1, 0) {
 			@Override
@@ -91,6 +117,15 @@ public class WindTurbine extends AbstractComponent
 		try {
 			super.start();
 			this.psClient.register(RegistrationClass.FREE);
+
+			// If a timed scenario is provided, initialise the accelerated clock and
+			// schedule/execute this component steps.
+			if (this.testScenario != null) {
+				this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, this.testScenario.getClockURI());
+				// Wait until the scenario start time.
+				this.getClock().waitUntilStart();
+				this.executeTestScenario(this.testScenario);
+			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -103,12 +138,15 @@ public class WindTurbine extends AbstractComponent
 
 	public void subscribeToWindAndAlerts(String windChannel, String alertChannel) throws Exception
 	{
-		// Ensure the internal pub/sub client is registered (ports connected) before subscribing.
-		// In this CVM demo, we may call subscribe immediately after deploy(), before the component life-cycle
-		// reaches start(). Registering here makes the demo deterministic.
 		this.psClient.register(RegistrationClass.FREE);
+		// Default subscription filter for winds:
+		// - accept only messages tagged as type=wind
+		// - accept only wind payloads within maxDistance from the turbine position
 		MessageFilterI windFilter = new MessageFilter(
-			new MessageFilterI.PropertyFilterI[] { new PropertyFilter("type", new EqualsValueFilter("wind")) },
+			new MessageFilterI.PropertyFilterI[] {
+				new PropertyFilter("type", new EqualsValueFilter("wind")),
+				new PropertyFilter("payload", new DistanceWindFilter(this.position, this.maxDistance))
+			},
 			new MessageFilterI.PropertiesFilterI[0],
 			new AcceptAllTimeFilter());
 
@@ -141,15 +179,13 @@ public class WindTurbine extends AbstractComponent
 	private void onWind(WindDataI wind, long messageTs)
 	{
 		long now = Instant.now().toEpochMilli();
-		// keep only recent
+
+		// only recent
 		windBuffer.removeIf(tw -> now - tw.ts > recentWindowMillis);
 
-		// distance filtering
+		// distance filtering is performed by the subscription filter (DistanceWindFilter),
+		// so all received wind payloads are considered close enough.
 		double d = distance(this.position, wind.getPosition());
-		if (d > maxDistance) {
-			System.out.println("WindTurbine[" + turbineId + "] ignore wind (too far d=" + d + "): " + wind);
-			return;
-		}
 
 		windBuffer.add(new TimedWind(messageTs, wind));
 		System.out.println("WindTurbine[" + turbineId + "] accept wind d=" + d + ": " + wind);
@@ -188,7 +224,7 @@ public class WindTurbine extends AbstractComponent
 
 		System.out.println("WindTurbine[" + turbineId + "] received alert: " + alert);
 
-		// GREEN means end of alert
+		//  end of alert
 		if (level == MeteoAlertI.Level.GREEN) {
 			safetyMode = false;
 			System.out.println("WindTurbine[" + turbineId + "] RETURN NORMAL (GREEN)");
@@ -210,7 +246,8 @@ public class WindTurbine extends AbstractComponent
 			double dy = pa.getY() - pb.getY();
 			return Math.sqrt(dx * dx + dy * dy);
 		}
-		// fallback: cannot compute
+
+		// cannot compute
 		return Double.POSITIVE_INFINITY;
 	}
 }

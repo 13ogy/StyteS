@@ -100,7 +100,6 @@ public class MessageFilterTest {
 	public void testPropertiesFilterCrossConstraintWithCustomMultiValuesFilter() {
 		info("PropertiesFilter applies a MultiValuesFilterI over several properties (cross-constraint).");
 
-		// Cross-constraint example: require (type == wind) AND (stationId starts with WS)
 		MessageFilterI.MultiValuesFilterI mv = new fr.sorbonne_u.cps.pubsub.messages.filters.MultiValuesFilter("type", "stationId") {
 			@Override
 			protected boolean matchValues(Serializable... values) {
@@ -164,7 +163,6 @@ public class MessageFilterTest {
 
 		assertTrue(filter.match(m));
 
-		// Negative case: different property value
 		Message m2 = new Message("hello");
 		m2.putProperty("type", "other");
 		assertFalse(filter.match(m2));

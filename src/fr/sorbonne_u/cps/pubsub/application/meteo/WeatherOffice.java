@@ -39,7 +39,7 @@ public class WeatherOffice extends AbstractComponent
 
 	public void publishAlert(String alertChannel, MeteoAlertI alert) throws Exception
 	{
-		// Ensure the internal pub/sub client is registered (ports connected) before publishing.
+
 		this.psClient.register(RegistrationClass.FREE);
 		Message m = new Message((java.io.Serializable) alert);
 		m.putProperty("type", "alert");
@@ -47,7 +47,9 @@ public class WeatherOffice extends AbstractComponent
 		m.putProperty("level", alert.getLevel().toString());
 		m.putProperty("alertType", alert.getAlertType().toString());
 
-		this.logMessage("WeatherOffice[" + officeId + "] publish alert " + alert + " on " + alertChannel + "\n");
+		String out = "WeatherOffice[" + officeId + "] publish alert " + alert + " on " + alertChannel;
+		System.out.println(out);
+		this.logMessage(out + "\n");
 		psClient.publish(alertChannel, m);
 	}
 }

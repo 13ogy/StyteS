@@ -34,7 +34,7 @@ public class MessageTest {
 
 		assertEquals(payload, m.getPayload());
 		assertNotNull(m.getTimeStamp());
-		// sanity: timestamp should be <= now
+
 		assertTrue(!m.getTimeStamp().isAfter(Instant.now()));
 	}
 
@@ -95,7 +95,6 @@ public class MessageTest {
 		MessageI.PropertyI[] props1 = m.getProperties();
 		assertEquals(2, props1.length);
 
-		// Mutate the returned array (should not impact the message)
 		props1[0] = null;
 
 		MessageI.PropertyI[] props2 = m.getProperties();
@@ -117,8 +116,8 @@ public class MessageTest {
 		assertEquals(m.getPayload(), c.getPayload());
 		assertEquals("demo", c.getPropertyValue("type"));
 
-		// Modifying the copy payload should not modify the original message payload field.
 		c.setPayload("other");
+
 		assertEquals("payload", m.getPayload());
 		assertEquals("other", c.getPayload());
 	}

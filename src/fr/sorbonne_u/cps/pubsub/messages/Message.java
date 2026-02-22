@@ -233,7 +233,6 @@ public class Message implements MessageI
 	{
 		assert name != null && !name.isEmpty();
 
-		// Contract says: pre {!propertyExists(name)}
 		if (this.properties.containsKey(name)) {
 			throw new IllegalArgumentException("Property already exists: " + name);
 		}
@@ -277,8 +276,6 @@ public class Message implements MessageI
 	public PropertyI[] getProperties()
 	{
 		PropertyI[] ret = this.properties.values().toArray(new PropertyI[0]);
-		// Defensive copy; even if Property objects are immutable, the array
-		// should not provide access to the internal collection object.
 		return Arrays.copyOf(ret, ret.length);
 	}
 
@@ -288,11 +285,8 @@ public class Message implements MessageI
 	@Override
 	public MessageI copy()
 	{
-		// Preserve the original timestamp to make this method an actual copy.
 		Message copy = new Message(this.payload, this.timeStamp);
 		for (PropertyI p : this.properties.values()) {
-			// deep copy of properties (name/value), but value object is referenced
-			// (as the payload is) per interface documentation.
 			copy.properties.put(p.getName(), new Property(p.getName(), p.getValue()));
 		}
 		return copy;

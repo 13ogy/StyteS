@@ -52,15 +52,21 @@ public class WeatherStation extends AbstractComponent
 
 	public void publishWind(String windChannel, WindDataI wind) throws Exception
 	{
-		// Ensure the internal pub/sub client is registered (ports connected) before publishing.
+
 		this.psClient.register(RegistrationClass.FREE);
 		Message m = new Message((java.io.Serializable) wind);
 		m.putProperty("type", "wind");
+		// Expose the payload as a property as well so that value-based filters can be applied
+		// using PropertyFilter on "payload" (default filtering at subscription level).
+		m.putProperty("payload", (java.io.Serializable) wind);
 		m.putProperty("stationId", stationId);
 		m.putProperty("force", Double.toString(wind.force()));
 		m.putProperty("x", Double.toString(wind.xComponent()));
 		m.putProperty("y", Double.toString(wind.yComponent()));
-		this.logMessage("WeatherStation[" + stationId + "] publish wind " + wind + " on " + windChannel + "\n");
+
+		String out = "WeatherStation[" + stationId + "] publish wind " + wind + " on " + windChannel;
+		System.out.println(out);
+		this.logMessage(out + "\n");
 		psClient.publish(windChannel, m);
 	}
 }

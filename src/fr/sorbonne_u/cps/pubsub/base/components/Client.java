@@ -5,7 +5,9 @@ import java.rmi.RemoteException;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
 
+import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientInboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
@@ -18,13 +20,45 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
+/**
+ * Pub/sub client component.
+ *
+ * <p>
+ * The client owns:
+ * </p>
+ * <ul>
+ *   <li>an inbound port offering {@code ReceivingCI} to receive deliveries from the broker;</li>
+ *   <li>an outbound port requiring {@code RegistrationCI} to register and manage subscriptions;</li>
+ *   <li>an outbound port requiring {@code PublishingCI} to publish messages;</li>
+ *   <li>an outbound port requiring {@code PrivilegedClientCI} to manage privileged channels (STANDARD/PREMIUM).</li>
+ * </ul>
+ *
+ * <p>
+ * The method {@link #register(fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass)} establishes the
+ * required connections to the broker.
+ * </p>
+ */
 public class Client extends AbstractComponent {
 
 	private ClientInboundPort receptionPortIN;
+
+	/**
+	 * Return the URI of this client's inbound port offering ReceivingCI.
+	 */
+	public String getReceptionPortURI()
+	{
+		try {
+			return this.receptionPortIN.getPortURI();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private ClientPublishingOutboundPort publishingPortOUT;
 	private ClientPrivilegedOutboundPort privilegedPortOUT;
 
 	private ClientRegistrationOutboundPort registrationPortOUT;
+	private ClientPrivilegedOutboundPort privilegedPortOUT;
 
 	private RegistrationClass rcCurrent;
 
@@ -41,6 +75,9 @@ public class Client extends AbstractComponent {
 		
 		this.registrationPortOUT = new ClientRegistrationOutboundPort(this);
 		this.registrationPortOUT.publishPort();
+
+		this.privilegedPortOUT = new ClientPrivilegedOutboundPort(this);
+		this.privilegedPortOUT.publishPort();
 		
 	}
 
@@ -60,7 +97,7 @@ public class Client extends AbstractComponent {
 			Broker.registrationPortURI(),
 			ClientBrokerRegistrationConnector.class.getCanonicalName());
 
-		// 2) register (audit 1: FREE only)
+		// 2) register
 		String portINURI = registrationPortOUT.register(receptionPortIN.getPortURI(), rc);
 
 		// 3) connect to the broker publishing port
@@ -68,6 +105,13 @@ public class Client extends AbstractComponent {
 			publishingPortOUT.getPortURI(),
 			portINURI,
 			ClientBrokerPublishingConnector.class.getCanonicalName());
+
+		// 4) connect to the broker privileged port
+		this.doPortConnection(
+			privilegedPortOUT.getPortURI(),
+			Broker.privilegedPortURI(),
+			ClientBrokerPrivilegedConnector.class.getCanonicalName());
+
 		this.logMessage("Client registered");
 		this.registered = true;
 	}
@@ -80,8 +124,6 @@ public class Client extends AbstractComponent {
 			throw new AlreadyRegisteredException();
 		}
 
-		// Audit 1 (FREE) scope: service class upgrade/downgrade is not required.
-		// Keep a minimal behaviour: disconnect and reconnect publishing port if URI changes.
 		this.rcCurrent = rc;
 
 		String portINURI =
@@ -110,6 +152,50 @@ public class Client extends AbstractComponent {
 			this.receptionPortIN.getPortURI(),
 			channel,
 			message);
+	}
+
+	// -------------------------------------------------------------------------
+	// Privileged channel management API
+	// -------------------------------------------------------------------------
+
+	public boolean hasCreatedChannel(String channel) throws Exception
+	{
+		return this.privilegedPortOUT.hasCreatedChannel(this.receptionPortIN.getPortURI(), channel);
+	}
+
+	public boolean channelQuotaReached() throws Exception
+	{
+		return this.privilegedPortOUT.channelQuotaReached(this.receptionPortIN.getPortURI());
+	}
+
+	public void createChannel(String channel, String authorisedUsersRegex) throws Exception
+	{
+		this.privilegedPortOUT.createChannel(this.receptionPortIN.getPortURI(), channel, authorisedUsersRegex);
+	}
+
+	public boolean isAuthorisedUser(String channel, String uri) throws Exception
+	{
+		return this.privilegedPortOUT.isAuthorisedUser(channel, uri);
+	}
+
+	public void modifyAuthorisedUsers(String channel, String authorisedUsersRegex) throws Exception
+	{
+		this.privilegedPortOUT.modifyAuthorisedUsers(this.receptionPortIN.getPortURI(), channel, authorisedUsersRegex);
+	}
+
+	public void removeAuthorisedUsers(String channel, String regularExpression) throws Exception
+	{
+		this.privilegedPortOUT.removeAuthorisedUsers(this.receptionPortIN.getPortURI(), channel, regularExpression);
+	}
+
+	public void destroyChannel(String channel) throws Exception
+	{
+		this.privilegedPortOUT.destroyChannel(this.receptionPortIN.getPortURI(), channel);
+	}
+
+	public void destroyChannelNow(String channel) throws Exception
+	{
+		this.privilegedPortOUT.destroyChannelNow(this.receptionPortIN.getPortURI(), channel);
 	}
 
 

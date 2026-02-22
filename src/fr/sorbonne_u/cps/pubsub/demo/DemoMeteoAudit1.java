@@ -1,7 +1,10 @@
-package fr.sorbonne_u.cps.pubsub.application.meteo;
+package fr.sorbonne_u.cps.pubsub.demo;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
+import fr.sorbonne_u.cps.pubsub.application.meteo.WeatherOffice;
+import fr.sorbonne_u.cps.pubsub.application.meteo.WeatherStation;
+import fr.sorbonne_u.cps.pubsub.application.meteo.WindTurbine;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
 import fr.sorbonne_u.cps.pubsub.meteo.RegionI;
@@ -70,6 +73,15 @@ public class DemoMeteoAudit1 extends AbstractCVM
 		WeatherStation station1 = (WeatherStation) this.uri2component.get(station1URI);
 		WeatherStation station2 = (WeatherStation) this.uri2component.get(station2URI);
 		WeatherOffice office = (WeatherOffice) this.uri2component.get(officeURI);
+
+		this.toggleTracing(turbineURI);
+		this.toggleLogging(turbineURI);
+		this.toggleTracing(station1URI);
+		this.toggleLogging(station1URI);
+		this.toggleTracing(station2URI);
+		this.toggleLogging(station2URI);
+		this.toggleTracing(officeURI);
+		this.toggleLogging(officeURI);
 
 		// Subscriptions
 		turbine.subscribeToWindAndAlerts(WIND_CHANNEL, ALERT_CHANNEL);
