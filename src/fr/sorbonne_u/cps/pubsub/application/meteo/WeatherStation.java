@@ -20,7 +20,14 @@ public class WeatherStation extends AbstractComponent
 
 	protected WeatherStation(String stationId, PositionI position) throws Exception
 	{
-		super(1, 0);
+		// Use the component URI as reflection inbound port URI (BCM4Java requirement).
+		this(stationId, stationId, position);
+	}
+
+	/** Constructor variant allowing to set the reflection inbound port URI. */
+	protected WeatherStation(String reflectionInboundPortURI, String stationId, PositionI position) throws Exception
+	{
+		super(reflectionInboundPortURI, 1, 0);
 		if (stationId == null || stationId.isEmpty()) {
 			throw new IllegalArgumentException("stationId cannot be null/empty");
 		}

@@ -18,7 +18,14 @@ public class WeatherOffice extends AbstractComponent
 
 	protected WeatherOffice(String officeId) throws Exception
 	{
-		super(1, 0);
+		// Use the component URI as reflection inbound port URI (BCM4Java requirement).
+		this(officeId, officeId);
+	}
+
+	/** Constructor variant allowing to set the reflection inbound port URI. */
+	protected WeatherOffice(String reflectionInboundPortURI, String officeId) throws Exception
+	{
+		super(reflectionInboundPortURI, 1, 0);
 		if (officeId == null || officeId.isEmpty()) {
 			throw new IllegalArgumentException("officeId cannot be null/empty");
 		}

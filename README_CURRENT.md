@@ -153,7 +153,7 @@ Le code **compile** et la démo démarre correctement. Sur certaines exécutions
 De plus, le toggle tracing/logging via `AbstractCVM.toggleTracing` peut échouer (NPE interne BCM) selon les versions/configuration BCM4Java ; cela n’empêche pas l’exécution du scénario (un message est affiché sur stderr).
 
 ### Note technique
-Pour que le composant exécute ses étapes, `WindTurbine` accepte désormais un paramètre optionnel `TestScenario` et exécute `executeTestScenario(...)` dans `start()` quand il est présent.
+Pour que le composant exécute ses étapes, `WindTurbine` accepte désormais un paramètre optionnel `TestScenario` et exécute `executeTestScenario(...)` dans `execute()` (même pattern que l’exemple `data_store/clients/DataStoreClient.java`).
 
 ---
 

@@ -6,6 +6,9 @@
 *.iml
 out/
 
+# Local test examples
+data_store/
+
 # Maven / Gradle / build outputs
 target/
 build/
@@ -33,5 +36,5 @@ doc/
 *.tar.gz
 *.tgz
 
-# PDFs (specs/handouts typically provided externally)
+# PDFs
 *.pdf

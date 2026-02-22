@@ -73,13 +73,15 @@ public class WindTurbine extends AbstractComponent
 		long recentWindowMillis,
 		MeteoAlertI.Level threshold) throws Exception
 	{
-		this(null, turbineId, position, maxDistance, recentWindowMillis, threshold);
+		// Use the component URI as reflection inbound port URI (BCM4Java requirement).
+		this(turbineId, null, turbineId, position, maxDistance, recentWindowMillis, threshold);
 	}
 
 	/**
 	 * Constructor variant used by timed integration demos using BCM4Java test scenarios.
 	 */
 	protected WindTurbine(
+		String reflectionInboundPortURI,
 		TestScenario testScenario,
 		String turbineId,
 		PositionI position,
@@ -87,7 +89,9 @@ public class WindTurbine extends AbstractComponent
 		long recentWindowMillis,
 		MeteoAlertI.Level threshold) throws Exception
 	{
-		super(1, 0);
+		// For timed scenarios (CDC Annexe B), we need at least one schedulable
+		// thread to allow AbstractComponent to schedule test steps.
+		super(reflectionInboundPortURI, 1, 1);
 		if (turbineId == null || turbineId.isEmpty()) {
 			throw new IllegalArgumentException("turbineId cannot be null/empty");
 		}
@@ -117,17 +121,21 @@ public class WindTurbine extends AbstractComponent
 		try {
 			super.start();
 			this.psClient.register(RegistrationClass.FREE);
-
-			// If a timed scenario is provided, initialise the accelerated clock and
-			// schedule/execute this component steps.
-			if (this.testScenario != null) {
-				this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, this.testScenario.getClockURI());
-				// Wait until the scenario start time.
-				this.getClock().waitUntilStart();
-				this.executeTestScenario(this.testScenario);
-			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void execute() throws Exception
+	{
+		// Follow the BCM4Java recommended pattern (see provided data_store example):
+		// timed test scenarios are executed in execute(), not in start().
+		if (this.testScenario != null) {
+			System.out.println("[TimedDemo] WindTurbine.execute() rip=" + this.getReflectionInboundPortURI());
+			this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, this.testScenario.getClockURI());
+			this.getClock().waitUntilStart();
+			this.executeTestScenario(this.testScenario);
 		}
 	}
 

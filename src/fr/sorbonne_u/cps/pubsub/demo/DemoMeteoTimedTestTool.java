@@ -44,11 +44,17 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	public static final double ACCELERATION_FACTOR = 60.0; // 1 min virtual = 1 sec real
 	public static final long DELAY_TO_START_MS = 1500L;
 
-	// Component URIs (used by TestScenario participants)
-	public static final String TURBINE_URI = "WT1";
-	public static final String STATION_NEAR_URI = "WS1";
-	public static final String STATION_FAR_URI = "WS2";
-	public static final String OFFICE_URI = "WO1";
+	// IMPORTANT (CDC Annexe B): the participant URIs in the TestScenario must be
+	// the *reflection inbound port URI* of the components.
+	//
+	// In BCM4Java, this is the component URI passed to the AbstractComponent
+	// constructor (aka reflectionInboundPortURI). Therefore we must create
+	// components by passing that URI to their super constructor, not by reusing
+	// application-level IDs.
+	public static final String TURBINE_RIP_URI = "meteo-turbine";
+	public static final String STATION_NEAR_RIP_URI = "meteo-station-near";
+	public static final String STATION_FAR_RIP_URI = "meteo-station-far";
+	public static final String OFFICE_RIP_URI = "meteo-office";
 
 	public DemoMeteoTimedTestTool() throws Exception
 	{
@@ -95,7 +101,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 			new TestStepI[] {
 				new TestStep(
 					CLOCK_URI,
-					TURBINE_URI,
+					TURBINE_RIP_URI,
 					tSubscribe,
 					owner -> {
 						try {
@@ -108,7 +114,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 
 				new TestStep(
 					CLOCK_URI,
-					STATION_NEAR_URI,
+					STATION_NEAR_RIP_URI,
 					tWindNear,
 					owner -> {
 						try {
@@ -121,7 +127,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 
 				new TestStep(
 					CLOCK_URI,
-					STATION_FAR_URI,
+					STATION_FAR_RIP_URI,
 					tWindFar,
 					owner -> {
 						try {
@@ -134,7 +140,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 
 				new TestStep(
 					CLOCK_URI,
-					OFFICE_URI,
+					OFFICE_RIP_URI,
 					tAlertOrange,
 					owner -> {
 						try {
@@ -147,7 +153,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 
 				new TestStep(
 					CLOCK_URI,
-					OFFICE_URI,
+					OFFICE_RIP_URI,
 					tAlertGreen,
 					owner -> {
 						try {
@@ -180,37 +186,32 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 		Position2D stationFarPos = new Position2D(100.0, 0.0);
 
 		// Participants: they must appear in the scenario through their reflection inbound port URI.
+		System.out.println("[TimedDemo] participants RIP URIs: "
+			+ TURBINE_RIP_URI + ", " + STATION_NEAR_RIP_URI + ", " + STATION_FAR_RIP_URI + ", " + OFFICE_RIP_URI);
 		AbstractComponent.createComponent(
 			WindTurbine.class.getCanonicalName(),
-			new Object[] { ts, TURBINE_URI, turbinePos, 20.0, 5_000L, MeteoAlertI.Level.ORANGE });
+			new Object[] { TURBINE_RIP_URI, ts, "WT1", turbinePos, 20.0, 5_000L, MeteoAlertI.Level.ORANGE });
 
 		AbstractComponent.createComponent(
 			WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_NEAR_URI, stationNearPos });
+			new Object[] { STATION_NEAR_RIP_URI, "WS1", stationNearPos });
 
 		AbstractComponent.createComponent(
 			WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_FAR_URI, stationFarPos });
+			new Object[] { STATION_FAR_RIP_URI, "WS2", stationFarPos });
 
 		AbstractComponent.createComponent(
 			WeatherOffice.class.getCanonicalName(),
-			new Object[] { OFFICE_URI });
+			new Object[] { OFFICE_RIP_URI, "WO1" });
+
+		System.out.println("[TimedDemo] scenario contains turbine? " + ts.entityAppearsIn(TURBINE_RIP_URI));
+		System.out.println("[TimedDemo] scenario contains stationNear? " + ts.entityAppearsIn(STATION_NEAR_RIP_URI));
+		System.out.println("[TimedDemo] scenario contains stationFar? " + ts.entityAppearsIn(STATION_FAR_RIP_URI));
+		System.out.println("[TimedDemo] scenario contains office? " + ts.entityAppearsIn(OFFICE_RIP_URI));
 
 		super.deploy();
-
-		// Tracing/logging are optional; do not fail the demo if not available.
-		try {
-			this.toggleTracing(TURBINE_URI);
-			this.toggleLogging(TURBINE_URI);
-			this.toggleTracing(STATION_NEAR_URI);
-			this.toggleLogging(STATION_NEAR_URI);
-			this.toggleTracing(STATION_FAR_URI);
-			this.toggleLogging(STATION_FAR_URI);
-			this.toggleTracing(OFFICE_URI);
-			this.toggleLogging(OFFICE_URI);
-		} catch (Exception e) {
-			System.err.println("[TimedDemo] Unable to toggle tracing/logging: " + e);
-		}
+		// Intentionally do not toggle tracing/logging here to avoid opening
+		// multiple trace windows during the timed demo.
 	}
 
 	public static void main(String[] args)
