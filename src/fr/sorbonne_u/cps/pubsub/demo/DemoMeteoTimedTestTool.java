@@ -48,7 +48,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	// the *reflection inbound port URI* of the components.
 	//
 	// In BCM4Java, this is the component URI passed to the AbstractComponent
-	// constructor (aka reflectionInboundPortURI). Therefore we must create
+	// constructor (aka reflectionInboundPortURI). Therefore, we must create
 	// components by passing that URI to their super constructor, not by reusing
 	// application-level IDs.
 	public static final String TURBINE_RIP_URI = "meteo-turbine";
