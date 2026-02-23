@@ -159,8 +159,7 @@ Pour que le composant exécute ses étapes, `WindTurbine` accepte désormais un 
 
 ## 5) Notes sur les tests unitaires
 
-Deux classes existent dans `src/fr/sorbonne_u/cps/pubsub/tests`, mais nécessitent **JUnit** (non fourni) :
+Deux classes existent dans `src/fr/sorbonne_u/cps/pubsub/tests`:
 - `MessageTest.java`
 - `MessageFilterTest.java`
 
-Si vous souhaitez les exécuter : ajoutez un JUnit jar dans `libs/` et compilez avec le classpath correspondant.

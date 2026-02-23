@@ -169,7 +169,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	@Override
 	public void deploy() throws Exception
 	{
-		// Broker (basic implementation; scenario focuses on the timed tool usage)
+		// Broker
 		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0 });
 
 		// Create the accelerated clock server required by the TestScenario tool.
@@ -210,8 +210,8 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 		System.out.println("[TimedDemo] scenario contains office? " + ts.entityAppearsIn(OFFICE_RIP_URI));
 
 		super.deploy();
-		// Intentionally do not toggle tracing/logging here to avoid opening
-		// multiple trace windows during the timed demo.
+
+		// No tracing/logging here to avoid opening multiple trace windows during the timed demo.
 	}
 
 	public static void main(String[] args)
