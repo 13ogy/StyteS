@@ -7,7 +7,8 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.TimeFilterI;
 /**
  * Time filter accepting timestamps lower than or equal to a given instant.
  *
- * <p>Created on : 2026-02-15</p>
+ *
+ * @author Bogdan Styn
  */
 public class BeforeOrAtTimeFilter implements TimeFilterI
 {

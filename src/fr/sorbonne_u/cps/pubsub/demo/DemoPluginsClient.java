@@ -8,7 +8,9 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
 /**
  * Minimal demo for CDC §3.5: client operations implemented using plugins.
- * Excludes CDC §3.5.3.
+ *
+ *
+ * @author Bogdan Styn
  */
 public class DemoPluginsClient extends AbstractCVM
 {

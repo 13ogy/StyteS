@@ -19,6 +19,9 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
  *
  * It owns the ports needed to register to the broker and connect the publication
  * and privileged management ports.
+ 
+ *
+ * @author Bogdan Styn
  */
 public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRegistrationI
 {

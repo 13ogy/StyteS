@@ -9,6 +9,12 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 import fr.sorbonne_u.cps.pubsub.base.components.Client;
 import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
 
+/**
+ * Inbound port used by the broker to deliver messages to a client.
+ * Works with both the legacy {@link Client} and the plugin-based {@link PluginClient}.
+ *
+ * @author Bogdan Styn
+ */
 public class ClientInboundPort extends AbstractInboundPort implements ReceivingCI {
 	
 	

@@ -13,9 +13,11 @@ import java.util.concurrent.Future;
 
 /**
  * Client-side plugin implementing subscription operations (CDC §3.5).
+ * 
  *
- * Note: CDC §3.5.3 (wait/get next message) is explicitly excluded.
+ * @author Bogdan Styn
  */
+
 public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSubscriptionI
 {
 	private static final long serialVersionUID = 1L;
@@ -147,7 +149,7 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 	}
 
 	// ---------------------------------------------------------------------
-	// CDC §3.5.3 excluded
+	// Pas de CDC §3.5.3
 	// ---------------------------------------------------------------------
 
 	@Override

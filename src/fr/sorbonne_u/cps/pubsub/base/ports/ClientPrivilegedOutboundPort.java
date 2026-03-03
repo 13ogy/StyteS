@@ -17,6 +17,9 @@ import java.util.ArrayList;
  * <p>
  * Methods forward calls to the connected connector using {@link #getConnector()}.
  * </p>
+ 
+ *
+ * @author Bogdan Styn
  */
 public class ClientPrivilegedOutboundPort extends AbstractOutboundPort implements PrivilegedClientCI
 {

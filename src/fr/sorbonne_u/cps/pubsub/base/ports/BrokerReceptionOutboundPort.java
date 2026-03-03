@@ -9,6 +9,11 @@ import fr.sorbonne_u.components.ports.AbstractOutboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 
+/**
+ * Outbound port used by the broker to deliver messages to a given client.
+ *
+ * @author Bogdan Styn
+ */
 public class BrokerReceptionOutboundPort extends AbstractOutboundPort implements ReceivingCI {
 
 	public BrokerReceptionOutboundPort(ComponentI owner) throws Exception {

@@ -32,6 +32,9 @@ import static org.junit.Assert.*;
  * - PropertiesFilter: applies a MultiValuesFilterI on a set of properties (cross-constraints)
  * - Time filters: accept-all and time interval inclusion
  * - MessageFilter: global match on a full message (properties + time)
+ 
+ *
+ * @author Bogdan Styn
  */
 public class MessageFilterTest {
 

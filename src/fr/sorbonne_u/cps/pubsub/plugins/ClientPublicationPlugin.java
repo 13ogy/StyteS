@@ -7,7 +7,10 @@ import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import java.util.ArrayList;
 
-/** Client-side plugin implementing publication operations (CDC §3.5). */
+/** Client-side plugin implementing publication operations (CDC §3.5). 
+ *
+ * @author Bogdan Styn
+ */
 public class ClientPublicationPlugin extends AbstractPlugin implements ClientPublicationI
 {
 	private static final long serialVersionUID = 1L;

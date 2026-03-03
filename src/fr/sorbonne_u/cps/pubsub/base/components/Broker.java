@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  * Broker component implementing a publication/subscription system.
  *
  * <p>
- * Functionality implemented:
+ * Functionalities:
  * </p>
  * <ul>
  *   <li><strong>Registration</strong>: clients register with a service class
@@ -43,6 +43,8 @@ import java.util.regex.Pattern;
  *       an {@code authorisedUsers} regular expression. Access control is enforced on both subscribe and publish.</li>
  *   <li><strong>Quotas</strong>: STANDARD and PREMIUM privileged channel creation is limited by quotas.</li>
  * </ul>
+ *
+ * @author Bogdan Styn
  */
 public class Broker extends AbstractComponent
 {
@@ -50,7 +52,7 @@ public class Broker extends AbstractComponent
 	// Configuration
 	// -------------------------------------------------------------------------
 
-	/** Number of FREE channels: channel0..channel{NB_FREE_CHANNELS-1}. */
+	/** Number of FREE channels */
 	public static final int NB_FREE_CHANNELS = 3;
 
 	// -------------------------------------------------------------------------
@@ -88,12 +90,13 @@ public class Broker extends AbstractComponent
 	/** Privileged channels: channel -> info (owner + authorisedUsers regex). */
 	private final Map<String, PrivilegedChannelInfo> privilegedChannels = new HashMap<>();
 
-	/** Per-client created privileged channels count (quota enforcement). */
+	/** Per-client created privileged channels count. */
 	private final Map<String, Integer> createdPrivilegedChannelsCount = new HashMap<>();
 
-	/** Quotas by registration class (step 2). */
+	/** Quotas by registration class. */
 	public static final int STANDARD_PRIVILEGED_CHANNEL_QUOTA = 2;
 	public static final int PREMIUM_PRIVILEGED_CHANNEL_QUOTA = 5;
+
 	/** Subscriptions: channel -> (client receptionPortURI -> filter). */
 	private final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
 
@@ -105,7 +108,7 @@ public class Broker extends AbstractComponent
 	{
 		super(nbThreads, nbSchedulableThreads);
 
-		// Create FREE channels.
+		// Creating FREE channels
 		for (int i = 0; i < NB_FREE_CHANNELS; i++) {
 			String c = "channel" + i;
 			this.channels.add(c);
@@ -123,7 +126,7 @@ public class Broker extends AbstractComponent
 	}
 
 	// -------------------------------------------------------------------------
-	// Static helper
+	// Helpers
 	// -------------------------------------------------------------------------
 
 	public static String registrationPortURI() throws Exception
@@ -167,12 +170,13 @@ public class Broker extends AbstractComponent
 			throw new AlreadyRegisteredException();
 		}
 
-		// Step 2: accept all service classes (FREE, STANDARD, PREMIUM).
+		// Accepting all service classes (FREE, STANDARD, PREMIUM)
 		this.registeredClients.put(receptionPortURI, rc);
-		// initialise privileged quota bookkeeping
+
+		// Initializing privileged quota bookkeeping
 		this.createdPrivilegedChannelsCount.putIfAbsent(receptionPortURI, 0);
 
-		// Create a dedicated outbound port for this client and connect it to
+		// Creating a dedicated outbound port for this client and connect it to
 		// the client inbound port offering ReceivingCI.
 		BrokerReceptionOutboundPort out = new BrokerReceptionOutboundPort(this);
 		out.publishPort();
@@ -193,7 +197,7 @@ public class Broker extends AbstractComponent
 		if (rc == null) {
 			throw new IllegalArgumentException("rc cannot be null.");
 		}
-		// Step 2: allow service class upgrade/downgrade.
+		// Allowing service class upgrade/downgrade
 		this.registeredClients.put(receptionPortURI, rc);
 		return publishingPortIN.getPortURI();
 	}
@@ -204,12 +208,12 @@ public class Broker extends AbstractComponent
 			throw new UnknownClientException(receptionPortURI);
 		}
 
-		// Remove subscriptions.
+		// Removing subscriptions
 		for (Map<String, MessageFilterI> subs : this.subscriptions.values()) {
 			subs.remove(receptionPortURI);
 		}
 
-		// Disconnect and remove outbound port.
+		// Disconnecting and removing outbound port
 		BrokerReceptionOutboundPort out = this.receptionPortsOUT.remove(receptionPortURI);
 		if (out != null) {
 			try {

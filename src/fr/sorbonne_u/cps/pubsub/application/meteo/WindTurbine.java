@@ -30,13 +30,12 @@ import fr.sorbonne_u.utils.aclocks.ClocksServer;
  * - for winds: keeps recent + nearby observations and computes an orientation vector
  *   as a weighted vector sum by distance, then takes the negation.
  * - for alerts: enters/leaves safety mode depending on alert level threshold.
+ *
+ *
+ * @author Bogdan Styn
  */
 public class WindTurbine extends AbstractComponent
 {
-	// -------------------------------------------------------------------------
-	// Optional timed test scenario support (CDC annexe B)
-	// -------------------------------------------------------------------------
-
 	/** When non-null, the component will execute its part of the scenario at start(). */
 	private final TestScenario testScenario;
 
@@ -89,8 +88,6 @@ public class WindTurbine extends AbstractComponent
 		long recentWindowMillis,
 		MeteoAlertI.Level threshold) throws Exception
 	{
-		// For timed scenarios (CDC Annexe B), we need at least one schedulable
-		// thread to allow AbstractComponent to schedule test steps.
 		super(reflectionInboundPortURI, 1, 1);
 		if (turbineId == null || turbineId.isEmpty()) {
 			throw new IllegalArgumentException("turbineId cannot be null/empty");
@@ -129,10 +126,8 @@ public class WindTurbine extends AbstractComponent
 	@Override
 	public void execute() throws Exception
 	{
-		// Follow the BCM4Java recommended pattern (see provided data_store example):
-		// timed test scenarios are executed in execute(), not in start().
 		if (this.testScenario != null) {
-			System.out.println("[TimedDemo] WindTurbine.execute() rip=" + this.getReflectionInboundPortURI());
+			this.traceMessage("[TimedDemo] WindTurbine.execute() rip=" + this.getReflectionInboundPortURI() + "\n");
 			this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, this.testScenario.getClockURI());
 			this.getClock().waitUntilStart();
 			this.executeTestScenario(this.testScenario);
@@ -147,6 +142,7 @@ public class WindTurbine extends AbstractComponent
 	public void subscribeToWindAndAlerts(String windChannel, String alertChannel) throws Exception
 	{
 		this.psClient.register(RegistrationClass.FREE);
+
 		// Default subscription filter for winds:
 		// - accept only messages tagged as type=wind
 		// - accept only wind payloads within maxDistance from the turbine position
@@ -165,7 +161,7 @@ public class WindTurbine extends AbstractComponent
 
 		psClient.subscribe(windChannel, windFilter);
 		psClient.subscribe(alertChannel, alertFilter);
-		System.out.println("WindTurbine[" + turbineId + "] subscribed to " + windChannel + " and " + alertChannel);
+		this.traceMessage("WindTurbine[" + turbineId + "] subscribed to " + windChannel + " and " + alertChannel + "\n");
 	}
 
 	private void onReceive(String channel, MessageI message)
@@ -177,10 +173,11 @@ public class WindTurbine extends AbstractComponent
 			} else if (payload instanceof MeteoAlertI) {
 				onAlert((MeteoAlertI) payload);
 			} else {
-				System.out.println("WindTurbine[" + turbineId + "] received unknown payload on " + channel + ": " + payload);
+				this.traceMessage(
+					"WindTurbine[" + turbineId + "] received unknown payload on " + channel + ": " + payload + "\n");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			this.logMessage("WindTurbine[" + turbineId + "] receive failed: " + e.getMessage() + "\n");
 		}
 	}
 
@@ -188,17 +185,14 @@ public class WindTurbine extends AbstractComponent
 	{
 		long now = Instant.now().toEpochMilli();
 
-		// only recent
+		// Removing wind if not recent
 		windBuffer.removeIf(tw -> now - tw.ts > recentWindowMillis);
 
-		// distance filtering is performed by the subscription filter (DistanceWindFilter),
-		// so all received wind payloads are considered close enough.
 		double d = distance(this.position, wind.getPosition());
-
 		windBuffer.add(new TimedWind(messageTs, wind));
-		System.out.println("WindTurbine[" + turbineId + "] accept wind d=" + d + ": " + wind);
+		this.traceMessage("WindTurbine[" + turbineId + "] accept wind d=" + d + ": " + wind + "\n");
 
-		// compute orientation vector
+		// Orientation vector logic
 		double sumX = 0.0;
 		double sumY = 0.0;
 		for (TimedWind tw : windBuffer) {
@@ -207,11 +201,11 @@ public class WindTurbine extends AbstractComponent
 			sumX += w * tw.wind.xComponent();
 			sumY += w * tw.wind.yComponent();
 		}
-
 		double orientX = -sumX;
 		double orientY = -sumY;
-		System.out.println(
-			"WindTurbine[" + turbineId + "] orientation vector = (" + orientX + ", " + orientY + ") safetyMode=" + safetyMode);
+		this.traceMessage(
+			"WindTurbine[" + turbineId + "] orientation vector = (" + orientX + ", " + orientY + ") safetyMode="
+				+ safetyMode + "\n");
 	}
 
 	private void onAlert(MeteoAlertI alert)
@@ -224,24 +218,25 @@ public class WindTurbine extends AbstractComponent
 			}
 		}
 		if (!concerned) {
-			System.out.println("WindTurbine[" + turbineId + "] ignore alert (not concerned): " + alert);
+			this.traceMessage("WindTurbine[" + turbineId + "] ignore alert (not concerned): " + alert + "\n");
 			return;
 		}
 
 		MeteoAlertI.Level level = (alert.getLevel() instanceof MeteoAlertI.Level) ? (MeteoAlertI.Level) alert.getLevel() : null;
 
-		System.out.println("WindTurbine[" + turbineId + "] received alert: " + alert);
+		this.traceMessage("WindTurbine[" + turbineId + "] received alert: " + alert + "\n");
 
-		//  end of alert
+		//  Ending the alert
 		if (level == MeteoAlertI.Level.GREEN) {
 			safetyMode = false;
-			System.out.println("WindTurbine[" + turbineId + "] RETURN NORMAL (GREEN)");
+			this.traceMessage("WindTurbine[" + turbineId + "] RETURN NORMAL (GREEN)\n");
 			return;
 		}
 
 		if (level != null && level.ordinal() >= threshold.ordinal()) {
 			safetyMode = true;
-			System.out.println("WindTurbine[" + turbineId + "] ENTER SAFETY MODE (level=" + level + ", threshold=" + threshold + ")");
+			this.traceMessage(
+				"WindTurbine[" + turbineId + "] ENTER SAFETY MODE (level=" + level + ", threshold=" + threshold + ")\n");
 		}
 	}
 
@@ -255,7 +250,6 @@ public class WindTurbine extends AbstractComponent
 			return Math.sqrt(dx * dx + dy * dy);
 		}
 
-		// cannot compute
 		return Double.POSITIVE_INFINITY;
 	}
 }

@@ -24,6 +24,9 @@ import fr.sorbonne_u.cps.pubsub.messages.filters.PropertyFilter;
  * - unauthorised subscriber subscription is rejected
  * - owner publishes one message -> delivered only to authorised subscriber
  * - quota check: create channels until STANDARD quota is exceeded -> ChannelQuotaExceededException expected
+ 
+ *
+ * @author Bogdan Styn
  */
 public class DemoAudit2Privileged extends AbstractCVM
 {

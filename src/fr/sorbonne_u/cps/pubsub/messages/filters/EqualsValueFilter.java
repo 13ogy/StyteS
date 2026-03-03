@@ -8,9 +8,8 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
  * Filtre de valeur acceptant uniquement les valeurs égales à une valeur attendue
  * (comparaison via {@link Object#equals(Object)}).
  *
- * <p>
- * Created on : 2026-02-08
- * </p>
+ *
+ * @author Bogdan Styn
  */
 public class EqualsValueFilter implements ValueFilterI
 {

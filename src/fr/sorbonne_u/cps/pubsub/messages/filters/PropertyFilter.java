@@ -5,14 +5,15 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI.PropertyI;
 
 /**
- * A basic implementation of {@link PropertyFilterI}.
+ * An implementation of {@link PropertyFilterI}.
  *
  * <p>
  * This filter targets a single property name and applies a {@link ValueFilterI}
  * on its value.
  * </p>
  *
- * <p>Created on : 2026-02-15</p>
+ *
+ * @author Bogdan Styn
  */
 public class PropertyFilter implements PropertyFilterI
 {

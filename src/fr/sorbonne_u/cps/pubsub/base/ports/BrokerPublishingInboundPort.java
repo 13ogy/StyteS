@@ -8,6 +8,11 @@ import fr.sorbonne_u.components.ports.AbstractInboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
+/**
+ * Inbound port exposing the broker publishing service.
+ *
+ * @author Bogdan Styn
+ */
 public class BrokerPublishingInboundPort extends AbstractInboundPort implements PublishingCI {
 
 	public BrokerPublishingInboundPort(ComponentI owner) throws Exception {

@@ -11,6 +11,11 @@ import fr.sorbonne_u.components.connectors.AbstractConnector;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 
+/**
+ * Connector used by clients to call the broker registration service.
+ *
+ * @author Bogdan Styn
+ */
 public class ClientBrokerRegistrationConnector extends AbstractConnector implements RegistrationCI {
 
 	@Override

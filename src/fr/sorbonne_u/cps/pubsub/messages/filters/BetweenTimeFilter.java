@@ -8,7 +8,8 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.TimeFilterI;
  * Time filter accepting timestamps within an interval [{@code startInclusive},
  * {@code endInclusive}].
  *
- * <p>Created on : 2026-02-15</p>
+ *
+ * @author Bogdan Styn
  */
 public class BetweenTimeFilter implements TimeFilterI
 {

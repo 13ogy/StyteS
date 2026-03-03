@@ -14,6 +14,9 @@ import java.util.ArrayList;
  * The connector forwards calls to the offering component through
  * {@link #offering}.
  * </p>
+ 
+ *
+ * @author Bogdan Styn
  */
 public class ClientBrokerPrivilegedConnector extends AbstractConnector implements PrivilegedClientCI
 {

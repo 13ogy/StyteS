@@ -20,6 +20,9 @@ import java.util.ArrayList;
  * component interface {@link PrivilegedClientCI}. It also inherits publishing
  * operations because {@link PrivilegedClientCI} extends {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}.
  * </p>
+ 
+ *
+ * @author Bogdan Styn
  */
 public class BrokerPrivilegedInboundPort extends AbstractInboundPort implements PrivilegedClientCI
 {

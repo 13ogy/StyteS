@@ -1,12 +1,14 @@
 package fr.sorbonne_u.cps.pubsub.messages.filters;
+
 import java.time.Instant;
 
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.TimeFilterI;
 
 /**
- * Time filter accepting any timestamp (joker filter).
+ * Time filter that accepts any timestamp.
  *
- * <p>Created on : 2026-02-15</p>
+ *
+ * @author Bogdan Styn
  */
 public class AcceptAllTimeFilter implements TimeFilterI
 {

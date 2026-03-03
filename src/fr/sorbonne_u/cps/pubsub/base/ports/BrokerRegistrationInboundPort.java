@@ -11,6 +11,11 @@ import fr.sorbonne_u.components.ports.AbstractInboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 
+/**
+ * Inbound port exposing the broker registration/subscription services.
+ *
+ * @author Bogdan Styn
+ */
 public class BrokerRegistrationInboundPort extends AbstractInboundPort implements RegistrationCI{
 
 	public BrokerRegistrationInboundPort( ComponentI owner) throws Exception {

@@ -12,17 +12,18 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
+import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
 /**
  * A plugin-based client component implementing CDC §3.5 (excluding §3.5.3).
  *
  * This component coexists with the legacy {@link Client} component so that
  * previous demos remain unchanged.
+ *
+ * @author Bogdan Styn
  */
 public class PluginClient extends AbstractComponent
 {
-	public static final String DEFAULT_CHANNEL = "channel0";
-	// Plugins
 	protected final ClientRegistrationPlugin registrationPlugin;
 	protected final ClientSubscriptionPlugin subscriptionPlugin;
 	protected final ClientPublicationPlugin publicationPlugin;
@@ -109,13 +110,56 @@ public class PluginClient extends AbstractComponent
 	}
 
 	// ---------------------------------------------------------------------
-	// Publication API (delegation)
+	// Publication API
 	// ---------------------------------------------------------------------
 
 	public void publish(String channel, MessageI message)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
 	{
 		this.publicationPlugin.publish(channel, message);
+	}
+
+	// ---------------------------------------------------------------------
+	// Privileged channel management
+	// ---------------------------------------------------------------------
+
+	public void createChannel(String channel, String authorisedUsers)
+	throws UnknownClientException,
+			fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException,
+			fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException
+	{
+		try {
+			this.registrationPlugin.getPrivilegedPortOUT().createChannel(
+				this.getReceptionPortURI(),
+				channel,
+				authorisedUsers);
+		} catch (Exception e) {
+			// Preserve declared exceptions when possible (no Java preview features).
+			if (e instanceof UnknownClientException) {
+				throw (UnknownClientException) e;
+			}
+			if (e instanceof fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException) {
+				throw (fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException) e;
+			}
+			if (e instanceof fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException) {
+				throw (fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException) e;
+			}
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Convenience wrapper to run a timed {@link fr.sorbonne_u.components.utils.tests.TestScenario}.
+	 * The actual scheduling/execution is handled by BCM4Java.
+	 */
+	public void executeScenario(fr.sorbonne_u.components.utils.tests.TestScenario ts) throws Exception
+	{
+		if (ts == null) {
+			throw new IllegalArgumentException("test scenario cannot be null");
+		}
+		this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, ts.getClockURI());
+		this.getClock().waitUntilStart();
+		this.executeTestScenario(ts);
 	}
 
 	// ---------------------------------------------------------------------
