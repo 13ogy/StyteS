@@ -42,17 +42,15 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	// -------------------------------------------------------------------------
 
 	public static final String TEST_CLOCK_URI = "midsem-test-clock";
-	public static final Instant START_INSTANT = Instant.parse("2026-03-01T09:00:00.00Z");
-	// Give enough time for component deployment/port connections before the clock starts.
-	protected static final long START_DELAY = 8000L;
+	protected static final long START_DELAY = 60_000L;
 	public static final double ACCELERATION_FACTOR = 60.0;
+	protected static final long SCENARIO_OFFSET_SECONDS = 7_200L;
 
 	// -------------------------------------------------------------------------
 	// Channels
 	// -------------------------------------------------------------------------
 
 	public static final String CH_WIND_FREE = "wind-free";
-	// Present to illustrate explicit channel naming, not used directly by this scenario.
 	public static final String CH_ALERTS_FREE = "alerts-free";
 	public static final String CH_ALERTS_STD_PRIVATE = "alerts-std-private";
 	public static final String CH_WIND_PREM_PRIVATE = "wind-prem-private";
@@ -68,6 +66,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	public static final String OFFICE_STANDARD_URI = "office-standard";
 	public static final String OFFICE_PREMIUM_URI = "office-premium";
 	public static final String INTRUDER_FREE_URI = "intruder-free";
+	public static final String SCENARIO_RUNNER_URI = "scenario-runner";
 
 	public DemoMidSemComplexTimedScenario() throws Exception
 	{
@@ -78,10 +77,12 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	// Scenario
 	// -------------------------------------------------------------------------
 
-	public static TestScenario buildScenario()
+	public static TestScenario buildScenario(Instant startInstant)
 	{
-		Instant start = START_INSTANT;
+		Instant start = startInstant.plusSeconds(SCENARIO_OFFSET_SECONDS);
 		Instant end = start.plusSeconds(70);
+
+		Instant tRunnerBootstrap = start.plusSeconds(1);
 
 		Instant tRegisterAll = start.plusSeconds(5);
 		Instant tUpgradeStd = start.plusSeconds(8);
@@ -103,13 +104,17 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 		Instant acceptFrom = start.plusSeconds(19);
 		Instant acceptUntil = start.plusSeconds(31);
 
+		// (beginningMessage, endingMessage, clockURI, startInstant, endInstant, steps)
 		return new TestScenario(
-			TEST_CLOCK_URI,
 			"[MidSemScenario] BEGIN",
 			"[MidSemScenario] END",
+			TEST_CLOCK_URI,
 			start,
 			end,
 			new TestStepI[] {
+				new TestStep(TEST_CLOCK_URI, SCENARIO_RUNNER_URI, tRunnerBootstrap, owner -> safe(owner, () -> {
+					owner.logMessage("[MidSemScenario] runner bootstrap step\n");
+				})),
 				// 1) register everyone as FREE
 				new TestStep(TEST_CLOCK_URI, TURBINE_NEAR_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
 					((PluginClient) owner).register(RegistrationClass.FREE);
@@ -252,36 +257,41 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	{
 		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0 });
 
+		final long nowMs = System.currentTimeMillis();
 		long unixEpochStartTimeInNanos =
-			TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis() + START_DELAY);
+			TimeUnit.MILLISECONDS.toNanos(nowMs + START_DELAY);
+
+		// Start instant in the future relative to deployment.
+		Instant startInstant = Instant.ofEpochMilli(nowMs)
+			.plusSeconds((START_DELAY / 1000L) + 2L);
 		AbstractComponent.createComponent(
 			ClocksServer.class.getCanonicalName(),
-			new Object[] { TEST_CLOCK_URI, unixEpochStartTimeInNanos, START_INSTANT, ACCELERATION_FACTOR });
+			new Object[] { TEST_CLOCK_URI, unixEpochStartTimeInNanos, startInstant, ACCELERATION_FACTOR });
 
-		TestScenario ts = buildScenario();
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { TURBINE_NEAR_FREE_URI, 1, 0 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { TURBINE_FAR_FREE_URI, 1, 0 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { STATION_NEAR_FREE_URI, 1, 0 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { STATION_FAR_FREE_URI, 1, 0 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { OFFICE_STANDARD_URI, 1, 0 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { OFFICE_PREMIUM_URI, 1, 0 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { INTRUDER_FREE_URI, 1, 0 });
+		TestScenario ts = buildScenario(startInstant);
+
+		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { TURBINE_NEAR_FREE_URI, 1, 1 });
+		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { TURBINE_FAR_FREE_URI, 1, 1 });
+		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { STATION_NEAR_FREE_URI, 1, 1 });
+		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { STATION_FAR_FREE_URI, 1, 1 });
+		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { OFFICE_STANDARD_URI, 1, 1 });
+		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { OFFICE_PREMIUM_URI, 1, 1 });
+		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { INTRUDER_FREE_URI, 1, 1 });
+
+		// A dedicated runner schedules all steps.
+		AbstractComponent.createComponent(ScenarioRunner.class.getCanonicalName(), new Object[] { SCENARIO_RUNNER_URI, ts, 1, 1 });
 
 		super.deploy();
 
 		// Logging/tracing only.
-		this.toggleLogging(TURBINE_NEAR_FREE_URI);
-		this.toggleLogging(OFFICE_STANDARD_URI);
-		this.toggleLogging(OFFICE_PREMIUM_URI);
-		this.toggleLogging(INTRUDER_FREE_URI);
 		this.toggleTracing(TURBINE_NEAR_FREE_URI);
 		this.toggleTracing(OFFICE_STANDARD_URI);
 		this.toggleTracing(OFFICE_PREMIUM_URI);
 		this.toggleTracing(INTRUDER_FREE_URI);
-
-		// Launch the scenario on any participant component.
-		// The tool will execute steps on all participants.
-		((PluginClient) this.uri2component.get(TURBINE_NEAR_FREE_URI)).executeScenario(ts);
+		this.toggleTracing(TURBINE_NEAR_FREE_URI);
+		this.toggleTracing(OFFICE_STANDARD_URI);
+		this.toggleTracing(OFFICE_PREMIUM_URI);
+		this.toggleTracing(INTRUDER_FREE_URI);
 	}
 
 	/**
@@ -314,7 +324,8 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	{
 		try {
 			DemoMidSemComplexTimedScenario cvm = new DemoMidSemComplexTimedScenario();
-			cvm.startStandardLifeCycle(10_000L);
+		// START_DELAY + scenario execution + a margin.
+		cvm.startStandardLifeCycle(180_000L);
 			System.exit(0);
 		} catch (Exception e) {
 			System.err.println(e.getMessage());

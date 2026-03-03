@@ -64,6 +64,15 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	@Override
 	public void uninstall() throws Exception
 	{
+		// Ensure the client is unregistered before cleaning up ports.
+		// This avoids leaving broker-side connections hanging.
+		try {
+			if (this.registered) {
+				this.unregister();
+			}
+		} catch (Exception ignored) {
+		}
+
 		// Best-effort cleanup.
 		try {
 			if (this.registrationPortOUT != null && this.registrationPortOUT.connected()) {
@@ -98,6 +107,22 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		}
 		try {
 			if (this.receptionPortIN != null) this.receptionPortIN.unpublishPort();
+		} catch (Exception ignored) {
+		}
+		try {
+			if (this.privilegedPortOUT != null) this.privilegedPortOUT.destroyPort();
+		} catch (Exception ignored) {
+		}
+		try {
+			if (this.publishingPortOUT != null) this.publishingPortOUT.destroyPort();
+		} catch (Exception ignored) {
+		}
+		try {
+			if (this.registrationPortOUT != null) this.registrationPortOUT.destroyPort();
+		} catch (Exception ignored) {
+		}
+		try {
+			if (this.receptionPortIN != null) this.receptionPortIN.destroyPort();
 		} catch (Exception ignored) {
 		}
 

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import fr.sorbonne_u.components.AbstractComponent;
+import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.cps.pubsub.base.connectors.BrokerClientReceivingConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.BrokerPrivilegedInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.BrokerPublishingInboundPort;
@@ -21,8 +22,13 @@ import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
+
+import fr.sorbonne_u.components.annotations.OfferedInterfaces;
 
 import java.util.regex.Pattern;
 
@@ -46,13 +52,17 @@ import java.util.regex.Pattern;
  *
  * @author Bogdan Styn
  */
+@OfferedInterfaces(offered = {
+	RegistrationCI.class,
+	PublishingCI.class,
+	PrivilegedClientCI.class
+})
 public class Broker extends AbstractComponent
 {
 	// -------------------------------------------------------------------------
 	// Configuration
 	// -------------------------------------------------------------------------
 
-	/** Number of FREE channels */
 	public static final int NB_FREE_CHANNELS = 3;
 
 	// -------------------------------------------------------------------------
@@ -108,7 +118,6 @@ public class Broker extends AbstractComponent
 	{
 		super(nbThreads, nbSchedulableThreads);
 
-		// Creating FREE channels
 		for (int i = 0; i < NB_FREE_CHANNELS; i++) {
 			String c = "channel" + i;
 			this.channels.add(c);
@@ -123,6 +132,51 @@ public class Broker extends AbstractComponent
 
 		privilegedPortIN = new BrokerPrivilegedInboundPort(this);
 		privilegedPortIN.publishPort();
+	}
+
+	// -------------------------------------------------------------------------
+	// Component life cycle
+	// -------------------------------------------------------------------------
+
+	@Override
+	public synchronized void shutdown() throws ComponentShutdownException
+	{
+		try {
+			// Disconnect/unpublish per-client outbound ports.
+			for (BrokerReceptionOutboundPort out : this.receptionPortsOUT.values()) {
+				try {
+					if (out.connected()) {
+						this.doPortDisconnection(out.getPortURI());
+					}
+				} catch (Exception ignored) {}
+				try { out.unpublishPort(); } catch (Exception ignored) {}
+				try { out.destroyPort(); } catch (Exception ignored) {}
+			}
+			this.receptionPortsOUT.clear();
+
+			// Unpublish broker inbound ports.
+			try {
+                if (this.publishingPortIN != null) {
+                    this.publishingPortIN.unpublishPort();
+                    this.publishingPortIN.destroyPort();
+                }
+            } catch (Exception ignored) {}
+			try {
+                if (registrationPortIN != null) {
+                    registrationPortIN.unpublishPort();
+                    registrationPortIN.destroyPort();
+                }
+            } catch (Exception ignored) {}
+			try {
+                if (privilegedPortIN != null) {
+                    privilegedPortIN.unpublishPort();
+                    privilegedPortIN.destroyPort();
+                }
+            } catch (Exception ignored) {}
+		} catch (Throwable t) {
+			throw new ComponentShutdownException(t);
+		}
+		super.shutdown();
 	}
 
 	// -------------------------------------------------------------------------

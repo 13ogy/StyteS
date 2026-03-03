@@ -1,6 +1,8 @@
 package fr.sorbonne_u.cps.pubsub.base.components;
 
 import fr.sorbonne_u.components.AbstractComponent;
+import fr.sorbonne_u.components.annotations.OfferedInterfaces;
+import fr.sorbonne_u.components.annotations.RequiredInterfaces;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.NotSubscribedChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
@@ -8,6 +10,10 @@ import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
@@ -22,13 +28,21 @@ import fr.sorbonne_u.utils.aclocks.ClocksServer;
  *
  * @author Bogdan Styn
  */
+@OfferedInterfaces(offered = { ReceivingCI.class })
+@RequiredInterfaces(required = {
+	RegistrationCI.class,
+	PublishingCI.class,
+	PrivilegedClientCI.class
+})
 public class PluginClient extends AbstractComponent
 {
 	protected final ClientRegistrationPlugin registrationPlugin;
 	protected final ClientSubscriptionPlugin subscriptionPlugin;
 	protected final ClientPublicationPlugin publicationPlugin;
-
-	public PluginClient(String reflectionInboundPortURI, int nbThreads, int nbSchedulableThreads) throws Exception
+	protected PluginClient(
+		String reflectionInboundPortURI,
+		int nbThreads,
+		int nbSchedulableThreads) throws Exception
 	{
 		super(reflectionInboundPortURI, nbThreads, nbSchedulableThreads);
 
@@ -146,20 +160,6 @@ public class PluginClient extends AbstractComponent
 			}
 			throw new RuntimeException(e);
 		}
-	}
-
-	/**
-	 * Convenience wrapper to run a timed {@link fr.sorbonne_u.components.utils.tests.TestScenario}.
-	 * The actual scheduling/execution is handled by BCM4Java.
-	 */
-	public void executeScenario(fr.sorbonne_u.components.utils.tests.TestScenario ts) throws Exception
-	{
-		if (ts == null) {
-			throw new IllegalArgumentException("test scenario cannot be null");
-		}
-		this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, ts.getClockURI());
-		this.getClock().waitUntilStart();
-		this.executeTestScenario(ts);
 	}
 
 	// ---------------------------------------------------------------------
