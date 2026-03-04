@@ -68,8 +68,14 @@ Une démo additionnelle (voir §4) montre l’utilisation des classes BCM4Java :
 
 ### ❌ Non implémenté / à implémenter ensuite
 
-#### CDC §3.5 — Greffons
-Les interfaces de greffons (Java) existent dans `src/fr/sorbonne_u/cps/pubsub/plugins/*`, mais **les greffons eux-mêmes ne sont pas implantés**.
+#### CDC §3.5 — Greffons (sans §3.5.3)
+Les greffons côté client sont **implémentés** et utilisés via un composant client dédié `PluginClient` :
+- `src/fr/sorbonne_u/cps/pubsub/plugins/ClientRegistrationPlugin.java`
+- `src/fr/sorbonne_u/cps/pubsub/plugins/ClientSubscriptionPlugin.java`
+- `src/fr/sorbonne_u/cps/pubsub/plugins/ClientPublicationPlugin.java`
+- `src/fr/sorbonne_u/cps/pubsub/base/components/PluginClient.java`
+
+Le composant legacy `Client` est conservé pour ne pas casser les démos historiques.
 
 #### CDC §3.5.3 — Réception avancée des messages
 - `waitForNextMessage`, `getNextMessage`, discipline FIFO entre attentes, interaction avec `receive(...)` : **non implémenté**.
@@ -157,7 +163,26 @@ Pour que le composant exécute ses étapes, `WindTurbine` accepte désormais un 
 
 ---
 
-## 5) Notes sur les tests unitaires
+## 5) Démo additionnelle — Scénario temporisé complexe (mi-semestre)
+
+### Objectif
+Scénario temporisé (Annexe B) basé sur **PluginClient** couvrant :
+- FREE + canaux privilégiés
+- `authorisedUsers` (regex)
+- dépassement de quota
+- subscribe/publish autorisés + refusés
+- filtres : propriétés, valeurs comparables/multi-valeurs, fenêtres temporelles
+
+Démo : `src/fr/sorbonne_u/cps/pubsub/demo/DemoMidSemComplexTimedScenario.java`
+
+Exécution :
+```bash
+java -cp libs/BCM4Java-03022026.jar:src fr.sorbonne_u.cps.pubsub.demo.DemoMidSemComplexTimedScenario
+```
+
+---
+
+## 6) Notes sur les tests unitaires
 
 Deux classes existent dans `src/fr/sorbonne_u/cps/pubsub/tests`:
 - `MessageTest.java`

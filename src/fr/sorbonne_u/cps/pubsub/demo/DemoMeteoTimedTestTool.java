@@ -27,6 +27,9 @@ import java.util.concurrent.TimeUnit;
  *
  * This demo replays the meteo scenario (CDC §3.4) but drives the actions
  * (subscriptions, publications) with timed test steps instead of Thread.sleep.
+ 
+ *
+ * @author Bogdan Styn
  */
 public class DemoMeteoTimedTestTool extends AbstractCVM
 {
@@ -48,7 +51,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	// the *reflection inbound port URI* of the components.
 	//
 	// In BCM4Java, this is the component URI passed to the AbstractComponent
-	// constructor (aka reflectionInboundPortURI). Therefore we must create
+	// constructor (aka reflectionInboundPortURI). Therefore, we must create
 	// components by passing that URI to their super constructor, not by reusing
 	// application-level IDs.
 	public static final String TURBINE_RIP_URI = "meteo-turbine";
@@ -186,8 +189,8 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 		Position2D stationFarPos = new Position2D(100.0, 0.0);
 
 		// Participants: they must appear in the scenario through their reflection inbound port URI.
-		System.out.println("[TimedDemo] participants RIP URIs: "
-			+ TURBINE_RIP_URI + ", " + STATION_NEAR_RIP_URI + ", " + STATION_FAR_RIP_URI + ", " + OFFICE_RIP_URI);
+		System.err.println("[TimedDemo] participants RIP URIs: "
+			+ TURBINE_RIP_URI + ", " + STATION_NEAR_RIP_URI + ", " + STATION_FAR_RIP_URI + ", " + OFFICE_RIP_URI + "\n");
 		AbstractComponent.createComponent(
 			WindTurbine.class.getCanonicalName(),
 			new Object[] { TURBINE_RIP_URI, ts, "WT1", turbinePos, 20.0, 5_000L, MeteoAlertI.Level.ORANGE });
@@ -204,10 +207,10 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 			WeatherOffice.class.getCanonicalName(),
 			new Object[] { OFFICE_RIP_URI, "WO1" });
 
-		System.out.println("[TimedDemo] scenario contains turbine? " + ts.entityAppearsIn(TURBINE_RIP_URI));
-		System.out.println("[TimedDemo] scenario contains stationNear? " + ts.entityAppearsIn(STATION_NEAR_RIP_URI));
-		System.out.println("[TimedDemo] scenario contains stationFar? " + ts.entityAppearsIn(STATION_FAR_RIP_URI));
-		System.out.println("[TimedDemo] scenario contains office? " + ts.entityAppearsIn(OFFICE_RIP_URI));
+		System.err.println("[TimedDemo] scenario contains turbine? " + ts.entityAppearsIn(TURBINE_RIP_URI));
+		System.err.println("[TimedDemo] scenario contains stationNear? " + ts.entityAppearsIn(STATION_NEAR_RIP_URI));
+		System.err.println("[TimedDemo] scenario contains stationFar? " + ts.entityAppearsIn(STATION_FAR_RIP_URI));
+		System.err.println("[TimedDemo] scenario contains office? " + ts.entityAppearsIn(OFFICE_RIP_URI));
 
 		super.deploy();
 
@@ -221,7 +224,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 			cvm.startStandardLifeCycle(8000L);
 			System.exit(0);
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.err.println(e.getMessage());
 			System.exit(1);
 		}
 	}

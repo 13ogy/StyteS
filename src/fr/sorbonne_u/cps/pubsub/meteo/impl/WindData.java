@@ -7,6 +7,9 @@ import java.util.Objects;
 
 /**
  * Simple wind data implementation for CDC §3.4.
+ 
+ *
+ * @author Bogdan Styn
  */
 public class WindData implements WindDataI
 {

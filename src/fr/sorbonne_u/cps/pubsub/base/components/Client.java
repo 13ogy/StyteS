@@ -36,6 +36,8 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
  * The method {@link #register(fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass)} establishes the
  * required connections to the broker.
  * </p>
+ *
+ * @author Bogdan Styn
  */
 public class Client extends AbstractComponent {
 
@@ -81,29 +83,28 @@ public class Client extends AbstractComponent {
 	
 	public void register(RegistrationClass rc) throws Exception {
 		if (this.registered) {
-			// idempotent register for application-level convenience.
 			return;
 		}
 		this.rcCurrent = rc;
 		
 		this.logMessage("Registering client.") ;
 		
-		// 1) connect to the broker registration port
+		// Connecting to the broker registration port
 		this.doPortConnection(
 			registrationPortOUT.getPortURI(),
 			Broker.registrationPortURI(),
 			ClientBrokerRegistrationConnector.class.getCanonicalName());
 
-		// 2) register
+		// Registering
 		String portINURI = registrationPortOUT.register(receptionPortIN.getPortURI(), rc);
 
-		// 3) connect to the broker publishing port
+		// Connecting to the broker publishing port
 		this.doPortConnection(
 			publishingPortOUT.getPortURI(),
 			portINURI,
 			ClientBrokerPublishingConnector.class.getCanonicalName());
 
-		// 4) connect to the broker privileged port
+		// Connecting to the broker privileged port
 		this.doPortConnection(
 			privilegedPortOUT.getPortURI(),
 			Broker.privilegedPortURI(),

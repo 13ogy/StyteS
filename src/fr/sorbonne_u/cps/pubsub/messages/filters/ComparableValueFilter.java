@@ -12,9 +12,8 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
  * (between, inclusive).
  * </p>
  *
- * <p>
- * Created on : 2026-02-15
- * </p>
+ *
+ * @author Bogdan Styn
  */
 public class ComparableValueFilter implements ValueFilterI
 {

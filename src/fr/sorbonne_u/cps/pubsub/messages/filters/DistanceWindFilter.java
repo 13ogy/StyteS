@@ -28,6 +28,9 @@ import java.io.Serializable;
  * The current implementation computes distances when positions are {@link Position2D}.
  * Other {@link PositionI} implementations are rejected (distance treated as +infinity).
  * </p>
+ 
+ *
+ * @author Bogdan Styn
  */
 public class DistanceWindFilter implements MessageFilterI.ValueFilterI
 {

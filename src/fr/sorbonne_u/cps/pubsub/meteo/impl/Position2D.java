@@ -5,7 +5,10 @@ import fr.sorbonne_u.cps.pubsub.meteo.PositionI;
 import java.util.Objects;
 
 /**
- * Simple 2D position implementation for the meteo/eolienne application (CDC §3.4).
+ * A 2D position implementation (CDC §3.4).
+ 
+ *
+ * @author Bogdan Styn
  */
 public class Position2D implements PositionI
 {

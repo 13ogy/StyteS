@@ -10,6 +10,9 @@ import java.util.Objects;
 
 /**
  * Simple meteo alert implementation for CDC §3.4.
+ 
+ *
+ * @author Bogdan Styn
  */
 public class MeteoAlert implements MeteoAlertI
 {

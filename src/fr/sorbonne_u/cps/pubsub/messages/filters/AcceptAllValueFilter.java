@@ -5,11 +5,10 @@ import java.io.Serializable;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
 
 /**
- * Filtre de valeur acceptant toute valeur.
+ * Value filter accepting any value.
  *
- * <p>
- * Created on : 2026-02-08
- * </p>
+ *
+ * @author Bogdan Styn
  */
 public class AcceptAllValueFilter implements ValueFilterI
 {

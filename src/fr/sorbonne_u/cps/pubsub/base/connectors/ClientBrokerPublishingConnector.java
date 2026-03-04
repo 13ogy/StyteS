@@ -9,6 +9,11 @@ import fr.sorbonne_u.components.connectors.AbstractConnector;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
+/**
+ * Connector used by clients to call the broker publishing service.
+ *
+ * @author Bogdan Styn
+ */
 public class ClientBrokerPublishingConnector extends AbstractConnector implements PublishingCI {
 
 	@Override

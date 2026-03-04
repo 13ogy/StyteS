@@ -32,9 +32,8 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
  *   et des propriétés, mais conserve une référence vers le même objet payload.</li>
  * </ul>
  *
- * <p>
- * Created on : 2026-02-08
- * </p>
+ *
+ * @author Bogdan Styn
  */
 public class Message implements MessageI
 {

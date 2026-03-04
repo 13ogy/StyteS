@@ -6,6 +6,12 @@ import fr.sorbonne_u.components.connectors.AbstractConnector;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 
+/**
+ * Connector used by the broker to push messages to clients through the
+ * {@link ReceivingCI} interface.
+ *
+ * @author Bogdan Styn
+ */
 public class BrokerClientReceivingConnector extends AbstractConnector implements ReceivingCI {
 
 	@Override

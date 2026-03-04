@@ -31,6 +31,9 @@ import java.time.Instant;
  * - station2 publishes a far wind -> ignored
  * - office publishes ORANGE alert concerning turbine -> safety mode
  * - office publishes GREEN alert concerning turbine -> return normal
+ 
+ *
+ * @author Bogdan Styn
  */
 public class DemoMeteoAudit1 extends AbstractCVM
 {

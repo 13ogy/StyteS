@@ -6,7 +6,9 @@ import fr.sorbonne_u.cps.pubsub.meteo.RegionI;
 import java.util.Objects;
 
 /**
- * Simple circular region implementation for CDC §3.4.
+ * Circular region implementation for CDC §3.4.
+ *
+ * @author Bogdan Styn
  */
 public class CircularRegion implements RegionI
 {

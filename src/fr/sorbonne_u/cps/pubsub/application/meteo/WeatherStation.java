@@ -11,6 +11,9 @@ import fr.sorbonne_u.cps.pubsub.messages.Message;
  * CDC §3.4 Weather station component.
  *
  * Publishes wind observations (WindDataI) on a wind channel.
+ 
+ *
+ * @author Bogdan Styn
  */
 public class WeatherStation extends AbstractComponent
 {
@@ -20,7 +23,7 @@ public class WeatherStation extends AbstractComponent
 
 	protected WeatherStation(String stationId, PositionI position) throws Exception
 	{
-		// Use the component URI as reflection inbound port URI (BCM4Java requirement).
+		// Using the component URI as reflection inbound port URI
 		this(stationId, stationId, position);
 	}
 
@@ -37,7 +40,6 @@ public class WeatherStation extends AbstractComponent
 		this.stationId = stationId;
 		this.position = position;
 
-		// Use the generic pub/sub client implementation.
 		this.psClient = new Client(1, 0);
 	}
 
@@ -63,8 +65,7 @@ public class WeatherStation extends AbstractComponent
 		this.psClient.register(RegistrationClass.FREE);
 		Message m = new Message((java.io.Serializable) wind);
 		m.putProperty("type", "wind");
-		// Expose the payload as a property as well so that value-based filters can be applied
-		// using PropertyFilter on "payload" (default filtering at subscription level).
+		// The payload as a property so that value-based filters can be applied
 		m.putProperty("payload", (java.io.Serializable) wind);
 		m.putProperty("stationId", stationId);
 		m.putProperty("force", Double.toString(wind.force()));
@@ -72,7 +73,7 @@ public class WeatherStation extends AbstractComponent
 		m.putProperty("y", Double.toString(wind.yComponent()));
 
 		String out = "WeatherStation[" + stationId + "] publish wind " + wind + " on " + windChannel;
-		System.out.println(out);
+		this.traceMessage(out + "\n");
 		this.logMessage(out + "\n");
 		psClient.publish(windChannel, m);
 	}

@@ -9,6 +9,11 @@ import fr.sorbonne_u.components.ports.AbstractOutboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
+/**
+ * Outbound port used by clients to access the broker publishing service.
+ *
+ * @author Bogdan Styn
+ */
 public class ClientPublishingOutboundPort extends AbstractOutboundPort implements PublishingCI {
 
 	public ClientPublishingOutboundPort(ComponentI owner)

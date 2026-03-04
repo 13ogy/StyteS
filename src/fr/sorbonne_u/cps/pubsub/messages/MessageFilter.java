@@ -31,15 +31,12 @@ import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
  * </p>
  *
  * <p>
- * Important: conformément au contrat de {@link MessageFilterI#getTimeFilter()},
- * cette implémentation retourne toujours un filtre temporel non nul. En
- * l'absence de contrainte temporelle, elle utilise un filtre joker qui accepte
+ * En l'absence de contrainte temporelle, elle utilise un filtre joker qui accepte
  * toutes les estampilles.
  * </p>
  *
- * <p>
- * Created on : 2026-02-08
- * </p>
+ *
+ * @author Bogdan Styn
  */
 public class MessageFilter implements MessageFilterI
 {

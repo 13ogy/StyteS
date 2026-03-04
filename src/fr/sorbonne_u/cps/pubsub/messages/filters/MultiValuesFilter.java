@@ -8,11 +8,12 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.MultiValuesFilterI;
  * Base implementation of {@link MultiValuesFilterI}.
  *
  * <p>
- * The filter targets a fixed set of property names (order matters) and delegates
+ * The filter targets a fixed set of property names and delegates
  * the cross-constraint logic to subclasses through {@link #matchValues(Serializable...)}.
  * </p>
  *
- * <p>Created on : 2026-02-15</p>
+ *
+ * @author Bogdan Styn
  */
 public abstract class MultiValuesFilter implements MultiValuesFilterI
 {

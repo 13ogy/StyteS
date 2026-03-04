@@ -9,14 +9,15 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.PropertiesFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI.PropertyI;
 
 /**
- * Basic implementation of {@link PropertiesFilterI}.
+ * An implementation of {@link PropertiesFilterI}.
  *
  * <p>
  * This filter applies a {@link MultiValuesFilterI} on a group of properties,
  * enabling cross-constraints between their values.
  * </p>
  *
- * <p>Created on : 2026-02-15</p>
+ *
+ * @author Bogdan Styn
  */
 public class PropertiesFilter implements PropertiesFilterI
 {

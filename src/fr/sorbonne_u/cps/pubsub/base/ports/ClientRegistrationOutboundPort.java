@@ -12,6 +12,11 @@ import fr.sorbonne_u.components.ports.AbstractOutboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 
+/**
+ * Outbound port used by clients to access the broker registration service.
+ *
+ * @author Bogdan Styn
+ */
 public class ClientRegistrationOutboundPort extends AbstractOutboundPort implements RegistrationCI{
 
 	public ClientRegistrationOutboundPort(ComponentI owner) throws Exception {

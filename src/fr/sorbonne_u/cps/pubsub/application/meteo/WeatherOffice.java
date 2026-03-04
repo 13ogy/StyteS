@@ -10,6 +10,9 @@ import fr.sorbonne_u.cps.pubsub.messages.Message;
  * CDC §3.4 Weather office component.
  *
  * Publishes meteo alerts (MeteoAlertI) on an alert channel.
+ 
+ *
+ * @author Bogdan Styn
  */
 public class WeatherOffice extends AbstractComponent
 {
@@ -18,7 +21,7 @@ public class WeatherOffice extends AbstractComponent
 
 	protected WeatherOffice(String officeId) throws Exception
 	{
-		// Use the component URI as reflection inbound port URI (BCM4Java requirement).
+		// Using the component URI as reflection inbound port URI
 		this(officeId, officeId);
 	}
 
@@ -55,7 +58,7 @@ public class WeatherOffice extends AbstractComponent
 		m.putProperty("alertType", alert.getAlertType().toString());
 
 		String out = "WeatherOffice[" + officeId + "] publish alert " + alert + " on " + alertChannel;
-		System.out.println(out);
+		this.traceMessage(out + "\n");
 		this.logMessage(out + "\n");
 		psClient.publish(alertChannel, m);
 	}

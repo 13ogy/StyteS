@@ -18,6 +18,9 @@ import static org.junit.Assert.*;
  * - properties obey the CDC contract: unique names, existence check, value retrieval
  * - removing properties works and missing properties raise {@link UnknownPropertyException}
  * - copy() preserves timestamp and properties, while allowing payload updates on the copy
+ 
+ *
+ * @author Bogdan Styn
  */
 public class MessageTest {
 

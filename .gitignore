@@ -11,6 +11,16 @@ data_store/
 
 # Maven / Gradle / build outputs
 target/
+.idea/
+out/
+
+# Course/example materials copied into this workspace (keep on disk, ignore in git)
+/AsynchronousCalculator-06022026/
+/SemaphoreComponent-06022026/
+/ThreadSafeComponentCache-06022026/
+
+# Local copy of BCM4Java sources (if present)
+/fr/
 build/
 bin/
 classes/
