@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Mid-semester timed integration scenario.
  *
- * It uses the CDC Annexe B tool (ClocksServer + TestScenario/TestStep) and covers:
+ * It uses the ClocksServer + TestScenario/TestStep and covers:
  * FREE + privileged channels, authorisedUsers regex, quota errors, and all message
  * filter families (properties, comparable/multi-values, time windows).
  *
@@ -38,13 +38,13 @@ import java.util.concurrent.TimeUnit;
 public class DemoMidSemComplexTimedScenario extends AbstractCVM
 {
 	// -------------------------------------------------------------------------
-	// Clock configuration (matches the CDC text snippet style)
+	// Clock configuration
 	// -------------------------------------------------------------------------
 
 	public static final String TEST_CLOCK_URI = "midsem-test-clock";
-	protected static final long START_DELAY = 60_000L;
-	public static final double ACCELERATION_FACTOR = 60.0;
-	protected static final long SCENARIO_OFFSET_SECONDS = 7_200L;
+	protected static final long START_DELAY = 3_000L;
+	public static final double ACCELERATION_FACTOR = 1.0;
+	protected static final long SCENARIO_OFFSET_SECONDS = 3L;
 
 	// -------------------------------------------------------------------------
 	// Channels
@@ -56,7 +56,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	public static final String CH_WIND_PREM_PRIVATE = "wind-prem-private";
 
 	// -------------------------------------------------------------------------
-	// Participant URIs (must match reflection inbound port URIs)
+	// Participant URIs matching reflection inbound port URIs
 	// -------------------------------------------------------------------------
 
 	public static final String TURBINE_NEAR_FREE_URI = "turbine-near-free";
@@ -77,32 +77,38 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	// Scenario
 	// -------------------------------------------------------------------------
 
+	private static void logStep(fr.sorbonne_u.components.ComponentI owner, String label)
+	{
+		String msg = "[MidSemScenario] " + label + "\n";
+		System.out.print(msg);
+		((AbstractComponent) owner).logMessage(msg);
+	}
+
 	public static TestScenario buildScenario(Instant startInstant)
 	{
 		Instant start = startInstant.plusSeconds(SCENARIO_OFFSET_SECONDS);
-		Instant end = start.plusSeconds(70);
+		Instant end = start.plusSeconds(25);
 
 		Instant tRunnerBootstrap = start.plusSeconds(1);
-
-		Instant tRegisterAll = start.plusSeconds(5);
-		Instant tUpgradeStd = start.plusSeconds(8);
-		Instant tUpgradePrem = start.plusSeconds(10);
-		Instant tCreateStdPriv = start.plusSeconds(12);
-		Instant tQuotaStd = start.plusSeconds(13);
-		Instant tCreatePremPriv = start.plusSeconds(14);
-		Instant tSubNearWind = start.plusSeconds(16);
-		Instant tSubNearAlertsPriv = start.plusSeconds(17);
-		Instant tSubIntruderAlertsPriv = start.plusSeconds(18);
-		Instant tPubNearWindOk = start.plusSeconds(20);
-		Instant tPubFarWindReject = start.plusSeconds(22);
-		Instant tPubBadMsgFiltered = start.plusSeconds(24);
-		Instant tPubOrangePriv = start.plusSeconds(30);
-		Instant tPubGreenPrivFiltered = start.plusSeconds(32);
-		Instant tPubPremWindPriv = start.plusSeconds(35);
+		Instant tRegisterAll = start.plusSeconds(3);
+		Instant tUpgradeStd = start.plusSeconds(6);
+		Instant tUpgradePrem = start.plusSeconds(6);
+		Instant tCreateStdPriv = start.plusSeconds(8);
+		Instant tQuotaStd = start.plusSeconds(9);
+		Instant tCreatePremPriv = start.plusSeconds(10);
+		Instant tSubNearWind = start.plusSeconds(12);
+		Instant tSubNearAlertsPriv = start.plusSeconds(13);
+		Instant tSubIntruderAlertsPriv = start.plusSeconds(14);
+		Instant tPubNearWindOk = start.plusSeconds(17);
+		Instant tPubFarWindReject = start.plusSeconds(18);
+		Instant tPubBadMsgFiltered = start.plusSeconds(19);
+		Instant tPubOrangePriv = start.plusSeconds(21);
+		Instant tPubGreenPrivFiltered = start.plusSeconds(22);
+		Instant tPubPremWindPriv = start.plusSeconds(23);
 
 		// Scenario time window for time-based filters.
-		Instant acceptFrom = start.plusSeconds(19);
-		Instant acceptUntil = start.plusSeconds(31);
+		Instant acceptFrom = start.plusSeconds(15);
+		Instant acceptUntil = start.plusSeconds(24);
 
 		// (beginningMessage, endingMessage, clockURI, startInstant, endInstant, steps)
 		return new TestScenario(
@@ -113,45 +119,57 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 			end,
 			new TestStepI[] {
 				new TestStep(TEST_CLOCK_URI, SCENARIO_RUNNER_URI, tRunnerBootstrap, owner -> safe(owner, () -> {
+					logStep(owner, "bootstrap");
 					owner.logMessage("[MidSemScenario] runner bootstrap step\n");
 				})),
 				// 1) register everyone as FREE
 				new TestStep(TEST_CLOCK_URI, TURBINE_NEAR_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
+					logStep(owner, "register FREE turbine-near");
 					((PluginClient) owner).register(RegistrationClass.FREE);
 				})),
 				new TestStep(TEST_CLOCK_URI, TURBINE_FAR_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
+					logStep(owner, "register FREE turbine-far");
 					((PluginClient) owner).register(RegistrationClass.FREE);
 				})),
 				new TestStep(TEST_CLOCK_URI, STATION_NEAR_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
+					logStep(owner, "register FREE station-near");
 					((PluginClient) owner).register(RegistrationClass.FREE);
 				})),
 				new TestStep(TEST_CLOCK_URI, STATION_FAR_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
+					logStep(owner, "register FREE station-far");
 					((PluginClient) owner).register(RegistrationClass.FREE);
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tRegisterAll, owner -> safe(owner, () -> {
+					logStep(owner, "register FREE office-standard");
 					((PluginClient) owner).register(RegistrationClass.FREE);
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_PREMIUM_URI, tRegisterAll, owner -> safe(owner, () -> {
+					logStep(owner, "register FREE office-premium");
 					((PluginClient) owner).register(RegistrationClass.FREE);
 				})),
 				new TestStep(TEST_CLOCK_URI, INTRUDER_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
+					logStep(owner, "register FREE intruder");
 					((PluginClient) owner).register(RegistrationClass.FREE);
 				})),
 
 				// 2) upgrade service class to use privileged operations
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tUpgradeStd, owner -> safe(owner, () -> {
+					logStep(owner, "upgrade office-standard -> STANDARD");
 					((PluginClient) owner).modifyServiceClass(RegistrationClass.STANDARD);
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_PREMIUM_URI, tUpgradePrem, owner -> safe(owner, () -> {
+					logStep(owner, "upgrade office-premium -> PREMIUM");
 					((PluginClient) owner).modifyServiceClass(RegistrationClass.PREMIUM);
 				})),
 
 				// 3) create privileged channels
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tCreateStdPriv, owner -> safe(owner, () -> {
+					logStep(owner, "createChannel alerts-std-private (authorised turbines)");
 					String regex = "^(" + TURBINE_NEAR_FREE_URI + "|" + TURBINE_FAR_FREE_URI + ")$";
 					((PluginClient) owner).createChannel(CH_ALERTS_STD_PRIVATE, regex);
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tQuotaStd, owner -> safe(owner, () -> {
+					logStep(owner, "createChannel std-extra-should-fail (quota)");
 					try {
 						((PluginClient) owner).createChannel("std-extra-should-fail", ".*");
 					} catch (ChannelQuotaExceededException expected) {
@@ -159,12 +177,14 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 					}
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_PREMIUM_URI, tCreatePremPriv, owner -> safe(owner, () -> {
+					logStep(owner, "createChannel wind-prem-private (authorised turbine-near + station-near)");
 					String regex = "^(" + TURBINE_NEAR_FREE_URI + "|" + STATION_NEAR_FREE_URI + ")$";
 					((PluginClient) owner).createChannel(CH_WIND_PREM_PRIVATE, regex);
 				})),
 
 				// 4) turbine subscriptions using all filter families
 				new TestStep(TEST_CLOCK_URI, TURBINE_NEAR_FREE_URI, tSubNearWind, owner -> safe(owner, () -> {
+					logStep(owner, "subscribe turbine-near to wind-free (type==wind + time window)");
 					MessageFilterI f = new MessageFilter(
 						new PropertyFilterI[] {
 							new PropertyFilter("type", new EqualsValueFilter("wind"))
@@ -174,6 +194,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 					((PluginClient) owner).subscribe(CH_WIND_FREE, f);
 				})),
 				new TestStep(TEST_CLOCK_URI, TURBINE_NEAR_FREE_URI, tSubNearAlertsPriv, owner -> safe(owner, () -> {
+					logStep(owner, "subscribe turbine-near to alerts-std-private (alert filters)");
 					MessageFilterI f = new MessageFilter(
 						new PropertyFilterI[] {
 							new PropertyFilter("type", new EqualsValueFilter("alert")),
@@ -186,6 +207,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 					((PluginClient) owner).subscribe(CH_ALERTS_STD_PRIVATE, f);
 				})),
 				new TestStep(TEST_CLOCK_URI, INTRUDER_FREE_URI, tSubIntruderAlertsPriv, owner -> safe(owner, () -> {
+					logStep(owner, "intruder subscribe to alerts-std-private (should be rejected)");
 					try {
 						((PluginClient) owner).subscribe(CH_ALERTS_STD_PRIVATE, new MessageFilter(
 							new PropertyFilterI[0], new MessageFilterI.PropertiesFilterI[0], new BeforeOrAtTimeFilter(end)));
@@ -196,18 +218,21 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 
 				// 5) publications on free channels
 				new TestStep(TEST_CLOCK_URI, STATION_NEAR_FREE_URI, tPubNearWindOk, owner -> safe(owner, () -> {
+					logStep(owner, "publish station-near wind-free (wind-near)");
 					MessageI m = new Message("wind-near");
 					m.putProperty("type", "wind");
 					m.putProperty("distance", 1);
 					((PluginClient) owner).publish(CH_WIND_FREE, m);
 				})),
 				new TestStep(TEST_CLOCK_URI, STATION_FAR_FREE_URI, tPubFarWindReject, owner -> safe(owner, () -> {
+					logStep(owner, "publish station-far wind-free (wind-far)");
 					MessageI m = new Message("wind-far");
 					m.putProperty("type", "wind");
 					m.putProperty("distance", 10_000);
 					((PluginClient) owner).publish(CH_WIND_FREE, m);
 				})),
 				new TestStep(TEST_CLOCK_URI, STATION_NEAR_FREE_URI, tPubBadMsgFiltered, owner -> safe(owner, () -> {
+					logStep(owner, "publish station-near wind-free (bad-message filtered)");
 					MessageI m = new Message("bad-message");
 					m.putProperty("type", "not-wind");
 					((PluginClient) owner).publish(CH_WIND_FREE, m);
@@ -215,6 +240,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 
 				// 6) privileged alert channel publications
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tPubOrangePriv, owner -> safe(owner, () -> {
+					logStep(owner, "publish office-standard alerts-std-private (alert-orange)");
 					MessageI m = new Message("alert-orange");
 					m.putProperty("type", "alert");
 					m.putProperty("level", "ORANGE");
@@ -222,6 +248,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 					((PluginClient) owner).publish(CH_ALERTS_STD_PRIVATE, m);
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tPubGreenPrivFiltered, owner -> safe(owner, () -> {
+					logStep(owner, "publish office-standard alerts-std-private (alert-green filtered)");
 					MessageI m = new Message("alert-green");
 					m.putProperty("type", "alert");
 					m.putProperty("level", "GREEN");
@@ -231,6 +258,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 
 				// 7) premium private wind channel
 				new TestStep(TEST_CLOCK_URI, OFFICE_PREMIUM_URI, tPubPremWindPriv, owner -> safe(owner, () -> {
+					logStep(owner, "publish office-premium wind-prem-private (wind-premium)");
 					MessageI m = new Message("wind-premium");
 					m.putProperty("type", "wind");
 					m.putProperty("premium", true);
@@ -255,30 +283,31 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	@Override
 	public void deploy() throws Exception
 	{
+		TestScenario.VERBOSE = true;
+		TestScenario.DEBUG = true;
+
 		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0 });
 
 		final long nowMs = System.currentTimeMillis();
-		long unixEpochStartTimeInNanos =
-			TimeUnit.MILLISECONDS.toNanos(nowMs + START_DELAY);
-
 		// Start instant in the future relative to deployment.
 		Instant startInstant = Instant.ofEpochMilli(nowMs)
 			.plusSeconds((START_DELAY / 1000L) + 2L);
+		long unixEpochStartTimeInNanos =
+			TimeUnit.MILLISECONDS.toNanos(startInstant.toEpochMilli());
 		AbstractComponent.createComponent(
 			ClocksServer.class.getCanonicalName(),
 			new Object[] { TEST_CLOCK_URI, unixEpochStartTimeInNanos, startInstant, ACCELERATION_FACTOR });
 
 		TestScenario ts = buildScenario(startInstant);
 
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { TURBINE_NEAR_FREE_URI, 1, 1 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { TURBINE_FAR_FREE_URI, 1, 1 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { STATION_NEAR_FREE_URI, 1, 1 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { STATION_FAR_FREE_URI, 1, 1 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { OFFICE_STANDARD_URI, 1, 1 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { OFFICE_PREMIUM_URI, 1, 1 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { INTRUDER_FREE_URI, 1, 1 });
-
-		// A dedicated runner schedules all steps.
+		// Each participant executes its own steps
+		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { TURBINE_NEAR_FREE_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { TURBINE_FAR_FREE_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { STATION_NEAR_FREE_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { STATION_FAR_FREE_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { OFFICE_STANDARD_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { OFFICE_PREMIUM_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { INTRUDER_FREE_URI, ts, 1, 1 });
 		AbstractComponent.createComponent(ScenarioRunner.class.getCanonicalName(), new Object[] { SCENARIO_RUNNER_URI, ts, 1, 1 });
 
 		super.deploy();
@@ -288,14 +317,10 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 		this.toggleTracing(OFFICE_STANDARD_URI);
 		this.toggleTracing(OFFICE_PREMIUM_URI);
 		this.toggleTracing(INTRUDER_FREE_URI);
-		this.toggleTracing(TURBINE_NEAR_FREE_URI);
-		this.toggleTracing(OFFICE_STANDARD_URI);
-		this.toggleTracing(OFFICE_PREMIUM_URI);
-		this.toggleTracing(INTRUDER_FREE_URI);
 	}
 
 	/**
-	 * Small helper for demo readability: constrain one property to be in a set.
+	 * Small helper for constraining one property to be in a set.
 	 */
 	private static final class MultiValuesFilterOnOneProperty
 		implements fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI
@@ -325,7 +350,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 		try {
 			DemoMidSemComplexTimedScenario cvm = new DemoMidSemComplexTimedScenario();
 		// START_DELAY + scenario execution + a margin.
-		cvm.startStandardLifeCycle(180_000L);
+		cvm.startStandardLifeCycle(35_000L);
 			System.exit(0);
 		} catch (Exception e) {
 			System.err.println(e.getMessage());

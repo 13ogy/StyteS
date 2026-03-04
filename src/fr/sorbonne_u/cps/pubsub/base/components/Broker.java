@@ -29,6 +29,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
 import fr.sorbonne_u.components.annotations.OfferedInterfaces;
+import fr.sorbonne_u.components.annotations.RequiredInterfaces;
 
 import java.util.regex.Pattern;
 
@@ -56,6 +57,9 @@ import java.util.regex.Pattern;
 	RegistrationCI.class,
 	PublishingCI.class,
 	PrivilegedClientCI.class
+})
+@RequiredInterfaces(required = {
+	ReceivingCI.class
 })
 public class Broker extends AbstractComponent
 {
