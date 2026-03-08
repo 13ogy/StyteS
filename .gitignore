@@ -46,5 +46,8 @@ doc/
 *.tar.gz
 *.tgz
 
+# Keep project-local libs tracked for reproducibility.
+!libs/*.jar
+
 # PDFs
 *.pdf

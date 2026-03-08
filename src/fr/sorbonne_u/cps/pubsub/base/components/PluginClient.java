@@ -16,12 +16,12 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin;
+import fr.sorbonne_u.cps.pubsub.plugins.ClientPrivilegedPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
-import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
 /**
- * A plugin-based client component implementing CDC §3.5 (excluding §3.5.3).
+ * A plugin-based client component implementing CDC §3.5.1 and §3.5.2
  *
  * This component coexists with the legacy {@link Client} component so that
  * previous demos remain unchanged.
@@ -39,6 +39,8 @@ public class PluginClient extends AbstractComponent
 	protected final ClientRegistrationPlugin registrationPlugin;
 	protected final ClientSubscriptionPlugin subscriptionPlugin;
 	protected final ClientPublicationPlugin publicationPlugin;
+	protected final ClientPrivilegedPlugin privilegedPlugin;
+
 	protected PluginClient(
 		String reflectionInboundPortURI,
 		int nbThreads,
@@ -59,6 +61,10 @@ public class PluginClient extends AbstractComponent
 		this.publicationPlugin = new ClientPublicationPlugin(this.registrationPlugin);
 		this.publicationPlugin.setPluginURI(reflectionInboundPortURI + "-publication-plugin");
 		this.installPlugin(this.publicationPlugin);
+
+		this.privilegedPlugin = new ClientPrivilegedPlugin(this.registrationPlugin);
+		this.privilegedPlugin.setPluginURI(reflectionInboundPortURI + "-privileged-plugin");
+		this.installPlugin(this.privilegedPlugin);
 	}
 
 	@Override
@@ -78,7 +84,7 @@ public class PluginClient extends AbstractComponent
 	}
 
 	// ---------------------------------------------------------------------
-	// Registration API (delegation)
+	// Registration API
 	// ---------------------------------------------------------------------
 
 	public boolean registered()
@@ -102,7 +108,7 @@ public class PluginClient extends AbstractComponent
 	}
 
 	// ---------------------------------------------------------------------
-	// Subscription API (delegation)
+	// Subscription API
 	// ---------------------------------------------------------------------
 
 	public void subscribe(String channel, MessageFilterI filter)
@@ -142,24 +148,48 @@ public class PluginClient extends AbstractComponent
 			fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException,
 			fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException
 	{
-		try {
-			this.registrationPlugin.getPrivilegedPortOUT().createChannel(
-				this.getReceptionPortURI(),
-				channel,
-				authorisedUsers);
-		} catch (Exception e) {
-			// Preserve declared exceptions when possible (no Java preview features).
-			if (e instanceof UnknownClientException) {
-				throw (UnknownClientException) e;
-			}
-			if (e instanceof fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException) {
-				throw (fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException) e;
-			}
-			if (e instanceof fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException) {
-				throw (fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException) e;
-			}
-			throw new RuntimeException(e);
-		}
+		this.privilegedPlugin.createChannel(channel, authorisedUsers);
+	}
+
+	public boolean hasCreatedChannel(String channel)
+	throws UnknownClientException, fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException
+	{
+		return this.privilegedPlugin.hasCreatedChannel(channel);
+	}
+
+	public boolean channelQuotaReached() throws UnknownClientException
+	{
+		return this.privilegedPlugin.channelQuotaReached();
+	}
+
+	public boolean isAuthorisedUser(String channel, String uri)
+	throws UnknownClientException, fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException
+	{
+		return this.privilegedPlugin.isAuthorisedUser(channel, uri);
+	}
+
+	public void modifyAuthorisedUsers(String channel, String authorisedUsers)
+	throws UnknownClientException,
+			fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException,
+			UnauthorisedClientException
+	{
+		this.privilegedPlugin.modifyAuthorisedUsers(channel, authorisedUsers);
+	}
+
+	public void destroyChannel(String channel)
+	throws UnknownClientException,
+			fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException,
+			UnauthorisedClientException
+	{
+		this.privilegedPlugin.destroyChannel(channel);
+	}
+
+	public void destroyChannelNow(String channel)
+	throws UnknownClientException,
+			fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException,
+			UnauthorisedClientException
+	{
+		this.privilegedPlugin.destroyChannelNow(channel);
 	}
 
 	// ---------------------------------------------------------------------

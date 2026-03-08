@@ -27,7 +27,6 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 {
 	private static final long serialVersionUID = 1L;
 
-	// Owned ports (created on the owner component).
 	protected ClientInboundPort receptionPortIN;
 	protected ClientRegistrationOutboundPort registrationPortOUT;
 	protected ClientPublishingOutboundPort publishingPortOUT;
@@ -47,7 +46,8 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	{
 		super.installOn(owner);
 		AbstractComponent ac = (AbstractComponent) owner;
-		// Ports must be created on the owner component.
+
+		// Ports created on the owner component.
 		this.receptionPortIN = new ClientInboundPort(ac);
 		this.receptionPortIN.publishPort();
 
@@ -64,16 +64,14 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	@Override
 	public void uninstall() throws Exception
 	{
-		// Ensure the client is unregistered before cleaning up ports.
-		// This avoids leaving broker-side connections hanging.
 		try {
 			if (this.registered) {
 				this.unregister();
 			}
-		} catch (Exception ignored) {
+		}
+        catch (Exception ignored) {
 		}
 
-		// Best-effort cleanup.
 		try {
 			if (this.registrationPortOUT != null && this.registrationPortOUT.connected()) {
 				this.getOwner().doPortDisconnection(this.registrationPortOUT.getPortURI());
@@ -130,7 +128,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	}
 
 	// ---------------------------------------------------------------------
-	// Accessors used by other plugins / owner
+	// Accessors
 	// ---------------------------------------------------------------------
 
 	public String getReceptionPortURI() throws Exception
@@ -181,23 +179,23 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 			}
 			this.currentRC = rc;
 
-			// 1) connect to broker registration port
+			// connect to broker registration port
 			this.getOwner().doPortConnection(
 				this.registrationPortOUT.getPortURI(),
 				Broker.registrationPortURI(),
 				ClientBrokerRegistrationConnector.class.getCanonicalName());
 
-			// 2) register => receive broker publishing inbound port URI
+			// register -> receive broker publishing inbound port URI
 			String brokerPublishingURI =
 				this.registrationPortOUT.register(this.receptionPortIN.getPortURI(), rc);
 
-			// 3) connect publishing outbound port
+			// connect publishing outbound port
 			this.getOwner().doPortConnection(
 				this.publishingPortOUT.getPortURI(),
 				brokerPublishingURI,
 				ClientBrokerPublishingConnector.class.getCanonicalName());
 
-			// 4) connect privileged outbound port
+			// connect privileged outbound port
 			this.getOwner().doPortConnection(
 				this.privilegedPortOUT.getPortURI(),
 				Broker.privilegedPortURI(),
@@ -223,7 +221,8 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 			}
 			this.currentRC = rc;
 			String brokerPublishingURI = this.registrationPortOUT.modifyServiceClass(this.receptionPortIN.getPortURI(), rc);
-			// reconnect publishing port
+
+			// reconnecting publishing port
 			this.getOwner().doPortDisconnection(this.publishingPortOUT.getPortURI());
 			this.getOwner().doPortConnection(
 				this.publishingPortOUT.getPortURI(),

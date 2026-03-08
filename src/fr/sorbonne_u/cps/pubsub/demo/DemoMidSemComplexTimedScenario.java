@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  *
  * It uses the ClocksServer + TestScenario/TestStep and covers:
  * FREE + privileged channels, authorisedUsers regex, quota errors, and all message
- * filter families (properties, comparable/multi-values, time windows).
+ * filter families - properties, comparable/multi-values and time windows
  *
  * @author Bogdan Styn
  */
