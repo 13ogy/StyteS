@@ -300,7 +300,6 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 
 		TestScenario ts = buildScenario(startInstant);
 
-		// Each participant executes its own steps
 		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { TURBINE_NEAR_FREE_URI, ts, 1, 1 });
 		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { TURBINE_FAR_FREE_URI, ts, 1, 1 });
 		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { STATION_NEAR_FREE_URI, ts, 1, 1 });
@@ -312,7 +311,6 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 
 		super.deploy();
 
-		// Logging/tracing only.
 		this.toggleTracing(TURBINE_NEAR_FREE_URI);
 		this.toggleTracing(OFFICE_STANDARD_URI);
 		this.toggleTracing(OFFICE_PREMIUM_URI);

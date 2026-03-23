@@ -41,19 +41,10 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	// ---------------------------------------------------------------------
 
 	public static final String CLOCK_URI = "meteo-test-clock";
-	// start/end instants are arbitrary; only relative ordering matters.
 	public static final String START_INSTANT = "2026-01-30T09:00:00.00Z";
 	public static final String END_INSTANT = "2026-01-30T09:05:00.00Z";
 	public static final double ACCELERATION_FACTOR = 60.0; // 1 min virtual = 1 sec real
 	public static final long DELAY_TO_START_MS = 1500L;
-
-	// IMPORTANT (CDC Annexe B): the participant URIs in the TestScenario must be
-	// the *reflection inbound port URI* of the components.
-	//
-	// In BCM4Java, this is the component URI passed to the AbstractComponent
-	// constructor (aka reflectionInboundPortURI). Therefore, we must create
-	// components by passing that URI to their super constructor, not by reusing
-	// application-level IDs.
 	public static final String TURBINE_RIP_URI = "meteo-turbine";
 	public static final String STATION_NEAR_RIP_URI = "meteo-station-near";
 	public static final String STATION_FAR_RIP_URI = "meteo-station-far";
@@ -108,10 +99,11 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 					tSubscribe,
 					owner -> {
 						try {
+							System.out.println("[TimedDemo][STEP] turbine subscribes to wind+alerts");
 							((WindTurbine) owner).subscribeToWindAndAlerts(WIND_CHANNEL, ALERT_CHANNEL);
 							owner.traceMessage("[TimedDemo] turbine subscribed\n");
 						} catch (Exception e) {
-							System.err.println("[TimedDemo] subscribe step failed: " + e);
+							System.out.println("[TimedDemo] subscribe step failed: " + e);
 						}
 					}),
 
@@ -121,10 +113,11 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 					tWindNear,
 					owner -> {
 						try {
+							System.out.println("[TimedDemo][STEP] station-near publishes wind");
 							((WeatherStation) owner).publishWind(WIND_CHANNEL, new WindData(stationNearPos, 5.0, 0.0));
 							owner.traceMessage("[TimedDemo] station near published wind\n");
 						} catch (Exception e) {
-							System.err.println("[TimedDemo] windNear step failed: " + e);
+							System.out.println("[TimedDemo] windNear step failed: " + e);
 						}
 					}),
 
@@ -134,10 +127,11 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 					tWindFar,
 					owner -> {
 						try {
+							System.out.println("[TimedDemo][STEP] station-far publishes wind");
 							((WeatherStation) owner).publishWind(WIND_CHANNEL, new WindData(stationFarPos, 10.0, 0.0));
 							owner.traceMessage("[TimedDemo] station far published wind\n");
 						} catch (Exception e) {
-							System.err.println("[TimedDemo] windFar step failed: " + e);
+							System.out.println("[TimedDemo] windFar step failed: " + e);
 						}
 					}),
 
@@ -147,10 +141,11 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 					tAlertOrange,
 					owner -> {
 						try {
+							System.out.println("[TimedDemo][STEP] office publishes ORANGE alert");
 							((WeatherOffice) owner).publishAlert(ALERT_CHANNEL, orange);
 							owner.traceMessage("[TimedDemo] office published ORANGE\n");
 						} catch (Exception e) {
-							System.err.println("[TimedDemo] orange step failed: " + e);
+							System.out.println("[TimedDemo] orange step failed: " + e);
 						}
 					}),
 
@@ -160,10 +155,11 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 					tAlertGreen,
 					owner -> {
 						try {
+							System.out.println("[TimedDemo][STEP] office publishes GREEN alert");
 							((WeatherOffice) owner).publishAlert(ALERT_CHANNEL, green);
 							owner.traceMessage("[TimedDemo] office published GREEN\n");
 						} catch (Exception e) {
-							System.err.println("[TimedDemo] green step failed: " + e);
+							System.out.println("[TimedDemo] green step failed: " + e);
 						}
 					})
 			});
@@ -172,6 +168,9 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	@Override
 	public void deploy() throws Exception
 	{
+		TestScenario.VERBOSE = true;
+		TestScenario.DEBUG = true;
+
 		// Broker
 		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0 });
 
@@ -189,7 +188,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 		Position2D stationFarPos = new Position2D(100.0, 0.0);
 
 		// Participants: they must appear in the scenario through their reflection inbound port URI.
-		System.err.println("[TimedDemo] participants RIP URIs: "
+		System.out.println("[TimedDemo] participants RIP URIs: "
 			+ TURBINE_RIP_URI + ", " + STATION_NEAR_RIP_URI + ", " + STATION_FAR_RIP_URI + ", " + OFFICE_RIP_URI + "\n");
 		AbstractComponent.createComponent(
 			WindTurbine.class.getCanonicalName(),
@@ -207,10 +206,10 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 			WeatherOffice.class.getCanonicalName(),
 			new Object[] { OFFICE_RIP_URI, "WO1" });
 
-		System.err.println("[TimedDemo] scenario contains turbine? " + ts.entityAppearsIn(TURBINE_RIP_URI));
-		System.err.println("[TimedDemo] scenario contains stationNear? " + ts.entityAppearsIn(STATION_NEAR_RIP_URI));
-		System.err.println("[TimedDemo] scenario contains stationFar? " + ts.entityAppearsIn(STATION_FAR_RIP_URI));
-		System.err.println("[TimedDemo] scenario contains office? " + ts.entityAppearsIn(OFFICE_RIP_URI));
+		System.out.println("[TimedDemo] scenario contains turbine? " + ts.entityAppearsIn(TURBINE_RIP_URI));
+		System.out.println("[TimedDemo] scenario contains stationNear? " + ts.entityAppearsIn(STATION_NEAR_RIP_URI));
+		System.out.println("[TimedDemo] scenario contains stationFar? " + ts.entityAppearsIn(STATION_FAR_RIP_URI));
+		System.out.println("[TimedDemo] scenario contains office? " + ts.entityAppearsIn(OFFICE_RIP_URI));
 
 		super.deploy();
 
