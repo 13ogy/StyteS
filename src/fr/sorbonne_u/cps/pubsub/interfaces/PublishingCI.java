@@ -63,7 +63,7 @@ extends		OfferedCI,
 	// -------------------------------------------------------------------------
 
 	/**
-	 * publish {@code message} on {@code channel}.
+	 * asynchronously publish {@code message} on {@code channel}.
 	 * 
 	 * <p><strong>Contract</strong></p>
 	 * 
@@ -86,7 +86,7 @@ extends		OfferedCI,
 		) throws Exception;
 
 	/**
-	 * publish all of the {@code messages} on {@code channel}.
+	 * asynchronously publish all of the {@code messages} on {@code channel}.
 	 * 
 	 * <p><strong>Contract</strong></p>
 	 * 
@@ -107,6 +107,60 @@ extends		OfferedCI,
 		String receptionPortURI,
 		String channel,
 		ArrayList<MessageI> messages
+		) throws Exception;
+
+	/**
+	 * asynchronously publish {@code message} on {@code channel} and notify the
+	 * client component if an abnormal termination condition occurred.
+	 * 
+	 * <p><strong>Contract</strong></p>
+	 * 
+	 * <pre>
+	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
+	 * pre	{@code channel != null && !channel.isEmpty()}
+	 * pre	{@code message != null}
+	 * post	{@code true}	// no postcondition.
+	 * </pre>
+	 *
+	 * @param receptionPortURI				URI of the inbound port offering the component interface {@code ReceivingCI}.
+	 * @param channel						name of the channel on which {@code message} must be published.
+	 * @param message						message to be published to {@code channel}.
+	 * @param notificationInbounhdPortURI	URI of an inbound port offering {@code AbnormalTerminationNotificationCI}.
+	 * @throws Exception					<i>to do</i>.
+	 */
+	public void			asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		MessageI message,
+		String notificationInbounhdPortURI
+		) throws Exception;
+
+	/**
+	 * asynchronously publish all of the {@code messages} on {@code channel}
+	 * and notify the client component if an abnormal termination condition
+	 * occurred.
+	 * 
+	 * <p><strong>Contract</strong></p>
+	 * 
+	 * <pre>
+	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
+	 * pre	{@code channel != null && !channel.isEmpty()}
+	 * pre	{@code messages != null && messages.size() > 0}
+	 * pre	{@code Stream.of(messages).allMatch(m -> m != null)}
+	 * post	{@code true}	// no postcondition.
+	 * </pre>
+	 *
+	 * @param receptionPortURI				URI of the inbound port offering the component interface {@code ReceivingCI}.
+	 * @param channel						name of the channel on which {@code message} must be published.
+	 * @param messages						list of messages to be published on {@code channel}.
+	 * @param notificationInbounhdPortURI	URI of an inbound port offering {@code AbnormalTerminationNotificationCI}.
+	 * @throws Exception					<i>to do</i>.
+	 */
+	public void			asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		ArrayList<MessageI> messages,
+		String notificationInbounhdPortURI
 		) throws Exception;
 }
 // -----------------------------------------------------------------------------

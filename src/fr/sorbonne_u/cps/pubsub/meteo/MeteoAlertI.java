@@ -154,7 +154,7 @@ extends		Serializable
 	 * 
 	 * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
 	 */
-	public static enum	AlterType implements AlertTypeI
+	public static enum	AlertType implements AlertTypeI
 	{
 		STORM,
 		ICY_STORM,

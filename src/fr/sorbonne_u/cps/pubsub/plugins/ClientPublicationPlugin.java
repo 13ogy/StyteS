@@ -78,4 +78,26 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 			throw new RuntimeException(e);
 		}
 	}
+
+	@Override
+	public void asyncPublishAndNotify(String channel, MessageI message) {
+		this.getOwner().runTask( o -> {
+            try {
+                ((ClientPublicationPlugin)o).publish(channel,message);
+            } catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+        });
+	}
+
+	@Override
+	public void asyncPublishAndNotify(String channel, ArrayList<MessageI> messages) {
+		this.getOwner().runTask( o -> {
+			try {
+				((ClientPublicationPlugin)o).publish(channel,messages);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
 }

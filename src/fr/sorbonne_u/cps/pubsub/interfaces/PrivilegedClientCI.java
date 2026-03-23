@@ -122,25 +122,6 @@ extends		PublishingCI
 		) throws Exception;
 
 	/**
-	 * return true if {@code uri} is authorised to use {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
-	 * <pre>
-	 * pre	{@code channel != null && !channel.isEmpty()}
-	 * pre	{@code uri != null && !uri.isEmpty()}
-	 * post	{@code true}	// no postcondition.
-	 * </pre>
-	 *
-	 * @param channel		name of an existing channel.
-	 * @param uri			URI of component to be tested.
-	 * @return				true if {@code uri} is authorised to use {@code channel}.
-	 * @throws Exception	<i>to do</i>.
-	 */
-	public boolean		isAuthorisedUser(String channel, String uri)
-	throws Exception;
-
-	/**
 	 * replace the users authorised to use {@code channel}.
 	 * 
 	 * <p><strong>Contract</strong></p>
@@ -161,29 +142,6 @@ extends		PublishingCI
 		String receptionPortURI,
 		String channel,
 		String autorisedUsers
-		) throws Exception;
-
-	/**
-	 * remove {@code uri} from the users authorised to use {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
-	 * <pre>
-	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
-	 * pre	{@code channel != null && !channel.isEmpty()}
-	 * pre	{@code regularExpression != null && !regularExpression.isEmpty()}
-	 * post	{@code true}	// no postcondition.
-	 * </pre>
-	 *
-	 * @param receptionPortURI	identifier of the requesting component <i>i.e.</i>, URI of its inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel			name of the channel.
-	 * @param regularExpression	regular expression that matches the URIs of components that must be authorised to use the new channel.
-	 * @throws Exception		<i>to do</i>.
-	 */
-	public void			removeAuthorisedUsers(
-		String receptionPortURI,
-		String channel,
-		String regularExpression
 		) throws Exception;
 
 	/**
