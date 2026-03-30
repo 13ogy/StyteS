@@ -3,8 +3,11 @@ package fr.sorbonne_u.cps.pubsub.base.components;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
@@ -64,6 +67,50 @@ import java.util.regex.Pattern;
 public class Broker extends AbstractComponent
 {
 	// -------------------------------------------------------------------------
+	// Executor services URIs (audit 2)
+	// -------------------------------------------------------------------------
+
+	public static final String ES_RECEPTION_URI = "broker-reception-es";
+	public static final String ES_PROPAGATION_URI = "broker-propagation-es";
+	public static final String ES_DELIVERY_URI = "broker-delivery-es";
+
+	protected int esReceptionIndex;
+	protected int esPropagationIndex;
+	protected int esDeliveryIndex;
+
+	// -------------------------------------------------------------------------
+	// Concurrency control (audit 2)
+	// -------------------------------------------------------------------------
+
+	/** Protect broker shared state; never hold this lock while doing remote calls. */
+	protected final ReentrantReadWriteLock stateLock = new ReentrantReadWriteLock(true);
+	// -------------------------------------------------------------------------
+	// PublishingCI async (added in latest interface)
+	// -------------------------------------------------------------------------
+
+	public void asyncPublishAndNotify(
+		String publisherReceptionPortURI,
+		String channel,
+		MessageI message,
+		String notificationInbounhdPortURI
+		) throws Exception
+	{
+		// Audit 2: asynchronous submission.
+		this.submitPublish(publisherReceptionPortURI, channel, message, notificationInbounhdPortURI);
+	}
+
+	public void asyncPublishAndNotify(
+		String publisherReceptionPortURI,
+		String channel,
+		ArrayList<MessageI> messages,
+		String notificationInbounhdPortURI
+		) throws Exception
+	{
+		for (MessageI m : messages) {
+			this.submitPublish(publisherReceptionPortURI, channel, m, notificationInbounhdPortURI);
+		}
+	}
+	// -------------------------------------------------------------------------
 	// Configuration
 	// -------------------------------------------------------------------------
 
@@ -114,6 +161,9 @@ public class Broker extends AbstractComponent
 	/** Subscriptions: channel -> (client receptionPortURI -> filter). */
 	private final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
 
+	/** Number of messages currently in-flight per channel. */
+	private final Map<String, Integer> inFlightPerChannel = new HashMap<>();
+
 	// -------------------------------------------------------------------------
 	// Constructor
 	// -------------------------------------------------------------------------
@@ -122,10 +172,16 @@ public class Broker extends AbstractComponent
 	{
 		super(nbThreads, nbSchedulableThreads);
 
+		// Create explicit thread pools for audit 2.
+		this.esReceptionIndex = this.createNewExecutorService(ES_RECEPTION_URI, Math.max(1, nbThreads), false);
+		this.esPropagationIndex = this.createNewExecutorService(ES_PROPAGATION_URI, Math.max(1, nbThreads), false);
+		this.esDeliveryIndex = this.createNewExecutorService(ES_DELIVERY_URI, Math.max(1, nbThreads), false);
+
 		for (int i = 0; i < NB_FREE_CHANNELS; i++) {
 			String c = "channel" + i;
 			this.channels.add(c);
 			this.subscriptions.put(c, new HashMap<>());
+			this.inFlightPerChannel.put(c, 0);
 		}
 
 		registrationPortIN = new BrokerRegistrationInboundPort(this);
@@ -136,6 +192,139 @@ public class Broker extends AbstractComponent
 
 		privilegedPortIN = new BrokerPrivilegedInboundPort(this);
 		privilegedPortIN.publishPort();
+	}
+
+	// -------------------------------------------------------------------------
+	// Internal asynchronous pipeline (audit 2)
+	// -------------------------------------------------------------------------
+
+	protected static class DeliveryTarget
+	{
+		final String subscriberURI;
+		final BrokerReceptionOutboundPort out;
+		final MessageFilterI filter;
+
+		DeliveryTarget(String subscriberURI, BrokerReceptionOutboundPort out, MessageFilterI filter)
+		{
+			this.subscriberURI = subscriberURI;
+			this.out = out;
+			this.filter = filter;
+		}
+	}
+
+	protected void submitPublish(
+		String publisherReceptionPortURI,
+		String channel,
+		MessageI message,
+		String notificationInboundPortURI
+		)
+	{
+		final Broker self = this;
+		this.runTask(this.esReceptionIndex, o -> {
+			try {
+				((Broker) o).receptionStage(publisherReceptionPortURI, channel, message, notificationInboundPortURI);
+			} catch (Exception e) {
+				// TODO: abnormal termination notification
+				self.logMessage("[Broker] receptionStage exception: " + e + "\n");
+			}
+		});
+	}
+
+	protected void receptionStage(
+		String publisherReceptionPortURI,
+		String channel,
+		MessageI message,
+		String notificationInboundPortURI
+		) throws Exception
+	{
+		// Lightweight validation under read lock.
+		this.stateLock.writeLock().lock();
+		try {
+			this.inFlightPerChannel.put(channel, this.inFlightPerChannel.getOrDefault(channel, 0) + 1);
+			if (!this.registeredClients.containsKey(publisherReceptionPortURI)) {
+				throw new UnknownClientException(publisherReceptionPortURI);
+			}
+			if (!this.channels.contains(channel)) {
+				throw new UnknownChannelException(channel);
+			}
+			// Enforce privileged channel auth (publish).
+			// We can call channelAuthorised which itself checks registration/channel existence.
+			if (!this.channelAuthorised(publisherReceptionPortURI, channel)) {
+				throw new UnauthorisedClientException();
+			}
+		} finally {
+			this.stateLock.writeLock().unlock();
+		}
+
+		// Submit propagation.
+		this.runTask(this.esPropagationIndex, o -> {
+			try {
+				((Broker) o).propagationStage(channel, message);
+			} catch (Exception e) {
+				this.logMessage("[Broker] propagationStage exception: " + e + "\n");
+				// ensure in-flight bookkeeping is decremented even in error.
+				((Broker) o).finishInFlight(channel);
+			}
+		});
+	}
+
+	protected void finishInFlight(String channel)
+	{
+		this.stateLock.writeLock().lock();
+		try {
+			int v = this.inFlightPerChannel.getOrDefault(channel, 0);
+			this.inFlightPerChannel.put(channel, Math.max(0, v - 1));
+		} finally {
+			this.stateLock.writeLock().unlock();
+		}
+	}
+
+	protected void propagationStage(String channel, MessageI message) throws Exception
+	{
+		// Snapshot recipients under read lock.
+		List<DeliveryTarget> targets = new ArrayList<>();
+		this.stateLock.readLock().lock();
+		try {
+			Map<String, MessageFilterI> subs = this.subscriptions.get(channel);
+			if (subs == null) {
+				throw new UnknownChannelException(channel);
+			}
+			for (Map.Entry<String, MessageFilterI> e : subs.entrySet()) {
+				String subscriberURI = e.getKey();
+				MessageFilterI filter = e.getValue();
+				BrokerReceptionOutboundPort out = this.receptionPortsOUT.get(subscriberURI);
+				if (out != null) {
+					targets.add(new DeliveryTarget(subscriberURI, out, filter));
+				}
+			}
+		} finally {
+			this.stateLock.readLock().unlock();
+		}
+
+		// Submit deliveries.
+		final int expected = targets.size();
+		if (expected == 0) {
+			// no recipients => end of pipeline
+			this.finishInFlight(channel);
+			return;
+		}
+		final java.util.concurrent.atomic.AtomicInteger remaining = new java.util.concurrent.atomic.AtomicInteger(expected);
+		for (DeliveryTarget t : targets) {
+			this.runTask(this.esDeliveryIndex, o -> {
+				try {
+					MessageFilterI f = t.filter;
+					if (f != null && f.match(message)) {
+						t.out.receive(channel, message);
+					}
+				} catch (Exception e) {
+					this.logMessage("[Broker] delivery exception to " + t.subscriberURI + ": " + e + "\n");
+				} finally {
+					if (remaining.decrementAndGet() == 0) {
+						((Broker) o).finishInFlight(channel);
+					}
+				}
+			});
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -275,13 +464,13 @@ public class Broker extends AbstractComponent
 		BrokerReceptionOutboundPort out = this.receptionPortsOUT.remove(receptionPortURI);
 		if (out != null) {
 			try {
-				this.doPortDisconnection(out.getPortURI());
+				if (out.connected()) {
+					this.doPortDisconnection(out.getPortURI());
+				}
 			} catch (Exception ignored) {
 			}
-			try {
-				out.unpublishPort();
-			} catch (Exception ignored) {
-			}
+			try { out.unpublishPort(); } catch (Exception ignored) {}
+			try { out.destroyPort(); } catch (Exception ignored) {}
 		}
 
 		this.registeredClients.remove(receptionPortURI);
@@ -333,6 +522,8 @@ public class Broker extends AbstractComponent
 
 	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter) throws Exception
 	{
+		this.stateLock.writeLock().lock();
+		try {
 		if (filter == null) {
 			throw new IllegalArgumentException("filter cannot be null.");
 		}
@@ -340,10 +531,15 @@ public class Broker extends AbstractComponent
 			throw new UnauthorisedClientException();
 		}
 		this.subscriptions.get(channel).put(receptionPortURI, filter);
+		} finally {
+			this.stateLock.writeLock().unlock();
+		}
 	}
 
 	public void unsubscribe(String receptionPortURI, String channel) throws Exception
 	{
+		this.stateLock.writeLock().lock();
+		try {
 		if (!this.registered(receptionPortURI)) {
 			throw new UnknownClientException(receptionPortURI);
 		}
@@ -355,10 +551,15 @@ public class Broker extends AbstractComponent
 				"Client " + receptionPortURI + " not subscribed to " + channel);
 		}
 		this.subscriptions.get(channel).remove(receptionPortURI);
+		} finally {
+			this.stateLock.writeLock().unlock();
+		}
 	}
 
 	public boolean modifyFilter(String receptionPortURI, String channel, MessageFilterI filter) throws Exception
 	{
+		this.stateLock.writeLock().lock();
+		try {
 		if (filter == null) {
 			throw new IllegalArgumentException("filter cannot be null.");
 		}
@@ -374,6 +575,9 @@ public class Broker extends AbstractComponent
 		}
 		this.subscriptions.get(channel).put(receptionPortURI, filter);
 		return true;
+		} finally {
+			this.stateLock.writeLock().unlock();
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -382,31 +586,8 @@ public class Broker extends AbstractComponent
 
 	public void publish(String publisherReceptionPortURI, String channel, MessageI message) throws Exception
 	{
-		if (message == null) {
-			throw new IllegalArgumentException("message cannot be null.");
-		}
-		if (!this.registered(publisherReceptionPortURI)) {
-			throw new UnknownClientException(publisherReceptionPortURI);
-		}
-		if (!this.channelExist(channel)) {
-			throw new UnknownChannelException(channel);
-		}
-		// Enforce privileged channel authorisation for publishers as well.
-		if (!this.channelAuthorised(publisherReceptionPortURI, channel)) {
-			throw new UnauthorisedClientException();
-		}
-
-		Map<String, MessageFilterI> subs = this.subscriptions.get(channel);
-		for (Map.Entry<String, MessageFilterI> e : subs.entrySet()) {
-			String subscriberURI = e.getKey();
-			MessageFilterI filter = e.getValue();
-			if (filter != null && filter.match(message)) {
-				ReceivingCI out = this.receptionPortsOUT.get(subscriberURI);
-				if (out != null) {
-					out.receive(channel, message);
-				}
-			}
-		}
+		// Audit 2: publish must be asynchronous (fire-and-forget submission).
+		this.submitPublish(publisherReceptionPortURI, channel, message, null);
 	}
 
 	public void publish(String publisherReceptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception
@@ -415,7 +596,7 @@ public class Broker extends AbstractComponent
 			throw new IllegalArgumentException("messages cannot be null or empty.");
 		}
 		for (MessageI m : messages) {
-			this.publish(publisherReceptionPortURI, channel, m);
+			this.submitPublish(publisherReceptionPortURI, channel, m, null);
 		}
 	}
 
@@ -457,6 +638,8 @@ public class Broker extends AbstractComponent
 
 	public void createChannel(String receptionPortURI, String channel, String autorisedUsers) throws Exception
 	{
+		this.stateLock.writeLock().lock();
+		try {
 		if (!this.registered(receptionPortURI)) {
 			throw new UnknownClientException(receptionPortURI);
 		}
@@ -482,12 +665,18 @@ public class Broker extends AbstractComponent
 
 		this.channels.add(channel);
 		this.subscriptions.put(channel, new HashMap<>());
+		this.inFlightPerChannel.put(channel, 0);
 		this.privilegedChannels.put(channel, new PrivilegedChannelInfo(receptionPortURI, p));
 		this.createdPrivilegedChannelsCount.put(
 			receptionPortURI,
 			this.createdPrivilegedChannelsCount.getOrDefault(receptionPortURI, 0) + 1);
+		} finally {
+			this.stateLock.writeLock().unlock();
+		}
 	}
 
+	// Kept as an internal helper; the corresponding method has been removed from
+	// PrivilegedClientCI in the latest interfaces update.
 	public boolean isAuthorisedUser(String channel, String uri) throws Exception
 	{
 		if (channel == null || channel.isEmpty()) {
@@ -517,6 +706,8 @@ public class Broker extends AbstractComponent
 
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers) throws Exception
 	{
+		this.stateLock.writeLock().lock();
+		try {
 		if (!this.registered(receptionPortURI)) {
 			throw new UnknownClientException(receptionPortURI);
 		}
@@ -535,8 +726,13 @@ public class Broker extends AbstractComponent
 			throw new IllegalArgumentException("autorisedUsers cannot be null/empty for modifyAuthorisedUsers.");
 		}
 		info.authorisedUsersPattern = Pattern.compile(autorisedUsers);
+		} finally {
+			this.stateLock.writeLock().unlock();
+		}
 	}
 
+	// Kept as an internal helper; the corresponding method has been removed from
+	// PrivilegedClientCI in the latest interfaces update.
 	public void removeAuthorisedUsers(String receptionPortURI, String channel, String regularExpression) throws Exception
 	{
 		if (!this.registered(receptionPortURI)) {
@@ -570,8 +766,29 @@ public class Broker extends AbstractComponent
 
 	public void destroyChannel(String receptionPortURI, String channel) throws Exception
 	{
-		// For this project, we do not maintain per-channel message queues.
-		// destroyChannel behaves like destroyChannelNow.
+		if (!this.registered(receptionPortURI)) {
+			throw new UnknownClientException(receptionPortURI);
+		}
+		if (!this.channelExist(channel)) {
+			throw new UnknownChannelException(channel);
+		}
+		PrivilegedChannelInfo info = this.privilegedChannels.get(channel);
+		if (info == null || !info.ownerReceptionPortURI.equals(receptionPortURI)) {
+			throw new UnauthorisedClientException();
+		}
+		// Wait until no more in-flight messages on this channel.
+		while (true) {
+			this.stateLock.readLock().lock();
+			try {
+				int inFlight = this.inFlightPerChannel.getOrDefault(channel, 0);
+				if (inFlight == 0) {
+					break;
+				}
+			} finally {
+				this.stateLock.readLock().unlock();
+			}
+			Thread.sleep(10);
+		}
 		this.destroyChannelNow(receptionPortURI, channel);
 	}
 
@@ -597,6 +814,7 @@ public class Broker extends AbstractComponent
 		this.subscriptions.remove(channel);
 		this.channels.remove(channel);
 		this.privilegedChannels.remove(channel);
+		this.inFlightPerChannel.remove(channel);
 
 		// update quota bookkeeping
 		this.createdPrivilegedChannelsCount.put(

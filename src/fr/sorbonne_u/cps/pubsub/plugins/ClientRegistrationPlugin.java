@@ -92,35 +92,35 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		}
 
 		try {
-			if (this.privilegedPortOUT != null) this.privilegedPortOUT.unpublishPort();
+			if (this.privilegedPortOUT != null && !this.privilegedPortOUT.isDestroyed()) this.privilegedPortOUT.unpublishPort();
 		} catch (Exception ignored) {
 		}
 		try {
-			if (this.publishingPortOUT != null) this.publishingPortOUT.unpublishPort();
+			if (this.publishingPortOUT != null && !this.publishingPortOUT.isDestroyed()) this.publishingPortOUT.unpublishPort();
 		} catch (Exception ignored) {
 		}
 		try {
-			if (this.registrationPortOUT != null) this.registrationPortOUT.unpublishPort();
+			if (this.registrationPortOUT != null && !this.registrationPortOUT.isDestroyed()) this.registrationPortOUT.unpublishPort();
 		} catch (Exception ignored) {
 		}
 		try {
-			if (this.receptionPortIN != null) this.receptionPortIN.unpublishPort();
+			if (this.receptionPortIN != null && !this.receptionPortIN.isDestroyed()) this.receptionPortIN.unpublishPort();
 		} catch (Exception ignored) {
 		}
 		try {
-			if (this.privilegedPortOUT != null) this.privilegedPortOUT.destroyPort();
+			if (this.privilegedPortOUT != null && !this.privilegedPortOUT.isDestroyed()) this.privilegedPortOUT.destroyPort();
 		} catch (Exception ignored) {
 		}
 		try {
-			if (this.publishingPortOUT != null) this.publishingPortOUT.destroyPort();
+			if (this.publishingPortOUT != null && !this.publishingPortOUT.isDestroyed()) this.publishingPortOUT.destroyPort();
 		} catch (Exception ignored) {
 		}
 		try {
-			if (this.registrationPortOUT != null) this.registrationPortOUT.destroyPort();
+			if (this.registrationPortOUT != null && !this.registrationPortOUT.isDestroyed()) this.registrationPortOUT.destroyPort();
 		} catch (Exception ignored) {
 		}
 		try {
-			if (this.receptionPortIN != null) this.receptionPortIN.destroyPort();
+			if (this.receptionPortIN != null && !this.receptionPortIN.isDestroyed()) this.receptionPortIN.destroyPort();
 		} catch (Exception ignored) {
 		}
 

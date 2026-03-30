@@ -41,6 +41,42 @@ public class ClientPublishingOutboundPort extends AbstractOutboundPort implement
 			throw new RemoteException(e.getMessage(), e);
 		}
 	}
+
+	// -------------------------------------------------------------------------
+	// PublishingCI async (added in latest interface)
+	// -------------------------------------------------------------------------
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		MessageI message,
+		String notificationInbounhdPortURI
+		) throws RemoteException
+	{
+		try {
+			((PublishingCI) this.getConnector()).asyncPublishAndNotify(
+				receptionPortURI, channel, message, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
+	}
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		ArrayList<MessageI> messages,
+		String notificationInbounhdPortURI
+		) throws RemoteException
+	{
+		try {
+			((PublishingCI) this.getConnector()).asyncPublishAndNotify(
+				receptionPortURI, channel, messages, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
+	}
 	
 	
 

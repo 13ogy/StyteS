@@ -62,30 +62,10 @@ public class ClientPrivilegedOutboundPort extends AbstractOutboundPort implement
 	}
 
 	@Override
-	public boolean isAuthorisedUser(String channel, String uri) throws RemoteException
-	{
-		try {
-			return ((PrivilegedClientCI) this.getConnector()).isAuthorisedUser(channel, uri);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	@Override
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers) throws RemoteException
 	{
 		try {
 			((PrivilegedClientCI) this.getConnector()).modifyAuthorisedUsers(receptionPortURI, channel, autorisedUsers);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	@Override
-	public void removeAuthorisedUsers(String receptionPortURI, String channel, String regularExpression) throws RemoteException
-	{
-		try {
-			((PrivilegedClientCI) this.getConnector()).removeAuthorisedUsers(receptionPortURI, channel, regularExpression);
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -130,6 +110,42 @@ public class ClientPrivilegedOutboundPort extends AbstractOutboundPort implement
 	{
 		try {
 			((PrivilegedClientCI) this.getConnector()).publish(receptionPortURI, channel, messages);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// PublishingCI async (added in latest interface)
+	// -------------------------------------------------------------------------
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		MessageI message,
+		String notificationInbounhdPortURI
+		) throws RemoteException
+	{
+		try {
+			((PrivilegedClientCI) this.getConnector()).asyncPublishAndNotify(
+				receptionPortURI, channel, message, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
+	}
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		ArrayList<MessageI> messages,
+		String notificationInbounhdPortURI
+		) throws RemoteException
+	{
+		try {
+			((PrivilegedClientCI) this.getConnector()).asyncPublishAndNotify(
+				receptionPortURI, channel, messages, notificationInbounhdPortURI);
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}

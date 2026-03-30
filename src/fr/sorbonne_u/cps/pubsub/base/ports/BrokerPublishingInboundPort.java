@@ -46,4 +46,40 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 			throw new RemoteException(e.getMessage(), e);
 		}
 	}
+
+	// -------------------------------------------------------------------------
+	// PublishingCI async (added in latest interface)
+	// -------------------------------------------------------------------------
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		MessageI message,
+		String notificationInbounhdPortURI
+		) throws RemoteException
+	{
+		try {
+			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
+				.asyncPublishAndNotify(receptionPortURI, channel, message, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
+	}
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		ArrayList<MessageI> messages,
+		String notificationInbounhdPortURI
+		) throws RemoteException
+	{
+		try {
+			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
+				.asyncPublishAndNotify(receptionPortURI, channel, messages, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
+	}
 }

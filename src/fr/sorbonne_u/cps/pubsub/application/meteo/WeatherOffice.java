@@ -1,31 +1,31 @@
 package fr.sorbonne_u.cps.pubsub.application.meteo;
 
-import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.cps.pubsub.base.components.Client;
+import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
+import fr.sorbonne_u.components.annotations.OfferedInterfaces;
+import fr.sorbonne_u.components.annotations.RequiredInterfaces;
+import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
 import fr.sorbonne_u.cps.pubsub.messages.Message;
 
 /**
- * CDC §3.4 Weather office component.
- *
- * Publishes meteo alerts (MeteoAlertI) on an alert channel.
- 
- *
- * @author Bogdan Styn
+ * Composant "Bureau météo" (CDC §3.4) implémenté comme un client pub/sub
+ * basé sur greffons ({@link PluginClient}).
  */
-public class WeatherOffice extends AbstractComponent
+@OfferedInterfaces(offered = { ReceivingCI.class })
+@RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
+public class WeatherOffice extends PluginClient
 {
-	private final Client psClient;
 	private final String officeId;
 
 	protected WeatherOffice(String officeId) throws Exception
 	{
-		// Using the component URI as reflection inbound port URI
 		this(officeId, officeId);
 	}
 
-	/** Constructor variant allowing to set the reflection inbound port URI. */
 	protected WeatherOffice(String reflectionInboundPortURI, String officeId) throws Exception
 	{
 		super(reflectionInboundPortURI, 1, 0);
@@ -33,7 +33,6 @@ public class WeatherOffice extends AbstractComponent
 			throw new IllegalArgumentException("officeId cannot be null/empty");
 		}
 		this.officeId = officeId;
-		this.psClient = new Client(1, 0);
 	}
 
 	@Override
@@ -41,7 +40,7 @@ public class WeatherOffice extends AbstractComponent
 	{
 		try {
 			super.start();
-			this.psClient.register(RegistrationClass.FREE);
+			this.register(RegistrationClass.FREE);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -49,8 +48,6 @@ public class WeatherOffice extends AbstractComponent
 
 	public void publishAlert(String alertChannel, MeteoAlertI alert) throws Exception
 	{
-
-		this.psClient.register(RegistrationClass.FREE);
 		Message m = new Message((java.io.Serializable) alert);
 		m.putProperty("type", "alert");
 		m.putProperty("officeId", officeId);
@@ -60,6 +57,6 @@ public class WeatherOffice extends AbstractComponent
 		String out = "WeatherOffice[" + officeId + "] publish alert " + alert + " on " + alertChannel;
 		this.traceMessage(out + "\n");
 		this.logMessage(out + "\n");
-		psClient.publish(alertChannel, m);
+		this.publish(alertChannel, m);
 	}
 }
