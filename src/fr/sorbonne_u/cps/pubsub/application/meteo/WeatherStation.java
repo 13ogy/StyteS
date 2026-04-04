@@ -1,33 +1,39 @@
 package fr.sorbonne_u.cps.pubsub.application.meteo;
 
-import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.cps.pubsub.base.components.Client;
+import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
+import fr.sorbonne_u.components.annotations.OfferedInterfaces;
+import fr.sorbonne_u.components.annotations.RequiredInterfaces;
+import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 import fr.sorbonne_u.cps.pubsub.meteo.PositionI;
 import fr.sorbonne_u.cps.pubsub.meteo.WindDataI;
 import fr.sorbonne_u.cps.pubsub.messages.Message;
 
 /**
- * CDC §3.4 Weather station component.
+ * Composant "Station météo" (CDC §3.4) implémenté comme un client du système
+ * pub/sub basé sur greffons ({@link PluginClient}).
  *
- * Publishes wind observations (WindDataI) on a wind channel.
- 
- *
- * @author Bogdan Styn
+ * <p>
+ * Avantage : la station bénéficie directement des fonctionnalités côté client
+ * (notamment CDC §3.5.3 si besoin) sans embarquer un second composant.
+ * </p>
  */
-public class WeatherStation extends AbstractComponent
+@OfferedInterfaces(offered = { ReceivingCI.class })
+@RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
+public class WeatherStation extends PluginClient
 {
-	private final Client psClient;
 	private final String stationId;
 	private final PositionI position;
 
 	protected WeatherStation(String stationId, PositionI position) throws Exception
 	{
-		// Using the component URI as reflection inbound port URI
 		this(stationId, stationId, position);
 	}
 
-	/** Constructor variant allowing to set the reflection inbound port URI. */
+	/** Constructeur avec URI du port de réflexion (obligatoire pour BCM4Java). */
 	protected WeatherStation(String reflectionInboundPortURI, String stationId, PositionI position) throws Exception
 	{
 		super(reflectionInboundPortURI, 1, 0);
@@ -39,8 +45,6 @@ public class WeatherStation extends AbstractComponent
 		}
 		this.stationId = stationId;
 		this.position = position;
-
-		this.psClient = new Client(1, 0);
 	}
 
 	@Override
@@ -48,7 +52,7 @@ public class WeatherStation extends AbstractComponent
 	{
 		try {
 			super.start();
-			this.psClient.register(RegistrationClass.FREE);
+			this.register(RegistrationClass.FREE);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -61,11 +65,9 @@ public class WeatherStation extends AbstractComponent
 
 	public void publishWind(String windChannel, WindDataI wind) throws Exception
 	{
-
-		this.psClient.register(RegistrationClass.FREE);
 		Message m = new Message((java.io.Serializable) wind);
 		m.putProperty("type", "wind");
-		// The payload as a property so that value-based filters can be applied
+		// Le payload aussi sous forme de propriété pour permettre les filtres par valeur.
 		m.putProperty("payload", (java.io.Serializable) wind);
 		m.putProperty("stationId", stationId);
 		m.putProperty("force", Double.toString(wind.force()));
@@ -75,6 +77,6 @@ public class WeatherStation extends AbstractComponent
 		String out = "WeatherStation[" + stationId + "] publish wind " + wind + " on " + windChannel;
 		this.traceMessage(out + "\n");
 		this.logMessage(out + "\n");
-		psClient.publish(windChannel, m);
+		this.publish(windChannel, m);
 	}
 }

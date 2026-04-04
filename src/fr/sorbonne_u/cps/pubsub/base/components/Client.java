@@ -171,19 +171,9 @@ public class Client extends AbstractComponent {
 		this.privilegedPortOUT.createChannel(this.receptionPortIN.getPortURI(), channel, authorisedUsersRegex);
 	}
 
-	public boolean isAuthorisedUser(String channel, String uri) throws Exception
-	{
-		return this.privilegedPortOUT.isAuthorisedUser(channel, uri);
-	}
-
 	public void modifyAuthorisedUsers(String channel, String authorisedUsersRegex) throws Exception
 	{
 		this.privilegedPortOUT.modifyAuthorisedUsers(this.receptionPortIN.getPortURI(), channel, authorisedUsersRegex);
-	}
-
-	public void removeAuthorisedUsers(String channel, String regularExpression) throws Exception
-	{
-		this.privilegedPortOUT.removeAuthorisedUsers(this.receptionPortIN.getPortURI(), channel, regularExpression);
 	}
 
 	public void destroyChannel(String channel) throws Exception

@@ -62,7 +62,9 @@ extends		OfferedCI,
 	// -------------------------------------------------------------------------
 
 	/**
-	 * receive {@code message} from {@code channel}.
+	 * receive {@code message} from {@code channel}; the call is executed
+	 * asynchronously to free the client component thread as soon as the
+	 * corresponding task is submitted to the receiver.
 	 * 
 	 * <p><strong>Contract</strong></p>
 	 * 
@@ -80,7 +82,9 @@ extends		OfferedCI,
 	throws Exception;
 
 	/**
-	 * receive {@code messages} from {@code channel}.
+	 * receive {@code messages} from {@code channel}; the call is executed
+	 * asynchronously to free the client component thread as soon as the
+	 * corresponding task is submitted to the receiver.
 	 * 
 	 * <p><strong>Contract</strong></p>
 	 * 

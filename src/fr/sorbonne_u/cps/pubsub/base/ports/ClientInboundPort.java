@@ -28,9 +28,9 @@ public class ClientInboundPort extends AbstractInboundPort implements ReceivingC
 	{
 		try {
 			if (this.getOwner() instanceof Client) {
-				((Client) this.getOwner()).receive(channel, message);
+				this.getOwner().runTask(o -> ((Client) o).receive(channel, message));
 			} else if (this.getOwner() instanceof PluginClient) {
-				((PluginClient) this.getOwner()).onReceive(channel, message);
+				this.getOwner().runTask(o -> ((PluginClient) o).onReceive(channel, message));
 			} else {
 				throw new IllegalStateException(
 					"ClientInboundPort owner must be Client or PluginClient, got "
@@ -46,9 +46,18 @@ public class ClientInboundPort extends AbstractInboundPort implements ReceivingC
 	{
 		try {
 			if (this.getOwner() instanceof Client) {
-				((Client) this.getOwner()).receive(channel, messages);
+				this.getOwner().runTask(o -> ((Client) o).receive(channel, messages));
 			} else if (this.getOwner() instanceof PluginClient) {
-				((PluginClient) this.getOwner()).onReceive(channel, messages != null && messages.length > 0 ? messages[0] : null);
+				this.getOwner().runTask(o -> {
+					PluginClient pc = (PluginClient) o;
+					if (messages != null) {
+						for (MessageI m : messages) {
+							pc.onReceive(channel, m);
+						}
+					} else {
+						pc.onReceive(channel, null);
+					}
+				});
 			} else {
 				throw new IllegalStateException(
 					"ClientInboundPort owner must be Client or PluginClient, got "

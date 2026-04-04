@@ -81,30 +81,6 @@ public class ClientPrivilegedPlugin extends AbstractPlugin implements Privileged
 	}
 
 	@Override
-	public boolean isAuthorisedUser(String channel, String uri)
-	throws UnknownClientException, UnknownChannelException
-	{
-		try {
-			return this.registrationPlugin.getPrivilegedPortOUT().isAuthorisedUser(channel, uri);
-		} catch (Exception e) {
-			Throwable cause = e.getCause();
-			if (cause instanceof UnknownClientException) {
-				throw (UnknownClientException) cause;
-			}
-			if (cause instanceof UnknownChannelException) {
-				throw (UnknownChannelException) cause;
-			}
-			if (e instanceof UnknownClientException) {
-				throw (UnknownClientException) e;
-			}
-			if (e instanceof UnknownChannelException) {
-				throw (UnknownChannelException) e;
-			}
-			throw new RuntimeException(e);
-		}
-	}
-
-	@Override
 	public void modifyAuthorisedUsers(String channel, String autorisedUsers)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
 	{
@@ -113,30 +89,6 @@ public class ClientPrivilegedPlugin extends AbstractPlugin implements Privileged
 				this.registrationPlugin.getReceptionPortURI(),
 				channel,
 				autorisedUsers);
-		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	/**
-	 * Exposes the component interface operation for removing
-	 * authorised users by regex.
-	 *
-	 * <p>
-	 * Not part of {@link PrivilegedClientI} in the CDC figure 8, but present in
-	 * {@code PrivilegedClientCI}.
-	 * </p>
-	 */
-	public void removeAuthorisedUsers(String channel, String regularExpression)
-	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
-	{
-		try {
-			this.registrationPlugin.getPrivilegedPortOUT().removeAuthorisedUsers(
-				this.registrationPlugin.getReceptionPortURI(),
-				channel,
-				regularExpression);
 		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
 			throw e;
 		} catch (Exception e) {

@@ -68,40 +68,12 @@ public class BrokerPrivilegedInboundPort extends AbstractInboundPort implements 
 	}
 
 	@Override
-	public boolean isAuthorisedUser(String channel, String uri)
-		throws RemoteException, UnknownChannelException, UnknownClientException
-	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.isAuthorisedUser(channel, uri);
-		} catch (UnknownChannelException | UnknownClientException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	@Override
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers)
 		throws RemoteException, UnknownClientException, UnknownChannelException, UnauthorisedClientException
 	{
 		try {
 			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
 				.modifyAuthorisedUsers(receptionPortURI, channel, autorisedUsers);
-		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	@Override
-	public void removeAuthorisedUsers(String receptionPortURI, String channel, String regularExpression)
-		throws RemoteException, UnknownClientException, UnknownChannelException, UnauthorisedClientException
-	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.removeAuthorisedUsers(receptionPortURI, channel, regularExpression);
 		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
 			throw e;
 		} catch (Exception e) {
@@ -160,6 +132,42 @@ public class BrokerPrivilegedInboundPort extends AbstractInboundPort implements 
 		try {
 			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
 				.publish(receptionPortURI, channel, messages);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// PublishingCI async (added in latest interface)
+	// -------------------------------------------------------------------------
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		fr.sorbonne_u.cps.pubsub.interfaces.MessageI message,
+		String notificationInbounhdPortURI
+		) throws RemoteException
+	{
+		try {
+			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
+				.asyncPublishAndNotify(receptionPortURI, channel, message, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
+	}
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		ArrayList<fr.sorbonne_u.cps.pubsub.interfaces.MessageI> messages,
+		String notificationInbounhdPortURI
+		) throws RemoteException
+	{
+		try {
+			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
+				.asyncPublishAndNotify(receptionPortURI, channel, messages, notificationInbounhdPortURI);
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}

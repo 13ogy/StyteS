@@ -14,14 +14,15 @@ import java.util.ArrayList;
  * The connector forwards calls to the offering component through
  * {@link #offering}.
  * </p>
- 
  *
  * @author Bogdan Styn
  */
-public class ClientBrokerPrivilegedConnector extends AbstractConnector implements PrivilegedClientCI
+public class ClientBrokerPrivilegedConnector extends AbstractConnector
+	implements PrivilegedClientCI
 {
 	@Override
-	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws Exception
+	public boolean hasCreatedChannel(String receptionPortURI, String channel)
+	throws Exception
 	{
 		return ((PrivilegedClientCI) this.offering).hasCreatedChannel(receptionPortURI, channel);
 	}
@@ -33,27 +34,17 @@ public class ClientBrokerPrivilegedConnector extends AbstractConnector implement
 	}
 
 	@Override
-	public void createChannel(String receptionPortURI, String channel, String autorisedUsers) throws Exception
+	public void createChannel(String receptionPortURI, String channel, String autorisedUsers)
+	throws Exception
 	{
 		((PrivilegedClientCI) this.offering).createChannel(receptionPortURI, channel, autorisedUsers);
 	}
 
 	@Override
-	public boolean isAuthorisedUser(String channel, String uri) throws Exception
-	{
-		return ((PrivilegedClientCI) this.offering).isAuthorisedUser(channel, uri);
-	}
-
-	@Override
-	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers) throws Exception
+	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers)
+	throws Exception
 	{
 		((PrivilegedClientCI) this.offering).modifyAuthorisedUsers(receptionPortURI, channel, autorisedUsers);
-	}
-
-	@Override
-	public void removeAuthorisedUsers(String receptionPortURI, String channel, String regularExpression) throws Exception
-	{
-		((PrivilegedClientCI) this.offering).removeAuthorisedUsers(receptionPortURI, channel, regularExpression);
 	}
 
 	@Override
@@ -82,5 +73,33 @@ public class ClientBrokerPrivilegedConnector extends AbstractConnector implement
 	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception
 	{
 		((PrivilegedClientCI) this.offering).publish(receptionPortURI, channel, messages);
+	}
+
+	// -------------------------------------------------------------------------
+	// PublishingCI async (added in latest interface)
+	// -------------------------------------------------------------------------
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		MessageI message,
+		String notificationInbounhdPortURI
+		) throws Exception
+	{
+		((PrivilegedClientCI) this.offering).asyncPublishAndNotify(
+			receptionPortURI, channel, message, notificationInbounhdPortURI);
+	}
+
+	@Override
+	public void asyncPublishAndNotify(
+		String receptionPortURI,
+		String channel,
+		ArrayList<MessageI> messages,
+		String notificationInbounhdPortURI
+		) throws Exception
+	{
+		((PrivilegedClientCI) this.offering).asyncPublishAndNotify(
+			receptionPortURI, channel, messages, notificationInbounhdPortURI);
 	}
 }

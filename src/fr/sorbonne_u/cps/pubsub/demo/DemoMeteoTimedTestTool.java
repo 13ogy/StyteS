@@ -73,14 +73,14 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 		RegionI concerned = new CircularRegion(turbinePos, 10.0);
 
 		MeteoAlert orange = new MeteoAlert(
-			MeteoAlertI.AlterType.STORM,
+			MeteoAlertI.AlertType.STORM,
 			MeteoAlertI.Level.ORANGE,
 			new RegionI[] { concerned },
 			Instant.now(),
 			Duration.ofMinutes(30));
 
 		MeteoAlert green = new MeteoAlert(
-			MeteoAlertI.AlterType.STORM,
+			MeteoAlertI.AlertType.STORM,
 			MeteoAlertI.Level.GREEN,
 			new RegionI[] { concerned },
 			Instant.now(),

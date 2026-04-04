@@ -196,7 +196,9 @@ extends		PluginI
 	// Signatures that are called by the broker
 
 	/**
-	 * receive passively {@code message} from {@code channel}.
+	 * receive passively {@code message} from {@code channel}; the call is
+	 * executed asynchronously to free the client component thread as soon as
+	 * the corresponding task is submitted to the receiver.
 	 * 
 	 * <p><strong>Contract</strong></p>
 	 * 
@@ -211,7 +213,9 @@ extends		PluginI
 	public void			receive(String channel, MessageI message);
 
 	/**
-	 * receive {@code messages} from {@code channel}.
+	 * receive passively {@code messages} from {@code channel}; the call is
+	 * executed asynchronously to free the client component thread as soon as
+	 * the corresponding task is submitted to the receiver.
 	 * 
 	 * <p><strong>Contract</strong></p>
 	 * 

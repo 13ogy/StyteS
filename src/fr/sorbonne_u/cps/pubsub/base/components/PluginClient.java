@@ -37,7 +37,7 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
 public class PluginClient extends AbstractComponent
 {
 	protected final ClientRegistrationPlugin registrationPlugin;
-	protected final ClientSubscriptionPlugin subscriptionPlugin;
+	public final ClientSubscriptionPlugin subscriptionPlugin;
 	protected final ClientPublicationPlugin publicationPlugin;
 	protected final ClientPrivilegedPlugin privilegedPlugin;
 
@@ -162,12 +162,6 @@ public class PluginClient extends AbstractComponent
 		return this.privilegedPlugin.channelQuotaReached();
 	}
 
-	public boolean isAuthorisedUser(String channel, String uri)
-	throws UnknownClientException, fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException
-	{
-		return this.privilegedPlugin.isAuthorisedUser(channel, uri);
-	}
-
 	public void modifyAuthorisedUsers(String channel, String authorisedUsers)
 	throws UnknownClientException,
 			fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException,
@@ -212,4 +206,8 @@ public class PluginClient extends AbstractComponent
 				+ " received on " + channel + " payload=" + message.getPayload()
 				+ " timestamp=" + message.getTimeStamp() + "\n");
 	}
+
+	// Rely on the BCM lifecycle (uninstallPlugin/shutdown) to cleanly disconnect
+	// and destroy ports. Avoid custom shutdown actions as they can conflict with
+	// the framework teardown order when assertions are enabled (-ea).
 }

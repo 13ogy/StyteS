@@ -100,7 +100,7 @@ extends		PluginI
 			UnknownChannelException;
 
 	/**
-	 * publish {@code message} on {@code channel}.
+	 * asynchronously publish {@code message} on {@code channel}.
 	 * 
 	 * <p><strong>Contract</strong></p>
 	 * 
@@ -122,7 +122,7 @@ extends		PluginI
 			UnauthorisedClientException;
 
 	/**
-	 * publish all of the {@code messages} on {@code channel}.
+	 * asynchronously publish all of the {@code messages} on {@code channel}.
 	 * 
 	 * <p><strong>Contract</strong></p>
 	 * 
@@ -143,5 +143,60 @@ extends		PluginI
 	throws	UnknownClientException,
 			UnknownChannelException,
 			UnauthorisedClientException;
+
+	/**
+	 * asynchronously publish {@code message} on {@code channel}.
+	 * 
+	 * <p><strong>Contract</strong></p>
+	 * 
+	 * <pre>
+	 * pre	{@code channel != null && !channel.isEmpty()}
+	 * pre	{@code message != null}
+	 * post	{@code true}	// no postcondition.
+	 * </pre>
+	 *
+	 * <p><strong>Exception notification</strong></p>
+	 * 
+	 * <p>
+	 * UnknownClientException		when the component is not registered on the publication/subscription system yet.
+	 * UnknownChannelException		when {@code channel} does not exist.
+	 * UnauthorisedClientException	when the client is not authorised to publish on {@code channel}.
+	 * </p>
+	 * 
+	 * @param channel	name of an existing channel.
+	 * @param message	message to be published on {@code channel}.
+	 */
+	public void			asyncPublishAndNotify(
+		String channel,
+		MessageI message
+		);
+
+	/**
+	 * asynchronously publish all of the {@code messages} on {@code channel}.
+	 * 
+	 * <p><strong>Contract</strong></p>
+	 * 
+	 * <pre>
+	 * pre	{@code channel != null && !channel.isEmpty()}
+	 * pre	{@code messages != null && messages.size() > 0}
+	 * pre	{@code Stream.of(messages).allMatch(m -> m != null)}
+	 * post	{@code true}	// no postcondition.
+	 * </pre>
+	 *
+	 * <p><strong>Exception notification</strong></p>
+	 * 
+	 * <p>
+	 * UnknownClientException		when the component is not registered on the publication/subscription system yet.
+	 * UnknownChannelException		when {@code channel} does not exist.
+	 * UnauthorisedClientException	when the client is not authorised to publish on {@code channel}.
+	 * </p>
+	 * 
+	 * @param channel		name of the channel on which {@code message} must be published.
+	 * @param messages		list of messages to be published on {@code channel}.
+	 */
+	public void			asyncPublishAndNotify(
+		String channel,
+		ArrayList<MessageI> messages
+		);
 }
 // -----------------------------------------------------------------------------
