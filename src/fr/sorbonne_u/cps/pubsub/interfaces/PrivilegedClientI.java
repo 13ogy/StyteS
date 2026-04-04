@@ -125,27 +125,6 @@ extends		PluginI
 					ChannelQuotaExceededException;
 
 	/**
-	 * return true if {@code uri} is authorised to use {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
-	 * <pre>
-	 * pre	{@code channel != null && !channel.isEmpty()}
-	 * pre	{@code uri != null && !uri.isEmpty()}
-	 * post	{@code true}	// no postcondition.
-	 * </pre>
-	 *
-	 * @param channel					name of an existing channel.
-	 * @param uri						URI of component to be tested.
-	 * @return							true if {@code uri} is authorised to use {@code channel}.
-	 * @throws UnknownClientException	when {@code uri} does not correspond to a registered component.
-	 * @throws UnknownChannelException	when the channel does not exist.
-	 */
-	public boolean		isAuthorisedUser(String channel, String uri)
-	throws	UnknownClientException,
-			UnknownChannelException;
-
-	/**
 	 * modify the users authorised to use {@code channel}.
 	 * 
 	 * <p><strong>Contract</strong></p>
