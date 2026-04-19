@@ -50,8 +50,10 @@ import java.util.regex.Pattern;
  * <p>
  * <strong>Concurrence.</strong> L'état est partitionné en trois domaines, chacun
  * protégé par un {@link ReentrantReadWriteLock} indépendant : enregistrement,
- * canaux et souscriptions. Le compteur in-flight est sous son propre moniteur
- * pour ne pas bloquer le pipeline. Ordre d'acquisition obligatoire pour éviter
+ * canaux et souscriptions. Le compteur in-flight par canal est lock-free
+ * ({@link java.util.concurrent.ConcurrentHashMap} de
+ * {@link java.util.concurrent.atomic.AtomicInteger}) pour ne jamais bloquer
+ * le pipeline. Ordre d'acquisition obligatoire pour éviter
  * les inter-blocages :
  * </p>
  * <pre>
