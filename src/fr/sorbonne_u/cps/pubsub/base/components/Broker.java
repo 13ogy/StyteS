@@ -162,9 +162,9 @@ public class Broker extends AbstractComponent
 
 	private final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
 
-	// Compteur in-flight protégé par son propre moniteur (synchronized sur la
-	// map elle-même) pour rester hors des verrous lourds du pipeline.
-	private final Map<String, Integer> inFlightPerChannel = new HashMap<>();
+	// Compteur in-flight par canal : ConcurrentHashMap + AtomicInteger pour
+	// rester totalement lock-free et hors des verrous lourds du pipeline.
+	private final ConcurrentHashMap<String, AtomicInteger> inFlightPerChannel = new ConcurrentHashMap<>();
 
 	// -------------------------------------------------------------------------
 	// Constructeur
@@ -182,7 +182,7 @@ public class Broker extends AbstractComponent
 			String c = "channel" + i;
 			this.channels.add(c);
 			this.subscriptions.put(c, new HashMap<>());
-			this.inFlightPerChannel.put(c, 0);
+			this.inFlightPerChannel.put(c, new AtomicInteger(0));
 		}
 
 		registrationPortIN = new BrokerRegistrationInboundPort(this);
@@ -276,17 +276,16 @@ public class Broker extends AbstractComponent
 
 	protected void beginInFlight(String channel)
 	{
-		synchronized (this.inFlightPerChannel) {
-			this.inFlightPerChannel.put(channel, this.inFlightPerChannel.getOrDefault(channel, 0) + 1);
-		}
+		this.inFlightPerChannel.computeIfAbsent(channel, k -> new AtomicInteger(0)).incrementAndGet();
 	}
 
 	protected void finishInFlight(String channel)
 	{
-		synchronized (this.inFlightPerChannel) {
-			int v = this.inFlightPerChannel.getOrDefault(channel, 0);
-			this.inFlightPerChannel.put(channel, Math.max(0, v - 1));
-		}
+		AtomicInteger a = this.inFlightPerChannel.get(channel);
+		if (a == null) return;
+		// Borne basse à 0 : une décrémentation tardive après destroyChannel ne
+		// doit pas faire passer le compteur en négatif.
+		a.updateAndGet(v -> Math.max(0, v - 1));
 	}
 
 	protected void propagationStage(String channel, MessageI message) throws Exception
@@ -839,9 +838,7 @@ public class Broker extends AbstractComponent
 					this.channels.add(channel);
 					this.privilegedChannels.put(channel, new PrivilegedChannelInfo(receptionPortURI, p));
 					this.subscriptions.put(channel, new HashMap<>());
-					synchronized (this.inFlightPerChannel) {
-						this.inFlightPerChannel.put(channel, 0);
-					}
+					this.inFlightPerChannel.put(channel, new AtomicInteger(0));
 					this.createdPrivilegedChannelsCount.put(
 					receptionPortURI,
 					this.createdPrivilegedChannelsCount.getOrDefault(receptionPortURI, 0) + 1);
@@ -988,11 +985,8 @@ public class Broker extends AbstractComponent
 		}
 
 		while (true) {
-			int inFlight;
-			synchronized (this.inFlightPerChannel) {
-				inFlight = this.inFlightPerChannel.getOrDefault(channel, 0);
-			}
-			if (inFlight == 0) break;
+			AtomicInteger a = this.inFlightPerChannel.get(channel);
+			if (a == null || a.get() == 0) break;
 			Thread.sleep(10);
 		}
 		this.destroyChannelNow(receptionPortURI, channel);
@@ -1026,9 +1020,7 @@ public class Broker extends AbstractComponent
 				}
 				this.channels.remove(channel);
 				this.privilegedChannels.remove(channel);
-				synchronized (this.inFlightPerChannel) {
-					this.inFlightPerChannel.remove(channel);
-				}
+				this.inFlightPerChannel.remove(channel);
 				this.createdPrivilegedChannelsCount.put(
 				receptionPortURI,
 				Math.max(0, this.createdPrivilegedChannelsCount.getOrDefault(receptionPortURI, 1) - 1));
