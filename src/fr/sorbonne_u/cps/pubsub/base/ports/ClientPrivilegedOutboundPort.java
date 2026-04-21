@@ -21,7 +21,7 @@ import java.util.ArrayList;
  *
  * @author Bogdan Styn
  */
-public class ClientPrivilegedOutboundPort extends AbstractOutboundPort implements PrivilegedClientCI
+public class ClientPrivilegedOutboundPort extends ClientPublishingOutboundPort implements PrivilegedClientCI
 {
 	public ClientPrivilegedOutboundPort(ComponentI owner) throws Exception
 	{

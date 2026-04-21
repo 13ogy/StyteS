@@ -21,122 +21,77 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 
 	public ClientRegistrationOutboundPort(ComponentI owner) throws Exception {
 		super(RegistrationCI.class, owner);
-		this.connecteur=(ClientBrokerRegistrationConnector) this.getConnector();
+
 	}
 
-	private ClientBrokerRegistrationConnector connecteur;
-	
-	
 
 	@Override
-	public boolean registered(String receptionPortURI) throws RemoteException {
-		try {
-			return ((RegistrationCI) this.getConnector()).registered(receptionPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public boolean registered(String receptionPortURI) throws Exception {
+		return ((RegistrationCI) this.getConnector()).registered(receptionPortURI);
+
 	}
 
 	@Override
-	public boolean registered(String receptionPortURI, RegistrationClass rc) throws RemoteException {
-		try {
-			return ((RegistrationCI) this.getConnector()).registered(receptionPortURI, rc);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public boolean registered(String receptionPortURI, RegistrationClass rc) throws Exception {
+
+		return ((RegistrationCI) this.getConnector()).registered(receptionPortURI, rc);
+
 	}
 
 	@Override
-	public String register(String receptionPortURI, RegistrationClass rc) throws RemoteException, AlreadyRegisteredException {
-		try {
-			return ((RegistrationCI) this.getConnector()).register(receptionPortURI, rc);
-		} catch (AlreadyRegisteredException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public String register(String receptionPortURI, RegistrationClass rc) throws Exception {
+
+		return ((RegistrationCI) this.getConnector()).register(receptionPortURI, rc);
+
 	}
 
 	@Override
-	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc) throws RemoteException, AlreadyRegisteredException {
-		try {
-			return ((RegistrationCI) this.getConnector()).modifyServiceClass(receptionPortURI, rc);
-		} catch (AlreadyRegisteredException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc) throws Exception, AlreadyRegisteredException {
+		return ((RegistrationCI) this.getConnector()).modifyServiceClass(receptionPortURI, rc);
+
 	}
 
 	@Override
-	public void unregister(String receptionPortURI) throws RemoteException {
-		try {
-			((RegistrationCI) this.getConnector()).unregister(receptionPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public void unregister(String receptionPortURI) throws Exception {
+
+		((RegistrationCI) this.getConnector()).unregister(receptionPortURI);
+
 	}
 
 	@Override
-	public boolean channelExist(String channel) throws RemoteException {
-		try {
-			return ((RegistrationCI) this.getConnector()).channelExist(channel);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public boolean channelExist(String channel) throws Exception {
+		return ((RegistrationCI) this.getConnector()).channelExist(channel);
+
 	}
 
 	@Override
-	public boolean channelAuthorised(String receptionPortURI, String channel) throws RemoteException {
-		try {
-			return ((RegistrationCI) this.getConnector()).channelAuthorised(receptionPortURI, channel);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public boolean channelAuthorised(String receptionPortURI, String channel) throws Exception {
+		return ((RegistrationCI) this.getConnector()).channelAuthorised(receptionPortURI, channel);
+
 	}
 
 	@Override
-	public boolean subscribed(String receptionPortURI, String channel) throws RemoteException, UnknownChannelException {
-		try {
-			return ((RegistrationCI) this.getConnector()).subscribed(receptionPortURI, channel);
-		} catch (UnknownChannelException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public boolean subscribed(String receptionPortURI, String channel) throws Exception{
+		return ((RegistrationCI) this.getConnector()).subscribed(receptionPortURI, channel);
+
 	}
 
 	@Override
-	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter) throws RemoteException,UnknownChannelException {
-		try {
-			((RegistrationCI) this.getConnector()).subscribe(receptionPortURI, channel, filter);
-		} catch (UnknownChannelException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter) throws Exception{
+		((RegistrationCI) this.getConnector()).subscribe(receptionPortURI, channel, filter);
+
 	}
 
 	@Override
-	public void unsubscribe(String receptionPortURI, String channel) throws RemoteException, UnknownChannelException, NotSubscribedChannelException {
-		try {
-			((RegistrationCI) this.getConnector()).unsubscribe(receptionPortURI, channel);
-		} catch (UnknownChannelException | NotSubscribedChannelException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public void unsubscribe(String receptionPortURI, String channel) throws Exception {
+		((RegistrationCI) this.getConnector()).unsubscribe(receptionPortURI, channel);
+
 	}
 
 	@Override
-	public boolean modifyFilter(String receptionPortURI, String channel, MessageFilterI filter) throws RemoteException, UnknownChannelException, NotSubscribedChannelException {
-		try {
-			return ((RegistrationCI) this.getConnector()).modifyFilter(receptionPortURI, channel, filter);
-		} catch (UnknownChannelException | NotSubscribedChannelException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public boolean modifyFilter(String receptionPortURI, String channel, MessageFilterI filter) throws Exception {
+		return ((RegistrationCI) this.getConnector()).modifyFilter(receptionPortURI, channel, filter);
+
 	}
 	
 }

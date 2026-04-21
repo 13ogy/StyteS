@@ -1,6 +1,5 @@
 package fr.sorbonne_u.cps.pubsub.plugins;
 
-import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.AbstractPlugin;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
@@ -12,11 +11,14 @@ import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
+import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
 /**
  * Client-side plugin implementing registration operations (CDC §3.5).
- *
  * It owns the ports needed to register to the broker and connect the publication
  * and privileged management ports.
  
@@ -45,84 +47,72 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	public void installOn(fr.sorbonne_u.components.ComponentI owner) throws Exception
 	{
 		super.installOn(owner);
-		AbstractComponent ac = (AbstractComponent) owner;
-
-		// Ports created on the owner component.
-		this.receptionPortIN = new ClientInboundPort(ac);
+		// Add interfaces
+		this.addOfferedInterface(ReceivingCI.class);
+		this.addRequiredInterface(RegistrationCI.class);
+		this.addRequiredInterface(PublishingCI.class);
+		this.addRequiredInterface(PrivilegedClientCI.class);
+	}
+	@Override
+	public void initialise() throws Exception {
+		super.initialise();
+		// Publish ports
+		this.receptionPortIN = new ClientInboundPort(this.getOwner(), this.getPluginURI());
 		this.receptionPortIN.publishPort();
 
-		this.registrationPortOUT = new ClientRegistrationOutboundPort(ac);
+		this.registrationPortOUT = new ClientRegistrationOutboundPort(this.getOwner());
 		this.registrationPortOUT.publishPort();
 
-		this.publishingPortOUT = new ClientPublishingOutboundPort(ac);
+		this.publishingPortOUT = new ClientPublishingOutboundPort(this.getOwner());
 		this.publishingPortOUT.publishPort();
 
-		this.privilegedPortOUT = new ClientPrivilegedOutboundPort(ac);
+		this.privilegedPortOUT = new ClientPrivilegedOutboundPort(this.getOwner());
 		this.privilegedPortOUT.publishPort();
-	}
 
+		// Connect ports
+		this.getOwner().doPortConnection(
+				this.registrationPortOUT.getPortURI(),
+				Broker.registrationPortURI(),
+				ClientBrokerRegistrationConnector.class.getCanonicalName());
+	}
+	@Override
+	public void finalise() throws Exception {
+		if (this.registrationPortOUT != null && this.registrationPortOUT.connected()) {
+			this.getOwner().doPortDisconnection(this.registrationPortOUT.getPortURI());
+		}
+		if (this.publishingPortOUT != null && this.publishingPortOUT.connected()) {
+			this.getOwner().doPortDisconnection(this.publishingPortOUT.getPortURI());
+		}
+		if (this.privilegedPortOUT != null && this.privilegedPortOUT.connected()) {
+			this.getOwner().doPortDisconnection(this.privilegedPortOUT.getPortURI());
+		}
+		super.finalise();
+	}
 	@Override
 	public void uninstall() throws Exception
 	{
-		try {
-			if (this.registered) {
-				this.unregister();
-			}
+		// Unpublish ports
+		if (this.receptionPortIN != null && !this.receptionPortIN.isDestroyed()) {
+			this.receptionPortIN.unpublishPort();
+			this.receptionPortIN.destroyPort();
 		}
-        catch (Exception ignored) {
+		if (this.registrationPortOUT != null && !this.registrationPortOUT.isDestroyed()) {
+			this.registrationPortOUT.unpublishPort();
+			this.registrationPortOUT.destroyPort();
 		}
-
-		try {
-			if (this.registrationPortOUT != null && this.registrationPortOUT.connected()) {
-				this.getOwner().doPortDisconnection(this.registrationPortOUT.getPortURI());
-			}
-		} catch (Exception ignored) {
+		if (this.publishingPortOUT != null && !this.publishingPortOUT.isDestroyed()) {
+			this.publishingPortOUT.unpublishPort();
+			this.publishingPortOUT.destroyPort();
 		}
-		try {
-			if (this.publishingPortOUT != null && this.publishingPortOUT.connected()) {
-				this.getOwner().doPortDisconnection(this.publishingPortOUT.getPortURI());
-			}
-		} catch (Exception ignored) {
+		if (this.privilegedPortOUT != null && !this.privilegedPortOUT.isDestroyed()) {
+			this.privilegedPortOUT.unpublishPort();
+			this.privilegedPortOUT.destroyPort();
 		}
-		try {
-			if (this.privilegedPortOUT != null && this.privilegedPortOUT.connected()) {
-				this.getOwner().doPortDisconnection(this.privilegedPortOUT.getPortURI());
-			}
-		} catch (Exception ignored) {
-		}
-
-		try {
-			if (this.privilegedPortOUT != null && !this.privilegedPortOUT.isDestroyed()) this.privilegedPortOUT.unpublishPort();
-		} catch (Exception ignored) {
-		}
-		try {
-			if (this.publishingPortOUT != null && !this.publishingPortOUT.isDestroyed()) this.publishingPortOUT.unpublishPort();
-		} catch (Exception ignored) {
-		}
-		try {
-			if (this.registrationPortOUT != null && !this.registrationPortOUT.isDestroyed()) this.registrationPortOUT.unpublishPort();
-		} catch (Exception ignored) {
-		}
-		try {
-			if (this.receptionPortIN != null && !this.receptionPortIN.isDestroyed()) this.receptionPortIN.unpublishPort();
-		} catch (Exception ignored) {
-		}
-		try {
-			if (this.privilegedPortOUT != null && !this.privilegedPortOUT.isDestroyed()) this.privilegedPortOUT.destroyPort();
-		} catch (Exception ignored) {
-		}
-		try {
-			if (this.publishingPortOUT != null && !this.publishingPortOUT.isDestroyed()) this.publishingPortOUT.destroyPort();
-		} catch (Exception ignored) {
-		}
-		try {
-			if (this.registrationPortOUT != null && !this.registrationPortOUT.isDestroyed()) this.registrationPortOUT.destroyPort();
-		} catch (Exception ignored) {
-		}
-		try {
-			if (this.receptionPortIN != null && !this.receptionPortIN.isDestroyed()) this.receptionPortIN.destroyPort();
-		} catch (Exception ignored) {
-		}
+		//Removing interfaces
+		this.removeOfferedInterface(ReceivingCI.class);
+		this.removeRequiredInterface(RegistrationCI.class);
+		this.removeRequiredInterface(PublishingCI.class);
+		this.removeRequiredInterface(PrivilegedClientCI.class);
 
 		super.uninstall();
 	}
@@ -173,61 +163,64 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	@Override
 	public void register(RegistrationClass rc) throws AlreadyRegisteredException
 	{
+		if (this.registered) throw new AlreadyRegisteredException();
+
 		try {
-			if (this.registered) {
-				throw new AlreadyRegisteredException();
+			String brokerPortURI = this.registrationPortOUT.register(
+					this.receptionPortIN.getPortURI(), rc);
+
+			if (rc == RegistrationClass.FREE) {
+				// FREE clients only get publishing
+				this.getOwner().doPortConnection(
+						this.publishingPortOUT.getPortURI(),
+						brokerPortURI,
+						ClientBrokerPublishingConnector.class.getCanonicalName());
+			} else {
+				// STANDARD/PREMIUM get privileged (which also covers publishing)
+				this.getOwner().doPortConnection(
+						this.privilegedPortOUT.getPortURI(),
+						brokerPortURI,
+						ClientBrokerPrivilegedConnector.class.getCanonicalName());
 			}
 			this.currentRC = rc;
-
-			// connect to broker registration port
-			this.getOwner().doPortConnection(
-				this.registrationPortOUT.getPortURI(),
-				Broker.registrationPortURI(),
-				ClientBrokerRegistrationConnector.class.getCanonicalName());
-
-			// register -> receive broker publishing inbound port URI
-			String brokerPublishingURI =
-				this.registrationPortOUT.register(this.receptionPortIN.getPortURI(), rc);
-
-			// connect publishing outbound port
-			this.getOwner().doPortConnection(
-				this.publishingPortOUT.getPortURI(),
-				brokerPublishingURI,
-				ClientBrokerPublishingConnector.class.getCanonicalName());
-
-			// connect privileged outbound port
-			this.getOwner().doPortConnection(
-				this.privilegedPortOUT.getPortURI(),
-				Broker.privilegedPortURI(),
-				ClientBrokerPrivilegedConnector.class.getCanonicalName());
-
-			this.registered = true;
-		} catch (AlreadyRegisteredException e) {
-			throw e;
-		} catch (Exception e) {
+			this.registered=true;
+		}catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+
 	}
 
 	@Override
 	public void modifyServiceClass(RegistrationClass rc) throws UnknownClientException, AlreadyRegisteredException
 	{
+		if (!this.registered) {
+			throw new UnknownClientException("not registered");
+		}
+		if (rc == this.currentRC) {
+			throw new AlreadyRegisteredException();
+		}
 		try {
-			if (!this.registered) {
-				throw new UnknownClientException("not registered");
-			}
-			if (rc == this.currentRC) {
-				throw new AlreadyRegisteredException();
-			}
-			this.currentRC = rc;
-			String brokerPublishingURI = this.registrationPortOUT.modifyServiceClass(this.receptionPortIN.getPortURI(), rc);
+			String brokerPortURI = this.registrationPortOUT.modifyServiceClass(this.receptionPortIN.getPortURI(), rc);
 
-			// reconnecting publishing port
-			this.getOwner().doPortDisconnection(this.publishingPortOUT.getPortURI());
-			this.getOwner().doPortConnection(
-				this.publishingPortOUT.getPortURI(),
-				brokerPublishingURI,
-				ClientBrokerPublishingConnector.class.getCanonicalName());
+			if (this.currentRC == RegistrationClass.FREE) {
+				this.getOwner().doPortDisconnection(this.publishingPortOUT.getPortURI());
+			} else {
+				this.getOwner().doPortDisconnection(this.privilegedPortOUT.getPortURI());
+			}
+
+			if (rc == RegistrationClass.FREE) {
+				this.getOwner().doPortConnection(
+						this.publishingPortOUT.getPortURI(),
+						brokerPortURI,
+						ClientBrokerPublishingConnector.class.getCanonicalName());
+			} else {
+				this.getOwner().doPortConnection(
+						this.privilegedPortOUT.getPortURI(),
+						brokerPortURI,
+						ClientBrokerPrivilegedConnector.class.getCanonicalName());
+			}
+
+			this.currentRC = rc;
 		} catch (UnknownClientException | AlreadyRegisteredException e) {
 			throw e;
 		} catch (Exception e) {

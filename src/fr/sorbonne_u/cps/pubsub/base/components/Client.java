@@ -2,6 +2,8 @@ package fr.sorbonne_u.cps.pubsub.base.components;
 
 import java.rmi.RemoteException;
 
+import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
+import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
 
@@ -79,36 +81,71 @@ public class Client extends AbstractComponent {
 		this.privilegedPortOUT.publishPort();
 		
 	}
+	// Component life cycle
+	@Override
+	public void start() throws ComponentStartException {
+		super.start();
+		try {
+			this.doPortConnection(
+					this.registrationPortOUT.getPortURI(),
+					Broker.registrationPortURI(),
+					ClientBrokerRegistrationConnector.class.getCanonicalName());
+		}catch (Exception e) { throw new ComponentStartException();}
+	}
+	@Override
+	public void execute() throws Exception {
+		super.execute();
+	}
 
+	@Override
+	public void finalise() throws Exception {
+		if (this.registrationPortOUT.connected())
+			this.doPortDisconnection(this.registrationPortOUT.getPortURI());
+		if (this.publishingPortOUT.connected())
+			this.doPortDisconnection(this.publishingPortOUT.getPortURI());
+		if (this.privilegedPortOUT.connected())
+			this.doPortDisconnection(this.privilegedPortOUT.getPortURI());
+		super.finalise();
+	}
+
+	@Override
+	public void shutdown() throws ComponentShutdownException {
+		try {
+			this.receptionPortIN.unpublishPort();
+			this.publishingPortOUT.unpublishPort();
+			this.registrationPortOUT.unpublishPort();
+			this.privilegedPortOUT.unpublishPort();
+		} catch (Exception e) {
+			throw new ComponentShutdownException(e);
+		}
+		super.shutdown();
+	}
 	
 	public void register(RegistrationClass rc) throws Exception {
 		if (this.registered) {
 			return;
 		}
-		this.rcCurrent = rc;
+
 		
 		this.logMessage("Registering client.") ;
-		
-		// Connecting to the broker registration port
-		this.doPortConnection(
-			registrationPortOUT.getPortURI(),
-			Broker.registrationPortURI(),
-			ClientBrokerRegistrationConnector.class.getCanonicalName());
 
 		// Registering
 		String portINURI = registrationPortOUT.register(receptionPortIN.getPortURI(), rc);
 
-		// Connecting to the broker publishing port
-		this.doPortConnection(
-			publishingPortOUT.getPortURI(),
-			portINURI,
-			ClientBrokerPublishingConnector.class.getCanonicalName());
-
-		// Connecting to the broker privileged port
-		this.doPortConnection(
-			privilegedPortOUT.getPortURI(),
-			Broker.privilegedPortURI(),
-			ClientBrokerPrivilegedConnector.class.getCanonicalName());
+		if (rc == RegistrationClass.FREE) {
+			// FREE clients only get publishing
+			this.doPortConnection(
+					this.publishingPortOUT.getPortURI(),
+					portINURI,
+					ClientBrokerPublishingConnector.class.getCanonicalName());
+		} else {
+			// STANDARD/PREMIUM get privileged (which also covers publishing)
+			this.doPortConnection(
+					this.privilegedPortOUT.getPortURI(),
+					portINURI,
+					ClientBrokerPrivilegedConnector.class.getCanonicalName());
+		}
+		this.rcCurrent = rc;
 
 		this.logMessage("Client registered");
 		this.registered = true;
@@ -122,16 +159,27 @@ public class Client extends AbstractComponent {
 			throw new AlreadyRegisteredException();
 		}
 
-		this.rcCurrent = rc;
-
 		String portINURI =
 			registrationPortOUT.modifyServiceClass(receptionPortIN.getPortURI(), rc);
 
-		this.doPortDisconnection(publishingPortOUT.getPortURI());
-		this.doPortConnection(
-			publishingPortOUT.getPortURI(),
-			portINURI,
-			ClientBrokerPublishingConnector.class.getCanonicalName());
+		if (this.rcCurrent == RegistrationClass.FREE) {
+			this.doPortDisconnection(this.publishingPortOUT.getPortURI());
+		} else {
+			this.doPortDisconnection(this.privilegedPortOUT.getPortURI());
+		}
+
+		if (rc == RegistrationClass.FREE) {
+			this.doPortConnection(
+					this.publishingPortOUT.getPortURI(),
+					portINURI,
+					ClientBrokerPublishingConnector.class.getCanonicalName());
+		} else {
+			this.doPortConnection(
+					this.privilegedPortOUT.getPortURI(),
+					portINURI,
+					ClientBrokerPrivilegedConnector.class.getCanonicalName());
+		}
+		this.rcCurrent = rc;
 		this.logMessage("Client service class modified (audit1 minimal).");
 		
 	}

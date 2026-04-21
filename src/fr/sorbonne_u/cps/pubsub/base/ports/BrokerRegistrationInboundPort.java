@@ -1,11 +1,9 @@
 package fr.sorbonne_u.cps.pubsub.base.ports;
 
 import java.rmi.RemoteException;
-import java.util.ArrayList;
 
-import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
-import fr.sorbonne_u.cps.pubsub.exceptions.NotSubscribedChannelException;
-import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
+
+import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.components.ports.AbstractInboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
@@ -24,128 +22,89 @@ public class BrokerRegistrationInboundPort extends AbstractInboundPort implement
 	}
 
 	@Override
-	public boolean registered(String receptionPortURI) throws RemoteException
+	public boolean registered(String receptionPortURI) throws Exception
 	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.registered(receptionPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		return this.getOwner().handleRequest(
+				o -> ((Broker) o).registered(receptionPortURI)
+		);
 	}
 
 	@Override
 	public boolean registered(String receptionPortURI, RegistrationClass rc)
-		throws RemoteException
+		throws Exception
 	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.registered(receptionPortURI, rc);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		return this.getOwner().handleRequest(
+				o -> ((Broker) o).registered(receptionPortURI, rc)
+		);
 	}
 
 	@Override
 	public String register(String receptionPortURI, RegistrationClass rc)
-		throws RemoteException, AlreadyRegisteredException
+		throws Exception
 	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.register(receptionPortURI, rc);
-		} catch (AlreadyRegisteredException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		return this.getOwner().handleRequest(
+				o -> ((Broker) o).register(receptionPortURI, rc));
 	}
 
 	@Override
 	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc)
-		throws RemoteException, AlreadyRegisteredException
-	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.modifyServiceClass(receptionPortURI, rc);
-		} catch (AlreadyRegisteredException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	throws Exception {
+		return this.getOwner().handleRequest(
+				o -> ((Broker) o).modifyServiceClass(receptionPortURI, rc));
+
 	}
 
 	@Override
-	public void unregister(String receptionPortURI) throws RemoteException
+	public void unregister(String receptionPortURI) throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.unregister(receptionPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().handleRequest(
+				o -> {((Broker) o).unregister(receptionPortURI);
+				return null;}
+		);
 	}
 
 	@Override
-	public boolean channelExist(String channel) throws RemoteException
+	public boolean channelExist(String channel) throws Exception
 	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.channelExist(channel);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		return this.getOwner().handleRequest(
+				o -> ((Broker) o).channelExist(channel)
+		);
 	}
 
 	@Override
 	public boolean channelAuthorised(String receptionPortURI, String channel)
-		throws RemoteException
+		throws Exception
 	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.channelAuthorised(receptionPortURI, channel);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		return this.getOwner().handleRequest(
+				o-> ((Broker) o).channelAuthorised(receptionPortURI, channel));
 	}
 
 	@Override
 	public boolean subscribed(String receptionPortURI, String channel)
-		throws RemoteException
+		throws Exception
 	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.subscribed(receptionPortURI, channel);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		return this.getOwner().handleRequest(
+				o-> ((Broker) o).subscribed(receptionPortURI, channel));
 	}
 
 	@Override
 	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter)
-		throws RemoteException, UnknownChannelException
+		throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.subscribe(receptionPortURI, channel, filter);
-		} catch (UnknownChannelException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().handleRequest(o -> {
+			((Broker) o).subscribe(receptionPortURI, channel, filter);
+			return null;
+		});
 	}
 
 	@Override
 	public void unsubscribe(String receptionPortURI, String channel)
-		throws RemoteException, UnknownChannelException, NotSubscribedChannelException
+		throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.unsubscribe(receptionPortURI, channel);
-		} catch (UnknownChannelException | NotSubscribedChannelException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().handleRequest(o -> {
+			((Broker) o).unsubscribe(receptionPortURI, channel);
+			return null;
+		});
 	}
 
 	@Override
@@ -153,19 +112,10 @@ public class BrokerRegistrationInboundPort extends AbstractInboundPort implement
 		String receptionPortURI,
 		String channel,
 		MessageFilterI filter
-		) throws RemoteException, UnknownChannelException, NotSubscribedChannelException
+		) throws Exception
 	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.modifyFilter(receptionPortURI, channel, filter);
-		} catch (UnknownChannelException | NotSubscribedChannelException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		return this.getOwner().handleRequest(
+				o-> ((Broker) o).modifyFilter(receptionPortURI, channel, filter));
 	}
-	
-
-	
-
 }
+

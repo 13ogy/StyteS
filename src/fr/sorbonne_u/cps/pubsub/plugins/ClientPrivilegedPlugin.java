@@ -1,6 +1,7 @@
 package fr.sorbonne_u.cps.pubsub.plugins;
 
 import fr.sorbonne_u.components.AbstractPlugin;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
@@ -21,20 +22,17 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientI;
  *
  * @author Bogdan Styn
  */
-public class ClientPrivilegedPlugin extends AbstractPlugin implements PrivilegedClientI
+public class ClientPrivilegedPlugin extends ClientPublicationPlugin implements PrivilegedClientI
 {
 	private static final long serialVersionUID = 1L;
 
-	protected final ClientRegistrationPlugin registrationPlugin;
 
-	public ClientPrivilegedPlugin(ClientRegistrationPlugin registrationPlugin)
-	{
-		super();
-		if (registrationPlugin == null) {
-			throw new IllegalArgumentException("registrationPlugin cannot be null");
-		}
-		this.registrationPlugin = registrationPlugin;
+	public ClientPrivilegedPlugin(ClientRegistrationPlugin registrationPlugin) {
+		super(registrationPlugin);
 	}
+
+	// Life cycle inherited from PublicationPlugin
+
 
 	@Override
 	public boolean hasCreatedChannel(String channel)

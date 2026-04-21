@@ -15,20 +15,14 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 public class BrokerClientReceivingConnector extends AbstractConnector implements ReceivingCI {
 
 	@Override
-	public void receive(String channel, MessageI message) throws RemoteException {
-		try {
-			((ReceivingCI) this.offering).receive(channel, message);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public void receive(String channel, MessageI message) throws Exception {
+		((ReceivingCI) this.offering).receive(channel, message);
+
 	}
 
 	@Override
-	public void receive(String channel, MessageI[] messages) throws RemoteException {
-		try {
-			((ReceivingCI) this.offering).receive(channel, messages);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+	public void receive(String channel, MessageI[] messages) throws Exception {
+		((ReceivingCI) this.offering).receive(channel, messages);
+
 	}
 }

@@ -1,16 +1,9 @@
 package fr.sorbonne_u.cps.pubsub.base.ports;
 
 import fr.sorbonne_u.components.ComponentI;
-import fr.sorbonne_u.components.ports.AbstractInboundPort;
-import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException;
-import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
-import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
-import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
-import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
+import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 
-import java.rmi.RemoteException;
-import java.util.ArrayList;
 
 /**
  * Inbound port exposing privileged channel-management operations of the broker.
@@ -24,7 +17,7 @@ import java.util.ArrayList;
  *
  * @author Bogdan Styn
  */
-public class BrokerPrivilegedInboundPort extends AbstractInboundPort implements PrivilegedClientCI
+public class BrokerPrivilegedInboundPort extends BrokerPublishingInboundPort implements PrivilegedClientCI
 {
 	public BrokerPrivilegedInboundPort(ComponentI owner) throws Exception
 	{
@@ -32,144 +25,58 @@ public class BrokerPrivilegedInboundPort extends AbstractInboundPort implements 
 	}
 
 	@Override
-	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws RemoteException
+	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws Exception
 	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.hasCreatedChannel(receptionPortURI, channel);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		return this.getOwner().handleRequest(
+				o -> ((Broker) o).hasCreatedChannel(receptionPortURI, channel)
+		);
 	}
 
 	@Override
-	public boolean channelQuotaReached(String receptionPortURI) throws RemoteException
+	public boolean channelQuotaReached(String receptionPortURI) throws Exception
 	{
-		try {
-			return ((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.channelQuotaReached(receptionPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		return this.getOwner().handleRequest(
+				o -> ((Broker) o).channelQuotaReached(receptionPortURI)
+		);
 	}
 
 	@Override
 	public void createChannel(String receptionPortURI, String channel, String autorisedUsers)
-		throws RemoteException, AlreadyExistingChannelException, ChannelQuotaExceededException
+			throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.createChannel(receptionPortURI, channel, autorisedUsers);
-		} catch (AlreadyExistingChannelException | ChannelQuotaExceededException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().handleRequest(o -> {
+			((Broker) o).createChannel(receptionPortURI, channel, autorisedUsers);
+			return null;
+		});
 	}
 
 	@Override
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers)
-		throws RemoteException, UnknownClientException, UnknownChannelException, UnauthorisedClientException
+			throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.modifyAuthorisedUsers(receptionPortURI, channel, autorisedUsers);
-		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().handleRequest(o -> {
+			((Broker) o).modifyAuthorisedUsers(receptionPortURI, channel, autorisedUsers);
+			return null;
+		});
 	}
 
 	@Override
 	public void destroyChannel(String receptionPortURI, String channel)
-		throws RemoteException, UnknownClientException, UnknownChannelException, UnauthorisedClientException
+			throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.destroyChannel(receptionPortURI, channel);
-		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().handleRequest(o -> {
+			((Broker) o).destroyChannel(receptionPortURI, channel);
+			return null;
+		});
 	}
 
 	@Override
 	public void destroyChannelNow(String receptionPortURI, String channel)
-		throws RemoteException, UnknownClientException, UnknownChannelException, UnauthorisedClientException
+			throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.destroyChannelNow(receptionPortURI, channel);
-		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// PublishingCI (inherited by PrivilegedClientCI)
-	// -------------------------------------------------------------------------
-
-	@Override
-	public void publish(String receptionPortURI, String channel, fr.sorbonne_u.cps.pubsub.interfaces.MessageI message)
-		throws RemoteException
-	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.publish(receptionPortURI, channel, message);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	@Override
-	public void publish(String receptionPortURI, String channel, ArrayList<fr.sorbonne_u.cps.pubsub.interfaces.MessageI> messages)
-		throws RemoteException
-	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.publish(receptionPortURI, channel, messages);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// PublishingCI async (added in latest interface)
-	// -------------------------------------------------------------------------
-
-	@Override
-	public void asyncPublishAndNotify(
-		String receptionPortURI,
-		String channel,
-		fr.sorbonne_u.cps.pubsub.interfaces.MessageI message,
-		String notificationInbounhdPortURI
-		) throws RemoteException
-	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.asyncPublishAndNotify(receptionPortURI, channel, message, notificationInbounhdPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	@Override
-	public void asyncPublishAndNotify(
-		String receptionPortURI,
-		String channel,
-		ArrayList<fr.sorbonne_u.cps.pubsub.interfaces.MessageI> messages,
-		String notificationInbounhdPortURI
-		) throws RemoteException
-	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.asyncPublishAndNotify(receptionPortURI, channel, messages, notificationInbounhdPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().handleRequest(o -> {
+			((Broker) o).destroyChannelNow(receptionPortURI, channel);
+			return null;
+		});
 	}
 }

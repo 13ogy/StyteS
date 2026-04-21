@@ -1,10 +1,11 @@
 package fr.sorbonne_u.cps.pubsub.base.ports;
 
-import java.rmi.RemoteException;
+
 import java.util.ArrayList;
 
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.components.ports.AbstractInboundPort;
+import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
@@ -19,17 +20,18 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 		super(PublishingCI.class, owner);
 
 	}
+	public BrokerPublishingInboundPort(Class c, ComponentI owner) throws Exception{
+		super (c, owner);
+	}
 
 	@Override
 	public void publish(String receptionPortURI, String channel, MessageI message)
-		throws RemoteException
+		throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.publish(receptionPortURI, channel, message);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().handleRequest(o -> {
+			((Broker) o).publish(receptionPortURI, channel,message);
+			return null;
+		});
 	}
 
 	@Override
@@ -37,14 +39,12 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 		String receptionPortURI,
 		String channel,
 		ArrayList<MessageI> messages
-		) throws RemoteException
+		) throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.publish(receptionPortURI, channel, messages);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().handleRequest(o -> {
+			((Broker) o).publish(receptionPortURI, channel,messages);
+			return null;
+		});
 	}
 
 	// -------------------------------------------------------------------------
@@ -57,14 +57,14 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 		String channel,
 		MessageI message,
 		String notificationInbounhdPortURI
-		) throws RemoteException
+		) throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.asyncPublishAndNotify(receptionPortURI, channel, message, notificationInbounhdPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().runTask(
+				o -> { try {
+					((Broker) o).asyncPublishAndNotify(
+							receptionPortURI, channel, message, notificationInbounhdPortURI);
+				} catch (Exception e) { e.printStackTrace(); }}
+		);
 	}
 
 	@Override
@@ -73,13 +73,13 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 		String channel,
 		ArrayList<MessageI> messages,
 		String notificationInbounhdPortURI
-		) throws RemoteException
+		) throws Exception
 	{
-		try {
-			((fr.sorbonne_u.cps.pubsub.base.components.Broker) this.getOwner())
-				.asyncPublishAndNotify(receptionPortURI, channel, messages, notificationInbounhdPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
+		this.getOwner().runTask(
+				o -> { try {
+					((Broker) o).asyncPublishAndNotify(
+							receptionPortURI, channel, messages, notificationInbounhdPortURI);
+				} catch (Exception e) { e.printStackTrace(); }}
+		);
 	}
 }

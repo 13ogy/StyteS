@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
+import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.cps.pubsub.base.connectors.BrokerClientReceivingConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.BrokerPrivilegedInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.BrokerPublishingInboundPort;
@@ -110,11 +111,7 @@ public class Broker extends AbstractComponent
 			this.submitPublish(publisherReceptionPortURI, channel, m, notificationInbounhdPortURI);
 		}
 	}
-	// -------------------------------------------------------------------------
-	// Configuration
-	// -------------------------------------------------------------------------
 
-	public static final int NB_FREE_CHANNELS = 3;
 
 	// -------------------------------------------------------------------------
 	// Ports
@@ -154,9 +151,10 @@ public class Broker extends AbstractComponent
 	/** Per-client created privileged channels count. */
 	private final Map<String, Integer> createdPrivilegedChannelsCount = new HashMap<>();
 
-	/** Quotas by registration class. */
-	public static final int STANDARD_PRIVILEGED_CHANNEL_QUOTA = 2;
-	public static final int PREMIUM_PRIVILEGED_CHANNEL_QUOTA = 5;
+	/** Channel quotas */
+	private int standardQuota;
+	private int premiumQuota;
+	private int nbFreeChannels;
 
 	/** Subscriptions: channel -> (client receptionPortURI -> filter). */
 	private final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
@@ -168,7 +166,8 @@ public class Broker extends AbstractComponent
 	// Constructor
 	// -------------------------------------------------------------------------
 
-	protected Broker(int nbThreads, int nbSchedulableThreads) throws Exception
+	protected Broker(int nbThreads, int nbSchedulableThreads, int nbFreeChannels,
+					 int standardQuota, int premiumQuota) throws Exception
 	{
 		super(nbThreads, nbSchedulableThreads);
 
@@ -177,12 +176,15 @@ public class Broker extends AbstractComponent
 		this.esPropagationIndex = this.createNewExecutorService(ES_PROPAGATION_URI, Math.max(1, nbThreads), false);
 		this.esDeliveryIndex = this.createNewExecutorService(ES_DELIVERY_URI, Math.max(1, nbThreads), false);
 
-		for (int i = 0; i < NB_FREE_CHANNELS; i++) {
+		this.nbFreeChannels=nbFreeChannels;
+		for (int i = 0; i < nbFreeChannels; i++) {
 			String c = "channel" + i;
 			this.channels.add(c);
 			this.subscriptions.put(c, new HashMap<>());
 			this.inFlightPerChannel.put(c, 0);
 		}
+		this.standardQuota = standardQuota;
+		this.premiumQuota = premiumQuota;
 
 		registrationPortIN = new BrokerRegistrationInboundPort(this);
 		registrationPortIN.publishPort();
@@ -197,6 +199,7 @@ public class Broker extends AbstractComponent
 	// -------------------------------------------------------------------------
 	// Internal asynchronous pipeline (audit 2)
 	// -------------------------------------------------------------------------
+
 
 	protected static class DeliveryTarget
 	{
@@ -332,8 +335,51 @@ public class Broker extends AbstractComponent
 	// -------------------------------------------------------------------------
 
 	@Override
-	public synchronized void shutdown() throws ComponentShutdownException
-	{
+	public void start() throws ComponentStartException {
+		super.start();
+	}
+	@Override
+	public void finalise() throws Exception {
+
+		for (BrokerReceptionOutboundPort out : this.receptionPortsOUT.values()) {
+			if (out.connected()) {
+				this.doPortDisconnection(out.getPortURI());
+			}
+		}
+
+		super.finalise();
+	}
+
+	@Override
+	public synchronized void shutdown() throws ComponentShutdownException {
+		try {
+			for (BrokerReceptionOutboundPort out : this.receptionPortsOUT.values()) {
+				if (!out.isDestroyed()) {
+					out.unpublishPort();
+					out.destroyPort();
+				}
+			}
+			this.receptionPortsOUT.clear();
+
+			// Unpublishing Inbound ports
+			if (registrationPortIN != null) {
+				registrationPortIN.unpublishPort();
+				registrationPortIN.destroyPort();
+			}
+			if (this.publishingPortIN != null) {
+				this.publishingPortIN.unpublishPort();
+				this.publishingPortIN.destroyPort();
+			}
+			if (privilegedPortIN != null) {
+				privilegedPortIN.unpublishPort();
+				privilegedPortIN.destroyPort();
+			}
+		} catch (Exception e) {
+			throw new ComponentShutdownException(e);
+		}
+        super.shutdown();
+}
+/*
 		try {
 			// Disconnect/unpublish per-client outbound ports.
 			for (BrokerReceptionOutboundPort out : this.receptionPortsOUT.values()) {
@@ -371,7 +417,7 @@ public class Broker extends AbstractComponent
 		}
 		super.shutdown();
 	}
-
+*/
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
@@ -381,12 +427,12 @@ public class Broker extends AbstractComponent
 		return registrationPortIN.getPortURI();
 	}
 
-	public String publishingPortURI() throws Exception
+	private String publishingPortURI() throws Exception
 	{
 		return publishingPortIN.getPortURI();
 	}
 
-	public static String privilegedPortURI() throws Exception
+	private static String privilegedPortURI() throws Exception
 	{
 		return privilegedPortIN.getPortURI();
 	}
@@ -402,6 +448,9 @@ public class Broker extends AbstractComponent
 
 	public boolean registered(String receptionPortURI, RegistrationClass rc) throws Exception
 	{
+		if (!registered(receptionPortURI)){
+			throw new UnknownClientException();
+		}
 		return rc != null && rc.equals(this.registeredClients.get(receptionPortURI));
 	}
 
@@ -420,9 +469,6 @@ public class Broker extends AbstractComponent
 		// Accepting all service classes (FREE, STANDARD, PREMIUM)
 		this.registeredClients.put(receptionPortURI, rc);
 
-		// Initializing privileged quota bookkeeping
-		this.createdPrivilegedChannelsCount.putIfAbsent(receptionPortURI, 0);
-
 		// Creating a dedicated outbound port for this client and connect it to
 		// the client inbound port offering ReceivingCI.
 		BrokerReceptionOutboundPort out = new BrokerReceptionOutboundPort(this);
@@ -433,7 +479,12 @@ public class Broker extends AbstractComponent
 			BrokerClientReceivingConnector.class.getCanonicalName());
 		this.receptionPortsOUT.put(receptionPortURI, out);
 
-		return publishingPortIN.getPortURI();
+		if (rc == RegistrationClass.FREE) {
+			return publishingPortIN.getPortURI();
+		}else{
+			this.createdPrivilegedChannelsCount.putIfAbsent(receptionPortURI, 0);
+			return privilegedPortIN.getPortURI();
+		}
 	}
 
 	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc) throws Exception
@@ -444,16 +495,41 @@ public class Broker extends AbstractComponent
 		if (rc == null) {
 			throw new IllegalArgumentException("rc cannot be null.");
 		}
-		// Allowing service class upgrade/downgrade
 		this.registeredClients.put(receptionPortURI, rc);
-		return publishingPortIN.getPortURI();
+		// Allowing service class upgrade/downgrade
+		if (rc == RegistrationClass.FREE) {
+			// Destroy channels created by user
+			for (String ch : new ArrayList<>(privilegedChannels.keySet())) {
+				if (privilegedChannels.get(ch).ownerReceptionPortURI.equals(receptionPortURI)) {
+					this.destroyChannelNow(receptionPortURI, ch);
+				}
+			}
+			this.createdPrivilegedChannelsCount.remove(receptionPortURI);
+			return publishingPortIN.getPortURI();
+		} else {
+			this.createdPrivilegedChannelsCount.putIfAbsent(receptionPortURI, 0);
+			return privilegedPortIN.getPortURI();
+		}
 	}
 
 	public void unregister(String receptionPortURI) throws Exception
 	{
+
 		if (!this.registered(receptionPortURI)) {
 			throw new UnknownClientException(receptionPortURI);
 		}
+
+		List<String> ownedChannels = new ArrayList<>();
+		for (Map.Entry<String, PrivilegedChannelInfo> e : privilegedChannels.entrySet()) {
+			if (e.getValue().ownerReceptionPortURI.equals(receptionPortURI)) {
+				ownedChannels.add(e.getKey());
+			}
+		}
+		// Remove channels created by the user
+		for (String ch : ownedChannels) {
+			this.destroyChannelNow(receptionPortURI, ch);
+		}
+
 
 		// Removing subscriptions
 		for (Map<String, MessageFilterI> subs : this.subscriptions.values()) {
@@ -595,9 +671,13 @@ public class Broker extends AbstractComponent
 		if (messages == null || messages.isEmpty()) {
 			throw new IllegalArgumentException("messages cannot be null or empty.");
 		}
-		for (MessageI m : messages) {
-			this.submitPublish(publisherReceptionPortURI, channel, m, null);
-		}
+		this.runTask(this.esReceptionIndex, o -> {
+			try {
+				for (MessageI m : messages) {
+					((Broker) o).receptionStage(publisherReceptionPortURI, channel, m, null);
+				}
+			} catch (Exception e) { e.printStackTrace(); }
+		});
 	}
 
 	// -------------------------------------------------------------------------
@@ -628,11 +708,11 @@ public class Broker extends AbstractComponent
 			case FREE:
 				return true; // FREE cannot create privileged channels
 			case STANDARD:
-				return created >= STANDARD_PRIVILEGED_CHANNEL_QUOTA;
+				return created >= this.standardQuota;
 			case PREMIUM:
-				return created >= PREMIUM_PRIVILEGED_CHANNEL_QUOTA;
+				return created >= this.premiumQuota;
 			default:
-				return true;
+				throw new IllegalStateException("Unknown RegistrationClass: " + rc);
 		}
 	}
 
@@ -667,42 +747,12 @@ public class Broker extends AbstractComponent
 		this.subscriptions.put(channel, new HashMap<>());
 		this.inFlightPerChannel.put(channel, 0);
 		this.privilegedChannels.put(channel, new PrivilegedChannelInfo(receptionPortURI, p));
-		this.createdPrivilegedChannelsCount.put(
-			receptionPortURI,
-			this.createdPrivilegedChannelsCount.getOrDefault(receptionPortURI, 0) + 1);
+			this.createdPrivilegedChannelsCount.merge(receptionPortURI, 1, Integer::sum);
 		} finally {
 			this.stateLock.writeLock().unlock();
 		}
 	}
 
-	// Kept as an internal helper; the corresponding method has been removed from
-	// PrivilegedClientCI in the latest interfaces update.
-	public boolean isAuthorisedUser(String channel, String uri) throws Exception
-	{
-		if (channel == null || channel.isEmpty()) {
-			throw new IllegalArgumentException("channel cannot be null or empty.");
-		}
-		if (uri == null || uri.isEmpty()) {
-			throw new IllegalArgumentException("uri cannot be null or empty.");
-		}
-		if (!this.registered(uri)) {
-			throw new UnknownClientException(uri);
-		}
-		if (!this.channelExist(channel)) {
-			throw new UnknownChannelException(channel);
-		}
-
-		// FREE channel => always authorised
-		if (!this.privilegedChannels.containsKey(channel)) {
-			return true;
-		}
-
-		PrivilegedChannelInfo info = this.privilegedChannels.get(channel);
-		if (info == null || info.authorisedUsersPattern == null) {
-			return true;
-		}
-		return info.authorisedUsersPattern.matcher(uri).matches();
-	}
 
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers) throws Exception
 	{
@@ -731,38 +781,6 @@ public class Broker extends AbstractComponent
 		}
 	}
 
-	// Kept as an internal helper; the corresponding method has been removed from
-	// PrivilegedClientCI in the latest interfaces update.
-	public void removeAuthorisedUsers(String receptionPortURI, String channel, String regularExpression) throws Exception
-	{
-		if (!this.registered(receptionPortURI)) {
-			throw new UnknownClientException(receptionPortURI);
-		}
-		if (!this.channelExist(channel)) {
-			throw new UnknownChannelException(channel);
-		}
-		PrivilegedChannelInfo info = this.privilegedChannels.get(channel);
-		if (info == null) {
-			throw new UnauthorisedClientException();
-		}
-		if (!info.ownerReceptionPortURI.equals(receptionPortURI)) {
-			throw new UnauthorisedClientException();
-		}
-		if (regularExpression == null || regularExpression.isEmpty()) {
-			throw new IllegalArgumentException("regularExpression cannot be null/empty.");
-		}
-
-		// This operation is underspecified in the CI (regex of authorised users).
-		// We implement a pragmatic behaviour: remove authorised users by forbidding
-		// those matching the provided regex through a negative lookahead.
-		Pattern toRemove = Pattern.compile(regularExpression);
-		Pattern current = info.authorisedUsersPattern;
-		String currentRegex = current == null ? ".*" : current.pattern();
-
-		// If current already forbids removed ones, keep it; else add a negative lookahead.
-		String newRegex = "^(?!(" + toRemove.pattern() + ")$)" + currentRegex;
-		info.authorisedUsersPattern = Pattern.compile(newRegex);
-	}
 
 	public void destroyChannel(String receptionPortURI, String channel) throws Exception
 	{

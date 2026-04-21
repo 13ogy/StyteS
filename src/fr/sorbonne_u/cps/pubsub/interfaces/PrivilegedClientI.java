@@ -141,10 +141,10 @@ extends		PluginI
 	 * @throws UnknownClientException	when {@code uri} does not correspond to a registered component.
 	 * @throws UnknownChannelException	when the channel does not exist.
 	 */
-	public boolean		isAuthorisedUser(String channel, String uri)
+	/*public boolean		isAuthorisedUser(String channel, String uri)
 	throws	UnknownClientException,
 			UnknownChannelException;
-
+	*/
 	/**
 	 * modify the users authorised to use {@code channel}.
 	 * 
