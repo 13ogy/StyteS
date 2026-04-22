@@ -5,6 +5,9 @@ import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.components.utils.tests.TestScenario;
 import fr.sorbonne_u.components.utils.tests.TestStep;
 import fr.sorbonne_u.components.utils.tests.TestStepI;
+import fr.sorbonne_u.cps.pubsub.application.meteo.WeatherOffice;
+import fr.sorbonne_u.cps.pubsub.application.meteo.WeatherStation;
+import fr.sorbonne_u.cps.pubsub.application.meteo.WindTurbine;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
 import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
@@ -286,7 +289,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 		TestScenario.VERBOSE = true;
 		TestScenario.DEBUG = true;
 
-		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0 });
+		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0, 3, 2, 5 });
 
 		final long nowMs = System.currentTimeMillis();
 		// Start instant in the future relative to deployment.
@@ -300,12 +303,12 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 
 		TestScenario ts = buildScenario(startInstant);
 
-		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { TURBINE_NEAR_FREE_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { TURBINE_FAR_FREE_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { STATION_NEAR_FREE_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { STATION_FAR_FREE_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { OFFICE_STANDARD_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { OFFICE_PREMIUM_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(WindTurbine.class.getCanonicalName(), new Object[] { TURBINE_NEAR_FREE_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(WindTurbine.class.getCanonicalName(), new Object[] { TURBINE_FAR_FREE_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(WeatherStation.class.getCanonicalName(), new Object[] { STATION_NEAR_FREE_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(WeatherStation.class.getCanonicalName(), new Object[] { STATION_FAR_FREE_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(WeatherOffice.class.getCanonicalName(), new Object[] { OFFICE_STANDARD_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(WeatherOffice.class.getCanonicalName(), new Object[] { OFFICE_PREMIUM_URI, ts, 1, 1 });
 		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { INTRUDER_FREE_URI, ts, 1, 1 });
 		AbstractComponent.createComponent(ScenarioRunner.class.getCanonicalName(), new Object[] { SCENARIO_RUNNER_URI, ts, 1, 1 });
 

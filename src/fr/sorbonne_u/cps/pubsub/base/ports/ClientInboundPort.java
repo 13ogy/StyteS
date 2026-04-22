@@ -21,51 +21,58 @@ public class ClientInboundPort extends AbstractInboundPort implements ReceivingC
 
 	public ClientInboundPort(ComponentI owner) throws Exception {
 		super(ReceivingCI.class, owner);
-	}
+        this.pluginUri = null;
+    }
 	// With Plugin
 	public ClientInboundPort(ComponentI owner, String pluginURI) throws Exception {
 		super(pluginURI, ReceivingCI.class, owner);
+		this.pluginUri =pluginURI;
 	}
+	private final String pluginUri;
 
 	@Override
-	public void receive(String channel, MessageI message) throws Exception
-	{
-		this.getOwner().handleRequest(
-				new AbstractComponent.AbstractService<Void>(this.getPluginURI()) {
-					@Override
-					public Void call() throws Exception {
-						((ClientSubscriptionPlugin) this.getServiceProviderReference())
-								.receive(channel, message);
-						return null;
-					}
-				}
-		);
-	}
+	public void receive(String channel, MessageI message) throws Exception {
+		System.out.println("[ClientInboundPort] receive called on channel="
+				+ channel + " owner=" + this.getOwner().getReflectionInboundPortURI());
 
-	@Override
-	public void receive(String channel, MessageI[] messages) throws RemoteException
-	{
-		try {
-			if (this.getOwner() instanceof Client) {
-				this.getOwner().runTask(o -> ((Client) o).receive(channel, messages));
-			} else if (this.getOwner() instanceof PluginClient) {
-				this.getOwner().runTask(o -> {
-					PluginClient pc = (PluginClient) o;
-					if (messages != null) {
-						for (MessageI m : messages) {
-							pc.onReceive(channel, m);
+		System.out.println("[ClientInboundPort] pluginURI=" + this.pluginUri);
+
+		if (this.pluginUri != null) {
+			System.out.println("[ClientInboundPort] about to handleRequest");
+			try {
+				this.getOwner().handleRequest(
+						new AbstractComponent.AbstractService<Void>(this.pluginUri) {
+							@Override
+							public Void call() throws Exception {
+								System.out.println("[ClientInboundPort] inside call()");
+								Object ref = this.getServiceProviderReference();
+								System.out.println("[ClientInboundPort] ref=" + ref);
+								((ClientSubscriptionPlugin) ref).receive(channel, message);
+								System.out.println("[ClientInboundPort] receive done");
+								return null;
+							}
 						}
-					} else {
-						pc.onReceive(channel, null);
-					}
-				});
-			} else {
-				throw new IllegalStateException(
-					"ClientInboundPort owner must be Client or PluginClient, got "
-						+ this.getOwner().getClass().getCanonicalName());
+				);
+				System.out.println("[ClientInboundPort] handleRequest returned");
+			} catch (Exception e) {
+				System.out.println("[ClientInboundPort] handleRequest EXCEPTION: " + e);
+				e.printStackTrace();
 			}
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
+		} else {
+			System.out.println("[ClientInboundPort] no pluginURI — legacy path");
+			this.getOwner().handleRequest(
+					o -> { ((Client) o).receive(channel, message); return null; }
+			);
+		}
+	}
+
+	@Override
+	public void receive(String channel, MessageI[] messages) throws Exception
+	{
+		if (messages != null) {
+			for (MessageI m : messages) {
+				receive(channel, m);
+			}
 		}
 	}
 

@@ -7,7 +7,10 @@ import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientI;
+
+import java.util.ArrayList;
 
 /**
  * Client-side plugin implementing privileged channel-management operations
@@ -117,6 +120,38 @@ public class ClientPrivilegedPlugin extends ClientPublicationPlugin implements P
 			this.registrationPlugin.getPrivilegedPortOUT().destroyChannelNow(
 				this.registrationPlugin.getReceptionPortURI(),
 				channel);
+		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void publish(String channel, MessageI message)
+			throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
+	{
+		try {
+			this.registrationPlugin.getPrivilegedPortOUT().publish(
+					this.registrationPlugin.getReceptionPortURI(),
+					channel,
+					message);
+		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void publish(String channel, ArrayList<MessageI> messages)
+			throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
+	{
+		try {
+			this.registrationPlugin.getPrivilegedPortOUT().publish(
+					this.registrationPlugin.getReceptionPortURI(),
+					channel,
+					messages);
 		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
 			throw e;
 		} catch (Exception e) {

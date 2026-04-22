@@ -1,5 +1,8 @@
 package fr.sorbonne_u.cps.pubsub.application.meteo;
 
+import fr.sorbonne_u.components.AbstractComponent;
+import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
+import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
 import fr.sorbonne_u.components.annotations.OfferedInterfaces;
 import fr.sorbonne_u.components.annotations.RequiredInterfaces;
@@ -21,6 +24,9 @@ import fr.sorbonne_u.cps.pubsub.meteo.RegionI;
 import fr.sorbonne_u.cps.pubsub.meteo.WindDataI;
 import fr.sorbonne_u.cps.pubsub.meteo.impl.Position2D;
 import fr.sorbonne_u.components.utils.tests.TestScenario;
+import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
+import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
+import fr.sorbonne_u.exceptions.PreconditionException;
 import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
 import java.time.Duration;
@@ -39,8 +45,13 @@ import java.util.List;
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
 @RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
-public class WindTurbine extends PluginClient
+public class WindTurbine extends AbstractComponent
 {
+	// Wind Turbine registers and subscribes to channels
+	// Needs registration and subscription plugin
+	private ClientRegistrationPlugin regPlugin;
+	private ClientSubscriptionPlugin subPlugin;
+
 	/** Si non null, le composant exécute sa partie du scénario temporisé. */
 	private final TestScenario testScenario;
 
@@ -91,6 +102,10 @@ public class WindTurbine extends PluginClient
 		if (position == null) {
 			throw new IllegalArgumentException("position cannot be null");
 		}
+		assert testScenario != null && testScenario.entityAppearsIn(getReflectionInboundPortURI()) :
+				new PreconditionException("testScenario != null && testScenario.entityAppearsIn(" +
+						"+ "+getReflectionInboundPortURI());
+
 		this.turbineId = turbineId;
 		this.position = position;
 		this.maxDistance = maxDistance;
@@ -98,19 +113,63 @@ public class WindTurbine extends PluginClient
 		this.threshold = threshold;
 		this.safetyMode = false;
 		this.testScenario = testScenario;
+
+		regPlugin = new ClientRegistrationPlugin();
+		regPlugin.setPluginURI(reflectionInboundPortURI + "-reg");
+
+		subPlugin = new ClientSubscriptionPlugin(regPlugin, this::onReceive);
+		subPlugin.setPluginURI(reflectionInboundPortURI + "-sub");
+
 	}
 
 	@Override
-	public synchronized void start()
+	public synchronized void start() throws ComponentStartException {
+		try {
+			this.installPlugin(this.regPlugin);
+			this.installPlugin(this.subPlugin);
+		} catch (Exception e) {
+			throw new ComponentStartException(e);
+		}
+		super.start();
+	}
+
+
+	@Override
+	public void execute()
 	{
 		try {
-			super.start();
-			this.register(RegistrationClass.FREE);
+			super.execute();
+			this.regPlugin.register(RegistrationClass.FREE);
+			subscribeToWindAndAlerts("channel0", "channel1");
+			if (this.testScenario != null) {
+				this.traceMessage("[TimedDemo] WindTurbine.execute() rip=" + this.getReflectionInboundPortURI() + "\n");
+				this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, this.testScenario.getClockURI());
+				this.getClock().waitUntilStart();
+				this.executeTestScenario(this.testScenario);
+			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
+	@Override
+	public void finalise() throws Exception {
+		regPlugin.finalise();
+		subPlugin.finalise();
+		super.finalise();
+	}
+
+	@Override
+	public synchronized void shutdown() throws ComponentShutdownException {
+	try {
+		this.subPlugin.uninstall();
+		this.regPlugin.uninstall();
+	} catch (Exception e) {
+		throw new ComponentShutdownException(e);
+	}
+	super.shutdown();
+}
+	/*
 	@Override
 	public void execute() throws Exception
 	{
@@ -134,6 +193,7 @@ public class WindTurbine extends PluginClient
 			}
 		}
 	}
+	*/
 
 	public PositionI getPosition()
 	{
@@ -155,12 +215,11 @@ public class WindTurbine extends PluginClient
 			new MessageFilterI.PropertiesFilterI[0],
 			new AcceptAllTimeFilter());
 
-		this.subscribe(windChannel, windFilter);
-		this.subscribe(alertChannel, alertFilter);
+		this.subPlugin.subscribe(windChannel, windFilter);
+		this.subPlugin.subscribe(alertChannel, alertFilter);
 		this.traceMessage("WindTurbine[" + turbineId + "] subscribed to " + windChannel + " and " + alertChannel + "\n");
 	}
 
-	@Override
 	public void onReceive(String channel, MessageI message)
 	{
 		try {

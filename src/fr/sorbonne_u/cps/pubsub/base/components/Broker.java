@@ -200,6 +200,15 @@ public class Broker extends AbstractComponent
 	// Internal asynchronous pipeline (audit 2)
 	// -------------------------------------------------------------------------
 
+	public int getStandardQuota(){
+		return standardQuota;
+	}
+	public int getPremiumQuota(){
+		return premiumQuota;
+	}
+	public int getNbFreeChannels(){
+		return nbFreeChannels;
+	}
 
 	protected static class DeliveryTarget
 	{
@@ -284,7 +293,6 @@ public class Broker extends AbstractComponent
 
 	protected void propagationStage(String channel, MessageI message) throws Exception
 	{
-		// Snapshot recipients under read lock.
 		List<DeliveryTarget> targets = new ArrayList<>();
 		this.stateLock.readLock().lock();
 		try {
@@ -292,10 +300,14 @@ public class Broker extends AbstractComponent
 			if (subs == null) {
 				throw new UnknownChannelException(channel);
 			}
+			System.out.println("[Broker] propagating on " + channel
+					+ " — " + subs.size() + " subscriber(s)");
 			for (Map.Entry<String, MessageFilterI> e : subs.entrySet()) {
 				String subscriberURI = e.getKey();
 				MessageFilterI filter = e.getValue();
 				BrokerReceptionOutboundPort out = this.receptionPortsOUT.get(subscriberURI);
+				System.out.println("[Broker] subscriber=" + subscriberURI
+						+ " port=" + (out != null ? "OK" : "NULL"));
 				if (out != null) {
 					targets.add(new DeliveryTarget(subscriberURI, out, filter));
 				}
@@ -304,23 +316,29 @@ public class Broker extends AbstractComponent
 			this.stateLock.readLock().unlock();
 		}
 
-		// Submit deliveries.
+		System.out.println("[Broker] " + targets.size() + " delivery targets");
+
 		final int expected = targets.size();
 		if (expected == 0) {
-			// no recipients => end of pipeline
 			this.finishInFlight(channel);
 			return;
 		}
-		final java.util.concurrent.atomic.AtomicInteger remaining = new java.util.concurrent.atomic.AtomicInteger(expected);
+		final java.util.concurrent.atomic.AtomicInteger remaining =
+				new java.util.concurrent.atomic.AtomicInteger(expected);
 		for (DeliveryTarget t : targets) {
 			this.runTask(this.esDeliveryIndex, o -> {
 				try {
 					MessageFilterI f = t.filter;
-					if (f != null && f.match(message)) {
+					boolean matched = (f == null) || f.match(message);
+					System.out.println("[Broker] delivery to " + t.subscriberURI
+							+ " filter=" + (f != null ? f.getClass().getSimpleName() : "none")
+							+ " match=" + matched);
+					if (matched) {
 						t.out.receive(channel, message);
 					}
 				} catch (Exception e) {
-					this.logMessage("[Broker] delivery exception to " + t.subscriberURI + ": " + e + "\n");
+					this.logMessage("[Broker] delivery exception to "
+							+ t.subscriberURI + ": " + e + "\n");
 				} finally {
 					if (remaining.decrementAndGet() == 0) {
 						((Broker) o).finishInFlight(channel);

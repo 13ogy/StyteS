@@ -57,6 +57,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	public void initialise() throws Exception {
 		super.initialise();
 		// Publish ports
+		System.out.println("[registrationPlugin] pluginUri: "+this.getPluginURI());
 		this.receptionPortIN = new ClientInboundPort(this.getOwner(), this.getPluginURI());
 		this.receptionPortIN.publishPort();
 

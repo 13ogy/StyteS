@@ -18,7 +18,6 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 {
 	private static final long serialVersionUID = 1L;
 
-	protected ClientPublishingOutboundPort publishingPortOUT;
 	protected final ClientRegistrationPlugin registrationPlugin;
 
 	public ClientPublicationPlugin(ClientRegistrationPlugin registrationPlugin)
@@ -27,37 +26,27 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 		this.registrationPlugin = registrationPlugin;
 	}
 
+	// All required ports and interfaces are in the registration pluging
 	public void installOn(fr.sorbonne_u.components.ComponentI owner) throws Exception
 	{
 		super.installOn(owner);
-		// Add interfaces
-		this.addRequiredInterface(PublishingCI.class);
 	}
 
 	public void initialise() throws Exception
 	{
 		super.initialise();
-		this.publishingPortOUT = new ClientPublishingOutboundPort(this.getOwner());
-		this.publishingPortOUT.publishPort();
 	}
 
 	@Override
 	public void finalise() throws Exception
 	{
-		if (this.publishingPortOUT != null && this.publishingPortOUT.connected()) {
-			this.getOwner().doPortDisconnection(this.publishingPortOUT.getPortURI());
-		}
 		super.finalise();
 	}
 
 	@Override
 	public void uninstall() throws Exception
 	{
-		if (this.publishingPortOUT != null && !this.publishingPortOUT.isDestroyed()) {
-			this.publishingPortOUT.unpublishPort();
-			this.publishingPortOUT.destroyPort();
-		}
-		this.removeRequiredInterface(PublishingCI.class);
+
 		super.uninstall();
 	}
 
@@ -93,7 +82,7 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
 	{
 		try {
-			this.publishingPortOUT.publish(
+			this.registrationPlugin.getPublishingPortOUT().publish(
 					this.registrationPlugin.getReceptionPortURI(),
 					channel,
 					message);
@@ -109,7 +98,7 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
 	{
 		try {
-			this.publishingPortOUT.publish(
+			this.registrationPlugin.getPublishingPortOUT().publish(
 					this.registrationPlugin.getReceptionPortURI(),
 					channel,
 					messages);

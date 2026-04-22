@@ -28,6 +28,7 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 	public void publish(String receptionPortURI, String channel, MessageI message)
 		throws Exception
 	{
+
 		this.getOwner().handleRequest(o -> {
 			((Broker) o).publish(receptionPortURI, channel,message);
 			return null;
