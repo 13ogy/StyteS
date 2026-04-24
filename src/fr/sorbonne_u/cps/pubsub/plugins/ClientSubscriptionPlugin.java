@@ -150,6 +150,8 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 	@Override
 	public void receive(String channel, MessageI message)
 	{
+
+		System.out.println("[CLientSubscribtionPlugin] received message : " + message.getPayload());
 		// First, satisfy advanced reception consumers (if any).
 		synchronized (this) {
 			CompletableFuture<MessageI> f = this.nextMessageFutures.get(channel);
@@ -161,6 +163,7 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 			this.notifyAll();
 		}
 		if (this.handler != null) {
+
 			this.handler.onReceive(channel, message);
 		}
 	}

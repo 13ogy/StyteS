@@ -11,10 +11,7 @@ import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
-import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
+import fr.sorbonne_u.cps.pubsub.interfaces.*;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
 /**
@@ -34,6 +31,8 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	protected ClientPublishingOutboundPort publishingPortOUT;
 	protected ClientPrivilegedOutboundPort privilegedPortOUT;
 
+	private ClientSubscriptionPlugin subscriptionPlugin;
+
 	protected RegistrationClass currentRC;
 	protected boolean registered;
 
@@ -41,6 +40,10 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	{
 		super();
 		this.registered = false;
+	}
+
+	public void setSubscriptionPlugin(ClientSubscriptionPlugin plugin){
+		this.subscriptionPlugin = plugin;
 	}
 
 	@Override
@@ -57,7 +60,6 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	public void initialise() throws Exception {
 		super.initialise();
 		// Publish ports
-		System.out.println("[registrationPlugin] pluginUri: "+this.getPluginURI());
 		this.receptionPortIN = new ClientInboundPort(this.getOwner(), this.getPluginURI());
 		this.receptionPortIN.publishPort();
 
@@ -242,6 +244,13 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+
+	public void receive(String channel, MessageI message) {
+		if (this.subscriptionPlugin != null) {
+			this.subscriptionPlugin.receive(channel, message);
 		}
 	}
 }

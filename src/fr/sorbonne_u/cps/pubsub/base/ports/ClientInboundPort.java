@@ -9,7 +9,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 import fr.sorbonne_u.cps.pubsub.base.components.Client;
 import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
-import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
+import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 
 /**
  * Inbound port used by the broker to deliver messages to a client.
@@ -47,7 +47,7 @@ public class ClientInboundPort extends AbstractInboundPort implements ReceivingC
 								System.out.println("[ClientInboundPort] inside call()");
 								Object ref = this.getServiceProviderReference();
 								System.out.println("[ClientInboundPort] ref=" + ref);
-								((ClientSubscriptionPlugin) ref).receive(channel, message);
+								((ClientRegistrationPlugin) ref).receive(channel, message);
 								System.out.println("[ClientInboundPort] receive done");
 								return null;
 							}
