@@ -1068,7 +1068,6 @@ public class Broker extends AbstractComponent
 			if (inFlight == 0) break;
 			Thread.sleep(10);
 		}
-
 		// Nettoyer le reste, puisque le canal n'existe plus, on n'appelle pas destroyNow mais une fonction auxiliaire
 		this.destroyChannelCleanup(receptionPortURI, channel);
 	}
