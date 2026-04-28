@@ -17,7 +17,6 @@ public class SubscriberClient extends AbstractComponent {
     // SubscriberClient — registration + subscription only
     // -------------------------------------------------------------------------
 
-
     private final ClientRegistrationPlugin regPlugin;
     private final ClientSubscriptionPlugin subPlugin;
     private final TestScenario testScenario;

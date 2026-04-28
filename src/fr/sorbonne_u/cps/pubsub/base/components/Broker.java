@@ -990,7 +990,6 @@ public class Broker extends AbstractComponent
 		}
 	}
 
-
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers) throws Exception
 	{
 
