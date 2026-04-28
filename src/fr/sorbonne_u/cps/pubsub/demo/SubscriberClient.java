@@ -37,6 +37,8 @@ public class SubscriberClient extends AbstractComponent {
                 regPlugin, this::onReceive);
         this.subPlugin.setPluginURI(uri + "-sub");
 
+        this.regPlugin.setSubscriptionPlugin(this.subPlugin);
+
         this.toggleTracing();
         this.getTracer().setTitle(uri);
     }
