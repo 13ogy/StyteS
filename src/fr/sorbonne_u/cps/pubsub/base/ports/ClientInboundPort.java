@@ -32,23 +32,15 @@ public class ClientInboundPort extends AbstractInboundPort implements ReceivingC
 
 	@Override
 	public void receive(String channel, MessageI message) throws Exception {
-		System.out.println("[ClientInboundPort] receive called on channel="
-				+ channel + " owner=" + this.getOwner().getReflectionInboundPortURI());
-
-		System.out.println("[ClientInboundPort] pluginURI=" + this.pluginUri);
 
 		if (this.pluginUri != null) {
-			System.out.println("[ClientInboundPort] about to handleRequest");
 			try {
 				this.getOwner().handleRequest(
 						new AbstractComponent.AbstractService<Void>(this.pluginUri) {
 							@Override
 							public Void call() throws Exception {
-								System.out.println("[ClientInboundPort] inside call()");
 								Object ref = this.getServiceProviderReference();
-								System.out.println("[ClientInboundPort] ref=" + ref);
 								((ClientRegistrationPlugin) ref).receive(channel, message);
-								System.out.println("[ClientInboundPort] receive done");
 								return null;
 							}
 						}

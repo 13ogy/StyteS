@@ -403,11 +403,11 @@ public class DemoSeparatedPlugin extends AbstractCVM
 
         super.deploy();
 
-        /* //Enable tracing for interesting participants
+        //Enable tracing for interesting participants
         this.toggleTracing(TURBINE_NEAR_URI);
         this.toggleTracing(OFFICE_STD_URI);
         this.toggleTracing(OFFICE_PREM_URI);
-        this.toggleTracing(INTRUDER_URI);*/
+        this.toggleTracing(INTRUDER_URI);
     }
 
     // =========================================================================
