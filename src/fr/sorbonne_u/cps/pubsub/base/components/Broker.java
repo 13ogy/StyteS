@@ -1,7 +1,9 @@
 package fr.sorbonne_u.cps.pubsub.base.components;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import fr.sorbonne_u.components.AbstractComponent;
@@ -19,6 +21,14 @@ import fr.sorbonne_u.cps.pubsub.exceptions.NotSubscribedChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
+import fr.sorbonne_u.cps.pubsub.gossip.connectors.GossipConnector;
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipImplementationI;
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipReceiverCI;
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipSenderCI;
+import fr.sorbonne_u.cps.pubsub.gossip.messages.*;
+import fr.sorbonne_u.cps.pubsub.gossip.ports.GossipReceiverInboundPort;
+import fr.sorbonne_u.cps.pubsub.gossip.ports.GossipSenderOutboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
@@ -53,14 +63,12 @@ import java.util.regex.Pattern;
  * @author Bogdan Styn
  */
 @OfferedInterfaces(offered = {
-	RegistrationCI.class,
-	PublishingCI.class,
-	PrivilegedClientCI.class
+	RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class, GossipReceiverCI.class
 })
 @RequiredInterfaces(required = {
-	ReceivingCI.class
+	ReceivingCI.class, GossipSenderCI.class
 })
-public class Broker extends AbstractComponent
+public class Broker extends AbstractComponent implements GossipImplementationI
 {
 	// -------------------------------------------------------------------------
 	// Executor services URIs (audit 2)
@@ -79,10 +87,10 @@ public class Broker extends AbstractComponent
 	// -------------------------------------------------------------------------
 
 	// Mode équitable : protège les écritures longues contre la famine.
-	protected final ReentrantReadWriteLock registrationLock = new ReentrantReadWriteLock(true);
-	protected final ReentrantReadWriteLock channelsLock = new ReentrantReadWriteLock(true);
-	protected final ReentrantReadWriteLock subscriptionsLock = new ReentrantReadWriteLock(true);
-
+	protected final ReentrantReadWriteLock registrationLock = new ReentrantReadWriteLock(true); // registeredClients, receptionPortsOUT, createdPrivilegedChannelsCount
+	protected final ReentrantReadWriteLock channelsLock = new ReentrantReadWriteLock(true); // Channels, privilegedChannels
+	protected final ReentrantReadWriteLock subscriptionsLock = new ReentrantReadWriteLock(true); // subscriptions
+	protected final ReentrantReadWriteLock gossipLock = new ReentrantReadWriteLock(true); // processedGossipURIs
 
 	// -------------------------------------------------------------------------
 	// PublishingCI async (added in latest interface)
@@ -116,9 +124,13 @@ public class Broker extends AbstractComponent
 	// Ports
 	// -------------------------------------------------------------------------
 
-	private static BrokerRegistrationInboundPort registrationPortIN;
+	private BrokerRegistrationInboundPort registrationPortIN;
 	private BrokerPublishingInboundPort publishingPortIN;
-	private static BrokerPrivilegedInboundPort privilegedPortIN;
+	private BrokerPrivilegedInboundPort privilegedPortIN;
+	private GossipReceiverInboundPort gossipPortIN;
+
+	// URI statique d'enregistrement
+	public static String REGISTRATION_PORT_URI;
 
 	// -------------------------------------------------------------------------
 	// State
@@ -162,13 +174,26 @@ public class Broker extends AbstractComponent
 	private final Map<String, Integer> inFlightPerChannel = new HashMap<>();
 
 	// -------------------------------------------------------------------------
+	// Gossip data
+	// -------------------------------------------------------------------------
+
+	// Un port sortant par voisin
+	private List<GossipSenderOutboundPort> gossipSenders = new ArrayList<>();
+	private List<String> gossipURIs;
+
+	// Mémoire des URIs déjà traités (avec nettoyage périodique)
+	private final  Map<String, Instant> processedGossipURIs = new HashMap<>();
+
+
+	// -------------------------------------------------------------------------
 	// Constructor
 	// -------------------------------------------------------------------------
 
 	protected Broker(int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
 					 int nbReceptionThreads, int nbPropagationThreads,
-					 int nbDeliveryThreads) throws Exception
+					 int nbDeliveryThreads,
+					 List<String> neighborsGossipURIs) throws Exception
 	{
 		super(nbThreads, nbSchedulableThreads);
 
@@ -189,12 +214,18 @@ public class Broker extends AbstractComponent
 
 		registrationPortIN = new BrokerRegistrationInboundPort(this);
 		registrationPortIN.publishPort();
+		REGISTRATION_PORT_URI = registrationPortIN.getPortURI();
 
 		publishingPortIN = new BrokerPublishingInboundPort(this);
 		publishingPortIN.publishPort();
 
 		privilegedPortIN = new BrokerPrivilegedInboundPort(this);
 		privilegedPortIN.publishPort();
+
+		gossipPortIN = new GossipReceiverInboundPort(this);
+		gossipPortIN.publishPort();
+
+		this.gossipURIs = neighborsGossipURIs;
 	}
 
 	// -------------------------------------------------------------------------
@@ -279,6 +310,16 @@ public class Broker extends AbstractComponent
 			this.registrationLock.readLock().unlock();
 		}
 
+		// send gossip
+		PublishGossipMessage gossip = new PublishGossipMessage(
+				java.util.UUID.randomUUID().toString(),
+				Instant.now(),
+				this.getReflectionInboundPortURI(),
+				message,
+				channel,
+				publisherReceptionPortURI);
+		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
+
 		// Submit propagation.
 		this.runTask(this.esPropagationIndex, o -> {
 			try {
@@ -362,11 +403,41 @@ public class Broker extends AbstractComponent
 	@Override
 	public void start() throws ComponentStartException {
 		super.start();
+		// connecter le ports sortants gossip
+		try {
+			for (String neighbourURI : this.gossipURIs) {
+				GossipSenderOutboundPort out = new GossipSenderOutboundPort(this);
+				out.publishPort();
+				this.doPortConnection(
+						out.getPortURI(),
+						neighbourURI,
+						GossipConnector.class.getCanonicalName());
+				this.gossipSenders.add(out);
+			}
+		} catch (Exception e) {
+			throw new ComponentStartException(e);
+		}
 	}
+
+	@Override
+	public void execute() throws Exception {
+		super.execute();
+		// Nettoyage périodique de la mémoire gossip toutes les 2 minutes
+		// Il faut un thread ordonnançable
+		this.scheduleTaskAtFixedRate(
+				o -> ((Broker) o).cleanupGossipMemory(),
+				2, 2, TimeUnit.MINUTES);
+	}
+
 	@Override
 	public void finalise() throws Exception {
 
 		for (BrokerReceptionOutboundPort out : this.receptionPortsOUT.values()) {
+			if (out.connected()) {
+				this.doPortDisconnection(out.getPortURI());
+			}
+		}
+		for (GossipSenderOutboundPort out : this.gossipSenders) {
 			if (out.connected()) {
 				this.doPortDisconnection(out.getPortURI());
 			}
@@ -386,6 +457,14 @@ public class Broker extends AbstractComponent
 			}
 			this.receptionPortsOUT.clear();
 
+			for (GossipSenderOutboundPort out : this.gossipSenders) {
+				if (!out.isDestroyed()) {
+					out.unpublishPort();
+					out.destroyPort();
+				}
+			}
+			this.gossipSenders.clear();
+
 			// Unpublishing Inbound ports
 			if (registrationPortIN != null) {
 				registrationPortIN.unpublishPort();
@@ -398,6 +477,10 @@ public class Broker extends AbstractComponent
 			if (privilegedPortIN != null) {
 				privilegedPortIN.unpublishPort();
 				privilegedPortIN.destroyPort();
+			}
+			if (this.gossipPortIN != null) {
+				this.gossipPortIN.unpublishPort();
+				this.gossipPortIN.destroyPort();
 			}
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e);
@@ -449,7 +532,7 @@ public class Broker extends AbstractComponent
 
 	public static String registrationPortURI() throws Exception
 	{
-		return registrationPortIN.getPortURI();
+		return REGISTRATION_PORT_URI;
 	}
 
 	private String publishingPortURI() throws Exception
@@ -457,7 +540,7 @@ public class Broker extends AbstractComponent
 		return publishingPortIN.getPortURI();
 	}
 
-	private static String privilegedPortURI() throws Exception
+	private String privilegedPortURI() throws Exception
 	{
 		return privilegedPortIN.getPortURI();
 	}
@@ -552,6 +635,16 @@ public class Broker extends AbstractComponent
 			this.registrationLock.writeLock().unlock();
 		}
 
+
+		RegisterGossipMessage gossip = new RegisterGossipMessage(
+				java.util.UUID.randomUUID().toString(), // URI unique
+				Instant.now(),
+				this.getReflectionInboundPortURI(),     // émetteur = ce courtier
+				receptionPortURI,                        // client qui s'enregistre
+				rc);
+
+		this.gossipToNeighbours(new GossipMessageI[]{ gossip }); //initiation de la propagation
+
 		if (rc == RegistrationClass.FREE) {
 			return publishingPortIN.getPortURI();
 		}else{
@@ -577,10 +670,21 @@ public class Broker extends AbstractComponent
 		} finally {
 			this.registrationLock.writeLock().unlock();
 		}
+
+		ModifyServiceClassGossipMessage gossip = new ModifyServiceClassGossipMessage(
+				java.util.UUID.randomUUID().toString(),
+				Instant.now(),
+				this.getReflectionInboundPortURI(),
+				receptionPortURI,
+				rc);
+
+		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
+
 		// Allowing service class upgrade/downgrade
 		if (rc == RegistrationClass.FREE) {
 			// Destroy channels created by user
 			List<String> ownedChannels = new ArrayList<>();
+			List<GossipMessageI> gossipMessages = new ArrayList<>();
 			this.channelsLock.readLock().lock();
 			try {
 				for (Map.Entry<String, PrivilegedChannelInfo> e : privilegedChannels.entrySet()) {
@@ -594,7 +698,13 @@ public class Broker extends AbstractComponent
 
 			// destroyChannelNow hors lock — elle prend ses propres locks
 			for (String ch : ownedChannels) {
-				this.destroyChannelNow(receptionPortURI, ch);
+				this.destroyChannelNow(receptionPortURI, ch, false); //ne pas repropager
+				gossipMessages.add(new DestroyChannelGossipMessage(
+						java.util.UUID.randomUUID().toString(),
+						Instant.now(),
+						this.getReflectionInboundPortURI(),
+						ch,
+						receptionPortURI));
 			}
 
 			this.registrationLock.writeLock().lock();
@@ -603,7 +713,12 @@ public class Broker extends AbstractComponent
 			} finally {
 				this.registrationLock.writeLock().unlock();
 			}
+			if (!gossipMessages.isEmpty()) {
+				this.gossipToNeighbours(
+						gossipMessages.toArray(new GossipMessageI[0]));
+			}
 			return publishingPortIN.getPortURI();
+
 		} else {
 			this.registrationLock.writeLock().lock();
 			try {
@@ -988,6 +1103,26 @@ public class Broker extends AbstractComponent
 		} finally {
 			this.registrationLock.writeLock().unlock();
 		}
+
+		// propager la creation du cannal
+		RegistrationClass rc;
+		this.registrationLock.readLock().lock();
+		try {
+			rc = this.registeredClients.get(receptionPortURI);
+		} finally {
+			this.registrationLock.readLock().unlock();
+		}
+
+		CreateChannelGossipMessage gossip = new CreateChannelGossipMessage(
+				java.util.UUID.randomUUID().toString(),
+				Instant.now(),
+				this.getReflectionInboundPortURI(),
+				channel,
+				receptionPortURI,
+				autorisedUsers,
+				rc);
+
+		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
 	}
 
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers) throws Exception
@@ -1059,16 +1194,33 @@ public class Broker extends AbstractComponent
 			this.channelsLock.writeLock().unlock();
 		}
 
-		while (true) {
-			int inFlight;
-			synchronized (this.inFlightPerChannel) {
-				inFlight = this.inFlightPerChannel.getOrDefault(channel, 0);
+		DestroyChannelGossipMessage gossip = new DestroyChannelGossipMessage(
+				java.util.UUID.randomUUID().toString(),
+				Instant.now(),
+				this.getReflectionInboundPortURI(),
+				channel,
+				receptionPortURI);
+		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
+
+		// le nettoyage se fait en arrière plan après que le client reçoit confimation direct de la destruction
+		this.runTask(this.esDeliveryIndex, o -> {
+			try {
+				// Attente que les messages en vol se terminent
+				while (true) {
+					int inFlight;
+					synchronized (((Broker) o).inFlightPerChannel) {
+						inFlight = ((Broker) o).inFlightPerChannel
+								.getOrDefault(channel, 0);
+					}
+					if (inFlight == 0) break;
+					Thread.sleep(10);
+				}
+				((Broker) o).destroyChannelCleanup(receptionPortURI, channel);
+			} catch (Exception e) {
+				((Broker) o).logMessage(
+						"[Broker] destroyChannel cleanup failed: " + e + "\n");
 			}
-			if (inFlight == 0) break;
-			Thread.sleep(10);
-		}
-		// Nettoyer le reste, puisque le canal n'existe plus, on n'appelle pas destroyNow mais une fonction auxiliaire
-		this.destroyChannelCleanup(receptionPortURI, channel);
+		});
 	}
 
 	// Appelée par destroyChannel après l'attente in-flight
@@ -1100,7 +1252,7 @@ public class Broker extends AbstractComponent
 		}
 	}
 
-	public void destroyChannelNow(String receptionPortURI, String channel) throws Exception {
+	public void destroyChannelNow(String receptionPortURI, String channel, boolean propagate) throws Exception {
 		this.registrationLock.writeLock().lock();
 		try {
 			if (!this.registeredLocked(receptionPortURI)) {
@@ -1139,5 +1291,221 @@ public class Broker extends AbstractComponent
 		} finally {
 			this.registrationLock.writeLock().unlock();
 		}
+		if (propagate) {
+			DestroyChannelGossipMessage gossip = new DestroyChannelGossipMessage(
+					java.util.UUID.randomUUID().toString(),
+					Instant.now(),
+					this.getReflectionInboundPortURI(),
+					channel,
+					receptionPortURI);
+			this.gossipToNeighbours(new GossipMessageI[]{gossip});
+		}
 	}
+	public void destroyChannelNow(String receptionPortURI, String channel)
+			throws Exception
+	{
+		this.destroyChannelNow(receptionPortURI, channel, true);
+	}
+
+	// Gossip methodes
+
+	@Override
+	public void update(GossipMessageI[] fromSender) {
+
+		for (GossipMessageI msg : fromSender) {
+			//Vérifier si déjà traité
+			boolean alreadyProcessed;
+			this.gossipLock.writeLock().lock();
+			try {
+				alreadyProcessed = this.processedGossipURIs.containsKey(msg.gossipMessageURI());
+				if (!alreadyProcessed) {
+					this.processedGossipURIs.put(msg.gossipMessageURI(), msg.timestamp());
+				}
+			} finally {
+				this.gossipLock.writeLock().unlock();
+			}
+			if (alreadyProcessed) continue;
+
+			//traiter le message
+			//TO-DO
+			if (msg instanceof RegisterGossipMessage) {
+				RegisterGossipMessage regMsg = (RegisterGossipMessage) msg;
+				// Mémoriser localement — sans créer de port outbound
+				// car ce client n'est PAS enregistré chez nous, juste connu
+				this.registrationLock.writeLock().lock();
+				try {
+					this.registeredClients.putIfAbsent(
+							regMsg.getClientReceptionPortURI(),
+							regMsg.getRegistrationClass());
+				} finally {
+					this.registrationLock.writeLock().unlock();
+				}
+			}
+			if (msg instanceof PublishGossipMessage) {
+				PublishGossipMessage pubMsg = (PublishGossipMessage) msg;
+				this.beginInFlight(pubMsg.getChannel());
+				this.runTask(this.esPropagationIndex, o -> {
+					try {
+						((Broker) o).propagationStage(
+								pubMsg.getChannel(),
+								pubMsg.getPubMessage());
+					} catch (Exception e) {
+						this.logMessage("[Broker] gossip propagation failed: " + e + "\n");
+						((Broker) o).finishInFlight(pubMsg.getChannel());
+					}
+				});
+			}
+			if (msg instanceof CreateChannelGossipMessage) {
+				CreateChannelGossipMessage ccMsg = (CreateChannelGossipMessage) msg;
+				Pattern p = null;
+				if (ccMsg.getAuthorisedUsers() != null && !ccMsg.getAuthorisedUsers().isEmpty()) {
+					p = Pattern.compile(ccMsg.getAuthorisedUsers());
+				}
+				final Pattern pattern = p;
+
+				this.registrationLock.writeLock().lock();
+				try {
+					// S'assurer que le propriétaire est connu localement
+					this.registeredClients.putIfAbsent(
+							ccMsg.getOwnerReceptionPortURI(),
+							ccMsg.getOwnerClass());
+					this.createdPrivilegedChannelsCount.merge(
+							ccMsg.getOwnerReceptionPortURI(), 1, Integer::sum);
+
+					this.channelsLock.writeLock().lock();
+					try {
+						// Ne créer que si pas déjà présent
+						if (!this.channelExistLocked(ccMsg.getChannel())) {
+							this.subscriptionsLock.writeLock().lock();
+							try {
+								// Tout mettre à jour
+								this.channels.add(ccMsg.getChannel());
+								this.privilegedChannels.put(ccMsg.getChannel(),
+										new PrivilegedChannelInfo(
+												ccMsg.getOwnerReceptionPortURI(), pattern));
+								this.subscriptions.put(ccMsg.getChannel(), new HashMap<>());
+								synchronized (this.inFlightPerChannel) {
+									this.inFlightPerChannel.put(ccMsg.getChannel(), 0);
+								}
+							} finally {
+								this.subscriptionsLock.writeLock().unlock();
+							}
+						} else {
+							this.createdPrivilegedChannelsCount.merge(
+									ccMsg.getOwnerReceptionPortURI(), -1, Integer::sum);
+						}
+					} finally {
+						this.channelsLock.writeLock().unlock();
+					}
+				} finally {
+					this.registrationLock.writeLock().unlock();
+				}
+			}
+
+			if (msg instanceof ModifyServiceClassGossipMessage) {
+				ModifyServiceClassGossipMessage mscMsg =
+						(ModifyServiceClassGossipMessage) msg;
+
+				this.registrationLock.writeLock().lock();
+				try {
+					//Mettre à jour la classe de service localement
+					this.registeredClients.put(
+							mscMsg.getClientReceptionPortURI(),
+							mscMsg.getNewRegistrationClass());
+
+					// Si downgrade vers FREE — supprimer le quota
+					if (mscMsg.getNewRegistrationClass() == RegistrationClass.FREE) {
+						this.createdPrivilegedChannelsCount.remove(
+								mscMsg.getClientReceptionPortURI());
+					} else {
+						// Si upgrade — initialiser le quota si pas encore présent
+						this.createdPrivilegedChannelsCount.putIfAbsent(
+								mscMsg.getClientReceptionPortURI(), 0);
+					}
+				} finally {
+					this.registrationLock.writeLock().unlock();
+				}
+			}
+			if (msg instanceof DestroyChannelGossipMessage) {
+				DestroyChannelGossipMessage dcMsg = (DestroyChannelGossipMessage) msg;
+
+				// Détruire la copie locale directement
+				this.registrationLock.writeLock().lock();
+				try {
+					this.channelsLock.writeLock().lock();
+					try {
+						// Ne détruire que si le canal existe localement
+						if (this.channelExistLocked(dcMsg.getChannel())) {
+							this.subscriptionsLock.writeLock().lock();
+							try {
+								this.subscriptions.remove(dcMsg.getChannel());
+							} finally {
+								this.subscriptionsLock.writeLock().unlock();
+							}
+							this.channels.remove(dcMsg.getChannel());
+							this.privilegedChannels.remove(dcMsg.getChannel());
+							synchronized (this.inFlightPerChannel) {
+								this.inFlightPerChannel.remove(dcMsg.getChannel());
+							}
+							// Décrémenter le quota du propriétaire
+							this.createdPrivilegedChannelsCount.merge(
+									dcMsg.getOwnerReceptionPortURI(), -1, Integer::sum);
+						}
+					} finally {
+						this.channelsLock.writeLock().unlock();
+					}
+				} finally {
+					this.registrationLock.writeLock().unlock();
+				}
+			}
+
+			// Propager aux voisins avec nouvel émetteur
+			GossipMessageI forwarded = msg.copyWithNewEmitterURI(this.getReflectionInboundPortURI());
+			try {
+				for (GossipSenderOutboundPort sender : this.gossipSenders) {
+					this.runTask(this.esReceptionIndex, o -> {
+						try {
+							sender.send(new GossipMessageI[]{forwarded});
+						} catch (Exception e) {
+							throw new RuntimeException(e);
+						}
+					});
+				}
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	@Override
+	public void receive(GossipMessageI[] gossipMessages) throws Exception {
+		this.handleRequest(o -> {
+			((Broker) o).update(gossipMessages);
+			return null;
+		});
+	}
+
+	public void gossipToNeighbours(GossipMessageI[] messages){
+		for (GossipSenderOutboundPort sender : this.gossipSenders) {
+			this.runTask(this.esReceptionIndex, o -> {
+				try {
+					sender.send(messages);
+				} catch (Exception e) {
+					((Broker) o).logMessage("[Broker] gossip send failed: " + e + "\n");
+				}
+			});
+		}
+	}
+
+	private void cleanupGossipMemory() {
+		Instant threshold = Instant.now().minusSeconds(120);
+		this.gossipLock.writeLock().lock();
+		try {
+			this.processedGossipURIs.entrySet()
+					.removeIf(e -> e.getValue().isBefore(threshold));
+		} finally {
+			this.gossipLock.writeLock().unlock();
+		}
+	}
+
 }
