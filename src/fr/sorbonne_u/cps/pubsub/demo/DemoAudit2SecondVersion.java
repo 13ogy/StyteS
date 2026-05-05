@@ -284,7 +284,7 @@ public class DemoAudit2SecondVersion extends AbstractCVM
         AbstractComponent.createComponent(
                 Broker.class.getCanonicalName(),
                 new Object[] {
-                        2, 0,    // nbThreads, nbSchedulableThreads
+                        2, 1,    // nbThreads, nbSchedulableThreads
                         3, 2, 5, // nbFreeChannels, standardQuota, premiumQuota
                         2, 4, 8  // nbReceptionThreads, nbPropagationThreads, nbDeliveryThreads
                 });

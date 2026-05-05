@@ -192,6 +192,16 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	protected Broker(int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
 					 int nbReceptionThreads, int nbPropagationThreads,
+					 int nbDeliveryThreads) throws Exception{
+
+		this(nbThreads,nbSchedulableThreads,nbFreeChannels,
+				standardQuota, premiumQuota, nbReceptionThreads,
+				nbPropagationThreads, nbDeliveryThreads,
+				new ArrayList<>()); //pas de voisins
+	}
+	protected Broker(int nbThreads, int nbSchedulableThreads,
+					 int nbFreeChannels, int standardQuota, int premiumQuota,
+					 int nbReceptionThreads, int nbPropagationThreads,
 					 int nbDeliveryThreads,
 					 List<String> neighborsGossipURIs) throws Exception
 	{
