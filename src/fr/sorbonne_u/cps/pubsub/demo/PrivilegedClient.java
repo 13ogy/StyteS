@@ -23,7 +23,7 @@ public class PrivilegedClient extends AbstractComponent {
     private final TestScenario testScenario;
     private final RegistrationCI.RegistrationClass initialRC;
 
-    public PrivilegedClient(String uri, TestScenario ts,
+    protected PrivilegedClient(String uri, TestScenario ts,
                             RegistrationCI.RegistrationClass rc) throws Exception {
         super(uri, 1, 1);
         this.testScenario = ts;

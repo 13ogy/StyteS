@@ -180,6 +180,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Un port sortant par voisin
 	private List<GossipSenderOutboundPort> gossipSenders = new ArrayList<>();
 	private List<String> gossipURIs;
+	public static final String GOSSIP_INBOUND_PORT_URI_SUFFIX = "-gossip-in";
 
 	// Mémoire des URIs déjà traités (avec nettoyage périodique)
 	private final  Map<String, Instant> processedGossipURIs = new HashMap<>();
@@ -237,6 +238,61 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 		this.gossipURIs = neighborsGossipURIs;
 	}
+
+	// broker avec port de reflexion pour la répartition
+	protected Broker(String reflexionPort,
+					 int nbThreads, int nbSchedulableThreads,
+					 int nbFreeChannels, int standardQuota, int premiumQuota,
+					 int nbReceptionThreads, int nbPropagationThreads,
+					 int nbDeliveryThreads) throws Exception{
+
+		this(reflexionPort,
+				nbThreads,nbSchedulableThreads,nbFreeChannels,
+				standardQuota, premiumQuota, nbReceptionThreads,
+				nbPropagationThreads, nbDeliveryThreads,
+				new ArrayList<>()); //pas de voisins
+	}
+	protected Broker(String reflexionPort,
+					 int nbThreads, int nbSchedulableThreads,
+					 int nbFreeChannels, int standardQuota, int premiumQuota,
+					 int nbReceptionThreads, int nbPropagationThreads,
+					 int nbDeliveryThreads,
+					 List<String> neighborsGossipURIs) throws Exception
+	{
+		super(reflexionPort, nbThreads, nbSchedulableThreads);
+
+		// Create explicit thread pools for audit 2.
+		this.esReceptionIndex = this.createNewExecutorService(ES_RECEPTION_URI, nbReceptionThreads, false);
+		this.esPropagationIndex = this.createNewExecutorService(ES_PROPAGATION_URI, nbPropagationThreads, false);
+		this.esDeliveryIndex = this.createNewExecutorService(ES_DELIVERY_URI, nbDeliveryThreads, false);
+
+		this.nbFreeChannels=nbFreeChannels;
+		for (int i = 0; i < nbFreeChannels; i++) {
+			String c = "channel" + i;
+			this.channels.add(c);
+			this.subscriptions.put(c, new HashMap<>());
+			this.inFlightPerChannel.put(c, 0);
+		}
+		this.standardQuota = standardQuota;
+		this.premiumQuota = premiumQuota;
+
+		registrationPortIN = new BrokerRegistrationInboundPort(this);
+		registrationPortIN.publishPort();
+		REGISTRATION_PORT_URI = registrationPortIN.getPortURI();
+
+		publishingPortIN = new BrokerPublishingInboundPort(this);
+		publishingPortIN.publishPort();
+
+		privilegedPortIN = new BrokerPrivilegedInboundPort(this);
+		privilegedPortIN.publishPort();
+
+		gossipPortIN = new GossipReceiverInboundPort(this);
+		gossipPortIN.publishPort();
+
+		this.gossipURIs = neighborsGossipURIs;
+	}
+
+
 
 	// -------------------------------------------------------------------------
 	// Internal asynchronous pipeline (audit 2)

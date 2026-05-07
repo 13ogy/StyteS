@@ -23,7 +23,7 @@ public class SubscriberClient extends AbstractComponent {
     private final RegistrationCI.RegistrationClass initialRC;
     private final String uri;
 
-    public SubscriberClient(String uri, TestScenario ts,
+    protected SubscriberClient(String uri, TestScenario ts,
                             RegistrationCI.RegistrationClass rc) throws Exception {
         super(uri, 1, 1); // 1 schedulable thread for executeTestScenario
         this.testScenario = ts;
@@ -40,6 +40,11 @@ public class SubscriberClient extends AbstractComponent {
 
         this.toggleTracing();
         this.getTracer().setTitle(uri);
+    }
+    // Constructeur sans scénario pour le déploiement réparti
+    protected SubscriberClient(String uri,
+                               RegistrationCI.RegistrationClass rc) throws Exception {
+        this(uri, null, rc);
     }
 
     public void onReceive(String channel, MessageI message) {

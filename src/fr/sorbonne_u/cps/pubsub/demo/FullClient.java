@@ -25,7 +25,7 @@ public class FullClient extends AbstractComponent {
     private final RegistrationCI.RegistrationClass initialRC;
     private final String uri;
 
-    public FullClient(String uri, TestScenario ts,
+    protected FullClient(String uri, TestScenario ts,
                            RegistrationCI.RegistrationClass rc) throws Exception {
         super(uri, 1, 1);
         this.testScenario = ts;
