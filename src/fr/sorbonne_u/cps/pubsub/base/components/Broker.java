@@ -286,7 +286,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		privilegedPortIN = new BrokerPrivilegedInboundPort(this);
 		privilegedPortIN.publishPort();
 
-		gossipPortIN = new GossipReceiverInboundPort(this);
+		gossipPortIN = new GossipReceiverInboundPort(
+				reflectionInboundPortURI + GOSSIP_INBOUND_PORT_URI_SUFFIX , // "broker-2-gossip-in"
+				this);
 		gossipPortIN.publishPort();
 
 		this.gossipURIs = neighborsGossipURIs;
@@ -896,6 +898,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		PrivilegedChannelInfo info = this.privilegedChannels.get(channel);
 		if (info == null || info.authorisedUsersPattern == null) {
 			// null/absent regex means "all authorised" (as allowed by CI contract).
+			return true;
+		}
+		if (info.ownerReceptionPortURI.equals(receptionPortURI)) {
 			return true;
 		}
 		return info.authorisedUsersPattern.matcher(receptionPortURI).matches();

@@ -62,23 +62,7 @@ public class PrivilegedClient extends AbstractComponent {
         }
     }
 
-    @Override
-    public synchronized void finalise() throws Exception {
-        this.privPlugin.finalise();
-        this.regPlugin.finalise();
-        super.finalise();
-    }
 
-    @Override
-    public synchronized void shutdown() throws ComponentShutdownException {
-        try {
-            this.privPlugin.uninstall();
-            this.regPlugin.uninstall();
-        } catch (Exception e) {
-            throw new ComponentShutdownException(e);
-        }
-        super.shutdown();
-    }
 
     public void modifyServiceClass(RegistrationCI.RegistrationClass rc) throws Exception {
         this.regPlugin.modifyServiceClass(rc);

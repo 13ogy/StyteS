@@ -114,8 +114,8 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		//Removing interfaces
 		this.removeOfferedInterface(ReceivingCI.class);
 		this.removeRequiredInterface(RegistrationCI.class);
-		this.removeRequiredInterface(PublishingCI.class);
 		this.removeRequiredInterface(PrivilegedClientCI.class);
+		this.removeRequiredInterface(PublishingCI.class);
 
 		super.uninstall();
 	}

@@ -3,9 +3,17 @@ package fr.sorbonne_u.cps.pubsub.demo;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.components.cvm.AbstractDistributedCVM;
 import fr.sorbonne_u.components.helpers.CVMDebugModes;
+import fr.sorbonne_u.components.utils.tests.TestScenario;
+import fr.sorbonne_u.components.utils.tests.TestStep;
+import fr.sorbonne_u.components.utils.tests.TestStepI;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 import fr.sorbonne_u.components.AbstractComponent;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
+import fr.sorbonne_u.cps.pubsub.messages.Message;
+import fr.sorbonne_u.cps.pubsub.messages.MessageFilter;
+import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
 import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
 import java.time.Instant;
@@ -13,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class DemoDistributed extends AbstractDistributedCVM {
+public class DemoTimedDistributed extends AbstractDistributedCVM {
     /**
      * instantiate the DCVM object.
      *
@@ -53,16 +61,16 @@ public class DemoDistributed extends AbstractDistributedCVM {
     public static final String BROKER2_GOSSIP_PORT_URI = "broker-2-gossip-in";
 
     // channels
-    public static final String CHANNEL = "channel0";
+    public static final String CHANNEL = "gossip-channel";
 
     // clock
     public static final String  CLOCK_URI          = "gossip-test-clock";
     public static final String  START_INSTANT_STR  = "2026-02-01T10:00:00.00Z";
     public static final double  ACCELERATION_FACTOR = 1.0;
-    public static final long    DELAY_TO_START_MS  = 5_000L;
+    public static final long    DELAY_TO_START_MS  = 15_000L;
 
 
-    public DemoDistributed(String[] args) throws Exception {
+    public DemoTimedDistributed(String[] args) throws Exception {
         super(args);
     }
 
@@ -70,15 +78,94 @@ public class DemoDistributed extends AbstractDistributedCVM {
     @Override
     public void initialise() throws Exception
     {
-       AbstractCVM.DEBUG_MODE.add(CVMDebugModes.LIFE_CYCLE);/*
+        /*AbstractCVM.DEBUG_MODE.add(CVMDebugModes.LIFE_CYCLE);
         AbstractCVM.DEBUG_MODE.add(CVMDebugModes.PORTS);
         AbstractCVM.DEBUG_MODE.add(CVMDebugModes.CONNECTING);*/
         super.initialise();
     }
 
+    public static TestScenario testScenario() throws Exception
+    {
+        Instant startInstant = Instant.parse(START_INSTANT_STR);
+        Instant endInstant   = startInstant.plusSeconds(100);
+
+        // upgrade C2 -> create channel C2 -> subscribe C1 → publish C2
+
+        Instant upgradeC2Instant = startInstant.plusSeconds(5);
+        Instant createChannelC2Instaant = startInstant.plusSeconds(15);
+        Instant subscribeC1Instant = startInstant.plusSeconds(25);
+        Instant publishC2Instant   = startInstant.plusSeconds(35); // après gossip RegisterGossip propagé
+
+
+        return new TestScenario(
+                CLOCK_URI,
+                startInstant,
+                endInstant,
+                new TestStepI[]{
+                        //C2 upgrade
+                        new TestStep(CLOCK_URI, CLIENT2_URI, upgradeC2Instant, owner -> {
+                            try {
+                                ((PrivilegedClient) owner).modifyServiceClass(RegistrationCI.RegistrationClass.STANDARD);
+                                ((PrivilegedClient) owner).traceMessage("upgraded to STANDARD\n");
+                            } catch (Exception e) {
+                                ((PrivilegedClient) owner).logMessage("upgrade STANDARD failed: " + e + "\n");
+                            }
+                        }),
+
+                        //C2 create channel
+                        new TestStep(CLOCK_URI, CLIENT2_URI, createChannelC2Instaant, owner -> {
+                            try {
+                                String regex = "^(" + CLIENT1_URI + "-reg)$";
+                                ((PrivilegedClient) owner).createChannel(CHANNEL, regex);
+                                ((PrivilegedClient) owner).traceMessage("created " + CHANNEL + "\n");
+                            } catch (Exception e) {
+                                ((PrivilegedClient) owner).logMessage("createChannel failed: " + e + "\n");
+                            }
+                        }),
+                        // C1 subscribe to channel
+                        new TestStep(CLOCK_URI, CLIENT1_URI, subscribeC1Instant,
+                                owner -> {
+                                    try {
+                                        ((SubscriberClient) owner).subscribe(CHANNEL, acceptAll());
+                                        ((SubscriberClient) owner).traceMessage("subscribed to channel "+ CHANNEL +"\n");
+                                    } catch (Exception e) {
+                                        System.err.println("C1 subscribe failed: " + e);
+                                    }
+                                }),
+
+                        //C2 publish
+                        new TestStep(CLOCK_URI, CLIENT2_URI, publishC2Instant, owner -> {
+                            try {
+                                MessageI m = new Message("gossip-msg");
+                                m.putProperty("publisher", "C2");
+                                ((PrivilegedClient) owner).publish(CHANNEL, m);
+                                System.out.println("[Test gossip] C2 published  — returned immediately");
+                                ((PrivilegedClient) owner).traceMessage("[Test gossip] C2: published message "+m.getPayload()+"\n");
+                            } catch (Exception e) {
+                                owner.traceMessage("[Test gossip] C2: publish failed: " + e + "\n");
+                            }
+                        }),
+                }
+        );
+    }
+
+
+    protected static MessageFilterI acceptAll()
+    {
+        return new MessageFilter(
+                new MessageFilterI.PropertyFilterI[0],
+                new MessageFilterI.PropertiesFilterI[0],
+                new AcceptAllTimeFilter());
+    }
 
     @Override
     public void instantiateAndPublish() throws Exception{
+
+        TestScenario.VERBOSE = true;
+        TestScenario.DEBUG   = true;
+
+        // Build scenario first
+        TestScenario ts = testScenario();
 
         if (thisJVMURI.equals(BROKER1_JVM_URI)) {
 
@@ -99,7 +186,7 @@ public class DemoDistributed extends AbstractDistributedCVM {
             //  C1 s'enregistre chez B1
             AbstractComponent.createComponent(
                     SubscriberClient.class.getCanonicalName(),
-                    new Object[] { CLIENT1_URI, RegistrationCI.RegistrationClass.FREE });
+                    new Object[] { CLIENT1_URI,ts, RegistrationCI.RegistrationClass.FREE });
 
             // ClocksServer sur JVM 1
             long current = System.currentTimeMillis();
@@ -132,8 +219,8 @@ public class DemoDistributed extends AbstractDistributedCVM {
 
             //Client C2 s'enregistre chez B2
             AbstractComponent.createComponent(
-                    SubscriberClient.class.getCanonicalName(),
-                    new Object[] { CLIENT2_URI, RegistrationCI.RegistrationClass.FREE });
+                    PrivilegedClient.class.getCanonicalName(),
+                    new Object[] { CLIENT2_URI,ts, RegistrationCI.RegistrationClass.FREE });
 
         } else {
             System.out.println("Unknown JVM URI: " + thisJVMURI);
@@ -158,9 +245,9 @@ public class DemoDistributed extends AbstractDistributedCVM {
     {
 
         try {
-            DemoDistributed dcvm = new DemoDistributed(args);
+            DemoTimedDistributed dcvm = new DemoTimedDistributed(args);
             // DELAY(5s) + exécution(30s) + marge(10s)
-            dcvm.startStandardLifeCycle(45_000L);
+            dcvm.startStandardLifeCycle(120_000L);
             Thread.sleep(5_000L);
             System.exit(0);
         } catch (Throwable e) {

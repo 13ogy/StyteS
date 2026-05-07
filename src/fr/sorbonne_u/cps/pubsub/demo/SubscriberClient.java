@@ -79,24 +79,6 @@ public class SubscriberClient extends AbstractComponent {
         }
     }
 
-    @Override
-    public synchronized void finalise() throws Exception {
-        this.subPlugin.finalise();
-        this.regPlugin.finalise();
-        super.finalise();
-    }
-
-    @Override
-    public synchronized void shutdown() throws ComponentShutdownException {
-        try {
-            this.subPlugin.uninstall();
-            this.regPlugin.uninstall();
-        } catch (Exception e) {
-            throw new ComponentShutdownException(e);
-        }
-        super.shutdown();
-    }
-
     // Domain actions called from scenario steps
     public void subscribe(String channel, MessageFilterI filter) throws Exception {
         this.subPlugin.subscribe(channel, filter);

@@ -60,23 +60,6 @@ public class PublisherClient extends AbstractComponent {
         }
     }
 
-    @Override
-    public synchronized void finalise() throws Exception {
-        this.pubPlugin.finalise();
-        this.regPlugin.finalise();
-        super.finalise();
-    }
-
-    @Override
-    public synchronized void shutdown() throws ComponentShutdownException {
-        try {
-            this.pubPlugin.uninstall();
-            this.regPlugin.uninstall();
-        } catch (Exception e) {
-            throw new ComponentShutdownException(e);
-        }
-        super.shutdown();
-    }
 
     public void publish(String channel, MessageI message) throws Exception {
         this.pubPlugin.publish(channel, message);

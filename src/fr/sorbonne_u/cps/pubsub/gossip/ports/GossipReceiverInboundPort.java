@@ -10,6 +10,11 @@ public class GossipReceiverInboundPort
         extends AbstractInboundPort
         implements GossipReceiverCI
 {
+
+    public GossipReceiverInboundPort(String uri, ComponentI owner) throws Exception {
+        super(uri, GossipReceiverCI.class, owner);
+    }
+
     public GossipReceiverInboundPort(ComponentI owner) throws Exception {
         super(GossipReceiverCI.class, owner);
     }

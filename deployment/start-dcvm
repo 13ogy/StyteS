@@ -5,4 +5,4 @@ if [ -z "$1" ]; then
  fi
 java -ea -cp 'jars/*' -Djava.security.manager \
      -Djava.security.policy=config/dcvm.policy \
-     fr.sorbonne_u.cps.pubsub.demo.DemoDistributed $1 config/config.xml
+     fr.sorbonne_u.cps.pubsub.demo.DemoTimedDistributed $1 config/config.xml

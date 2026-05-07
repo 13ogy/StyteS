@@ -12,11 +12,11 @@
         <jvm2hostname jvmuri="broker1-jvm"
                       rmiRegistryCreator="true"
                       hostname="localhost"
-                      mainclass="fr.sorbonne_u.cps.pubsub.demo.DistributedCVMGossipTest"/>
+                      mainclass="fr.sorbonne_u.cps.pubsub.demo.DemoTimedDistributed"/>
 
         <jvm2hostname jvmuri="broker2-jvm"
                       rmiRegistryCreator="false"
                       hostname="localhost"
-                      mainclass="fr.sorbonne_u.cps.pubsub.demo.DistributedCVMGossipTest"/>
+                      mainclass="fr.sorbonne_u.cps.pubsub.demo.DemoTimedDistributed"/>
     </jvms2hostnames>
 </deployment>
