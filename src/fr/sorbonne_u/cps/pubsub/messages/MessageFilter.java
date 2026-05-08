@@ -36,7 +36,7 @@ import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
  * </p>
  *
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class MessageFilter implements MessageFilterI
 {
@@ -80,9 +80,27 @@ public class MessageFilter implements MessageFilterI
 			throw new IllegalArgumentException("Filter arrays cannot be null.");
 		}
 
-		this.propertyFilters = Arrays.copyOf(propertyFilters, propertyFilters.length);
-		this.propertiesFilters =
-			Arrays.copyOf(propertiesFilters, propertiesFilters.length);
+		// ne pas garder les valeurs null du tableau
+		int countPF =0;
+		for (PropertyFilterI pf : propertyFilters){
+			if (pf != null) countPF++;
+		}
+		this.propertyFilters = new PropertyFilterI[countPF];
+		int i = 0;
+		for (PropertyFilterI pf: propertyFilters){
+			if(pf != null ) this.propertyFilters[i++] = pf;
+		}
+
+		int countPSF =0;
+		for (PropertiesFilterI pf : propertiesFilters){
+			if (pf != null) countPSF++;
+		}
+		this.propertiesFilters = new PropertiesFilterI[countPSF];
+		i = 0;
+		for (PropertiesFilterI pf: propertiesFilters){
+			if(pf != null ) this.propertiesFilters[i++] = pf;
+		}
+
 		this.timeFilter = timeFilter != null ? timeFilter : new AcceptAllTimeFilter();
 	}
 
@@ -131,22 +149,13 @@ public class MessageFilter implements MessageFilterI
 		final Map<String, PropertyI> propsByName = indexProperties(message);
 
 		for (PropertyFilterI pf : this.propertyFilters) {
-			if (pf == null) {
-				continue;
-			}
 			PropertyI p = propsByName.get(pf.getName());
-			if (p == null) {
-				return false;
-			}
-			if (!pf.match(p)) {
+			if (p == null || !pf.match(p)) {
 				return false;
 			}
 		}
 
 		for (PropertiesFilterI mpf : this.propertiesFilters) {
-			if (mpf == null) {
-				continue;
-			}
 			if (mpf.getMultiValuesFilter() == null) {
 				throw new IllegalStateException("PropertiesFilterI has null MultiValuesFilterI.");
 			}

@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
  * - Each component receives the scenario via its constructor
  * - executeTestScenario is called inside execute()
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoSeparatedPlugin extends AbstractCVM
 {

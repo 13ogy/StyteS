@@ -21,46 +21,60 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Distributed CVM demonstrating the gossip protocol between two brokers
+ * across two separate JVMs.
+ *
+ * <p><strong>Description</strong></p>
+ * <p>
+ * This deployment validates the gossip protocol (CDC §3.7) by running two
+ * broker components on separate JVMs, each hosting one client component:
+ * </p>
+ * <ul>
+ *   <li><strong>JVM {@value #BROKER1_JVM_URI}</strong> — Broker B1 +
+ *       {@link SubscriberClient} C1 (FREE class) + {@link ClocksServer}</li>
+ *   <li><strong>JVM {@value #BROKER2_JVM_URI}</strong> — Broker B2 +
+ *       {@link PrivilegedClient} C2 (starts FREE, upgrades to STANDARD)</li>
+ * </ul>
+ *
+ * <p><strong>Test scenario</strong></p>
+ * <ol>
+ *   <li>C1 and C2 register at their respective local brokers; registration
+ *       is propagated via {@code RegisterGossipMessage}.</li>
+ *   <li>C2 upgrades to STANDARD via {@code modifyServiceClass}.</li>
+ *   <li>C2 creates a privileged channel {@value #CHANNEL} restricted to C1;
+ *       creation is propagated via {@code CreateChannelGossipMessage} so B1
+ *       replicates the channel locally.</li>
+ *   <li>C1 subscribes to {@value #CHANNEL} on B1.</li>
+ *   <li>C2 publishes a message on {@value #CHANNEL} via B2; B2 validates
+ *       and propagates a {@code PublishGossipMessage} to B1, which delivers
+ *       the message to C1.</li>
+ * </ol>
+ * </pre>
+ *
+ * <p><strong>Invariant</strong></p>
+ * <pre>
+ * invariant {@code true}
+ * </pre>
+ *
+ * @author Bogdan Styn, Setbel Melissa
+ */
+
 public class DemoTimedDistributed extends AbstractDistributedCVM {
-    /**
-     * instantiate the DCVM object.
-     *
-     * <p><strong>Description</strong></p>
-     * <p>
-     * The constructor gets from the command line arguments the logical
-     * name of the current JVM in the assembly and the name of an XML
-     * configuration file giving a mapping between the URI of hosts to their
-     * IP addresses in the current deployment.  This JVM URI must be in the
-     * static array JVM_URIs and all of the hosts URI in the array HOSTS_URIs
-     * and only these ones must appear in the XML configuration file
-     *
-     * <p><strong>Contract</strong></p>
-     *
-     * <pre>
-     * pre	{@code args != null && args.length > 1}
-     * post	{@code true}	// TODO
-     * </pre>
-     *
-     * @param args command line arguments from the main method.
-     * @throws Exception <i>todo</i>.
-     */
 
-
-
+    /** URI of the JVMs as declared in {@code config.xml}. */
     public static final String BROKER1_JVM_URI = "broker1-jvm";
     public static final String BROKER2_JVM_URI = "broker2-jvm";
 
+    /** URI of the brokers */
     public static final String BROKER1_URI = "broker-1";
     public static final String BROKER2_URI = "broker-2";
-
+    /** URI of the clients */
     public static final String CLIENT1_URI = "client-1";
     public static final String CLIENT2_URI = "client-2";
 
-    // connexion inter-courtier
-    public static final String BROKER1_GOSSIP_PORT_URI = "broker-1-gossip-in";
-    public static final String BROKER2_GOSSIP_PORT_URI = "broker-2-gossip-in";
 
-    // channels
+    /** Name of the privileged channel created by C2 during the test. */
     public static final String CHANNEL = "gossip-channel";
 
     // clock
@@ -69,7 +83,20 @@ public class DemoTimedDistributed extends AbstractDistributedCVM {
     public static final double  ACCELERATION_FACTOR = 1.0;
     public static final long    DELAY_TO_START_MS  = 15_000L;
 
-
+    /**
+     * Instantiate the distributed CVM object.
+     *
+     * <p><strong>Contract</strong></p>
+     * <pre>
+     * pre  {@code args != null && args.length >= 2}
+     * post {@code true}
+     * </pre>
+     *
+     * @param args command-line arguments: {@code args[0]} is the URI of this
+     *             JVM in the assembly; {@code args[1]} is the path to the XML
+     *             configuration file.
+     * @throws Exception if the superclass constructor fails.
+     */
     public DemoTimedDistributed(String[] args) throws Exception {
         super(args);
     }
@@ -83,7 +110,26 @@ public class DemoTimedDistributed extends AbstractDistributedCVM {
         AbstractCVM.DEBUG_MODE.add(CVMDebugModes.CONNECTING);*/
         super.initialise();
     }
-
+    /**
+     * Build the timed test scenario shared by all client components.
+     *
+     * <p>
+     * Steps (all instants relative to {@value #START_INSTANT_STR},
+     * real-time with {@code ACCELERATION_FACTOR = 1.0}):
+     * </p>
+     * <ol>
+     *   <li><strong>t+5 s</strong>  — C2 upgrades to STANDARD.</li>
+     *   <li><strong>t+15 s</strong> — C2 creates privileged channel
+     *       {@value #CHANNEL}; gossip propagates to B1.</li>
+     *   <li><strong>t+25 s</strong> — C1 subscribes to {@value #CHANNEL}
+     *       on B1 (channel is now known locally via gossip).</li>
+     *   <li><strong>t+35 s</strong> — C2 publishes a message; B2 sends a
+     *       {@code PublishGossipMessage} to B1 which delivers it to C1.</li>
+     * </ol>
+     *
+     * @return the fully configured {@link TestScenario}.
+     * @throws Exception if scenario construction fails.
+     */
     public static TestScenario testScenario() throws Exception
     {
         Instant startInstant = Instant.parse(START_INSTANT_STR);
@@ -149,7 +195,11 @@ public class DemoTimedDistributed extends AbstractDistributedCVM {
         );
     }
 
-
+    /**
+     * Build a message filter that accepts every message.
+     *
+     * @return a {@link MessageFilter} with no property or time constraints.
+     */
     protected static MessageFilterI acceptAll()
     {
         return new MessageFilter(
@@ -158,6 +208,18 @@ public class DemoTimedDistributed extends AbstractDistributedCVM {
                 new AcceptAllTimeFilter());
     }
 
+    /**
+     * Instantiate and publish components on the current JVM.
+     *
+     * <p>
+     * On {@value #BROKER1_JVM_URI}: creates Broker B1 (gossip neighbour =
+     * B2), SubscriberClient C1, and the shared ClocksServer.<br>
+     * On {@value #BROKER2_JVM_URI}: creates Broker B2 (gossip neighbour =
+     * B1) and PrivilegedClient C2.
+     * </p>
+     *
+     * @throws Exception if component creation or port publication fails.
+     */
     @Override
     public void instantiateAndPublish() throws Exception{
 
@@ -240,7 +302,17 @@ public class DemoTimedDistributed extends AbstractDistributedCVM {
     // =========================================================================
     // Main
     // =========================================================================
-
+    /**
+     * Entry point.
+     *
+     * <p>
+     * Starts the standard BCM4Java life cycle with a total budget of
+     * 120 seconds ({@value #DELAY_TO_START_MS} ms startup delay +
+     * 100 s scenario + safety margin).
+     * </p>
+     *
+     * @param args JVM URI and config file path (forwarded to the constructor).
+     */
     public static void main(String[] args)
     {
 

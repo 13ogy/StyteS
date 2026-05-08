@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 /** Client-side plugin implementing publication operations (CDC §3.5). 
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class ClientPublicationPlugin extends AbstractPlugin implements ClientPublicationI
 {

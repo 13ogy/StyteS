@@ -33,7 +33,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
  * </ul>
  *
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class Message implements MessageI
 {

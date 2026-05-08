@@ -4,6 +4,9 @@ import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.components.utils.tests.TestScenario;
+import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
+import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
+import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientPrivilegedPlugin;
@@ -54,10 +57,11 @@ public class PrivilegedClient extends AbstractComponent {
     public void execute() throws Exception {
         super.execute();
         this.regPlugin.register(this.initialRC);
-
+        this.traceMessage("registered ✓\n");
         if (this.testScenario != null) {
             this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI,
                     this.testScenario.getClockURI());
+            this.traceMessage("clock initialized ✓\n");
             this.executeTestScenario(this.testScenario);
         }
     }
@@ -70,6 +74,14 @@ public class PrivilegedClient extends AbstractComponent {
     public void createChannel(String channel, String authorisedUsers) throws Exception {
         this.privPlugin.createChannel(channel, authorisedUsers);
     }
+    public void modifyAuthorisedUsers(String channel, String authorisedUsers) throws UnknownClientException, UnauthorisedClientException, UnknownChannelException {
+        this.privPlugin.modifyAuthorisedUsers(channel, authorisedUsers);
+    }
+
+    public void destroyChannel(String channel) throws UnknownClientException, UnauthorisedClientException, UnknownChannelException {
+        this.privPlugin.destroyChannel(channel);
+    }
+
     public void publish(String channel, MessageI message) throws Exception {
         this.privPlugin.publish(channel, message);
     }

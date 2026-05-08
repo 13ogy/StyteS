@@ -177,12 +177,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Gossip data
 	// -------------------------------------------------------------------------
 
-	// Un port sortant par voisin
+	/** Neighboring brokers' ports. */
 	private List<GossipSenderOutboundPort> gossipSenders = new ArrayList<>();
+	/** Neighboring brokers' URIs. */
 	private List<String> gossipURIs;
 	public static final String GOSSIP_INBOUND_PORT_URI_SUFFIX = "-gossip-in";
 
-	// Mémoire des URIs déjà traités (avec nettoyage périodique)
+	/** Messages from other brokers that are already processed (ignored if received again, periodically deleted) */
 	private final  Map<String, Instant> processedGossipURIs = new HashMap<>();
 
 
@@ -1416,7 +1417,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	@Override
 	public void update(GossipMessageI[] fromSender) {
-
 		for (GossipMessageI msg : fromSender) {
 			//Vérifier si déjà traité
 			boolean alreadyProcessed;
@@ -1434,6 +1434,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			//traiter le message
 			//TO-DO
 			if (msg instanceof RegisterGossipMessage) {
+				System.out.print("received register gossip from "+ ((RegisterGossipMessage) msg).getEmitterURI() +"\n");
 				RegisterGossipMessage regMsg = (RegisterGossipMessage) msg;
 				// Mémoriser localement — sans créer de port outbound
 				// car ce client n'est PAS enregistré chez nous, juste connu
@@ -1448,6 +1449,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				}
 			}
 			if (msg instanceof PublishGossipMessage) {
+				System.out.print("received publish gossip from "+ ((PublishGossipMessage) msg).getEmitterURI() +"\n");
+
 				PublishGossipMessage pubMsg = (PublishGossipMessage) msg;
 				this.beginInFlight(pubMsg.getChannel());
 				this.runTask(this.esPropagationIndex, o -> {
@@ -1462,6 +1465,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				});
 			}
 			if (msg instanceof CreateChannelGossipMessage) {
+				System.out.print("received channel creation gossip from "+ ((CreateChannelGossipMessage) msg).getEmitterURI() +"\n");
+
 				CreateChannelGossipMessage ccMsg = (CreateChannelGossipMessage) msg;
 				Pattern p = null;
 				if (ccMsg.getAuthorisedUsers() != null && !ccMsg.getAuthorisedUsers().isEmpty()) {
@@ -1509,6 +1514,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			}
 
 			if (msg instanceof ModifyServiceClassGossipMessage) {
+				System.out.print("received modify service class gossip from "+ ((ModifyAuthorisedUsersGossipMessage) msg).getEmitterURI() +"\n");
+
 				ModifyServiceClassGossipMessage mscMsg =
 						(ModifyServiceClassGossipMessage) msg;
 
@@ -1533,6 +1540,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				}
 			}
 			if (msg instanceof DestroyChannelGossipMessage) {
+				System.out.print("received destroy channel gossip from "+ ((DestroyChannelGossipMessage) msg).getEmitterURI() +"\n");
+
 				DestroyChannelGossipMessage dcMsg = (DestroyChannelGossipMessage) msg;
 
 				// Détruire la copie locale directement
@@ -1566,6 +1575,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			}
 
 			if (msg instanceof UnregisterGossipMessage){
+				System.out.print("received unregister gossip from "+ ((UnregisterGossipMessage) msg).getEmitterURI() +"\n");
+
 				UnregisterGossipMessage unregMsg = (UnregisterGossipMessage) msg;
 
 

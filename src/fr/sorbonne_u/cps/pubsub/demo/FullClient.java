@@ -72,25 +72,6 @@ public class FullClient extends AbstractComponent {
         }
     }
 
-    @Override
-    public synchronized void finalise() throws Exception {
-        this.pubPlugin.finalise();
-        this.regPlugin.finalise();
-        this.subPlugin.finalise();
-        super.finalise();
-    }
-
-    @Override
-    public synchronized void shutdown() throws ComponentShutdownException {
-        try {
-            this.pubPlugin.uninstall();
-            this.regPlugin.uninstall();
-            this.subPlugin.uninstall();
-        } catch (Exception e) {
-            throw new ComponentShutdownException(e);
-        }
-        super.shutdown();
-    }
 
     public void onReceive(String channel, MessageI message) {
         String msg = "[" + uri + "] RECEIVED on " + channel
