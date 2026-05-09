@@ -1,5 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.gossip.messages;
 
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.EmitterAwareGossipMessageI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
@@ -9,7 +10,7 @@ import java.time.Instant;
  * Message de bavardage pour propager la modification de classe de service
  * d'un client à tous les composants courtiers voisins.
  */
-public class ModifyServiceClassGossipMessage implements GossipMessageI {
+public class ModifyServiceClassGossipMessage implements EmitterAwareGossipMessageI {
 
     private static final long serialVersionUID = 1L;
 

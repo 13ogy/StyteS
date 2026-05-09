@@ -1,5 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.gossip.messages;
 
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.EmitterAwareGossipMessageI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 
@@ -11,7 +12,7 @@ import java.time.Instant;
  * Quand un client publie un message, le courtier C1 auprès duquel il est enregistré
  * crée ce message et le propage à ses voisins pour qu'ils le publient aux clients concernés.
  */
-public class PublishGossipMessage implements GossipMessageI {
+public class PublishGossipMessage implements EmitterAwareGossipMessageI {
 
     private final String gossipMessageURI;     // URI unique du message gossip
     private final Instant timestamp;           // pour nettoyage mémoire

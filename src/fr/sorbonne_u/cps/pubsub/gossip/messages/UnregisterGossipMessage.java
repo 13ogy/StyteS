@@ -1,5 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.gossip.messages;
 
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.EmitterAwareGossipMessageI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 
 import java.time.Instant;
@@ -12,7 +13,7 @@ import java.time.Instant;
  * ce message et le propage à ses voisins pour qu'ils mémorisent
  * localement que ce client existe avec cette classe de service.
  */
-public class UnregisterGossipMessage implements GossipMessageI {
+public class UnregisterGossipMessage implements EmitterAwareGossipMessageI {
 
     private static final long serialVersionUID = 1L;
 

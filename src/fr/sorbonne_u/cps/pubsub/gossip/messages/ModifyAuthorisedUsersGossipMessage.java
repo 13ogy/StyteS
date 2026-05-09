@@ -1,5 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.gossip.messages;
 
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.EmitterAwareGossipMessageI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
@@ -14,7 +15,7 @@ import java.time.Instant;
  * ce canal localement.
  * @author Melissa Setbel
  */
-public class ModifyAuthorisedUsersGossipMessage implements GossipMessageI {
+public class ModifyAuthorisedUsersGossipMessage implements EmitterAwareGossipMessageI {
 
     private static final long serialVersionUID = 1L;
 

@@ -22,6 +22,7 @@ import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.gossip.connectors.GossipConnector;
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.EmitterAwareGossipMessageI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipImplementationI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipReceiverCI;
@@ -93,7 +94,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	protected final ReentrantReadWriteLock registrationLock = new ReentrantReadWriteLock(true); // registeredClients, receptionPortsOUT, createdPrivilegedChannelsCount
 	protected final ReentrantReadWriteLock channelsLock = new ReentrantReadWriteLock(true); // Channels, privilegedChannels
 	protected final ReentrantReadWriteLock subscriptionsLock = new ReentrantReadWriteLock(true); // subscriptions
-	protected final ReentrantReadWriteLock gossipLock = new ReentrantReadWriteLock(true); // processedGossipURIs
+	// Note (Phase F.5) : processedGossipURIs est désormais un ConcurrentHashMap,
+	// la déduplication se fait sans verrou via putIfAbsent. Aucun gossipLock
+	// résiduel — on évite l'accumulation de verrous inutiles.
 
 	// -------------------------------------------------------------------------
 	// PublishingCI async (added in latest interface)
@@ -180,14 +183,34 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Gossip data
 	// -------------------------------------------------------------------------
 
-	/** Neighboring brokers' ports. */
-	private List<GossipSenderOutboundPort> gossipSenders = new ArrayList<>();
+	/**
+	 * Outbound gossip ports keyed by the neighbour's reflection inbound
+	 * port URI (i.e. the value carried in {@code GossipMessageI.getEmitterURI()}).
+	 *
+	 * <p>This map exists so that {@link #update(GossipMessageI[])} can identify
+	 * which sender corresponds to the broker that just delivered a message and
+	 * <strong>skip it</strong> when re-emitting (soutenance §6.2). Sending a
+	 * gossip back to its immediate sender is wasteful: dedup will catch it,
+	 * but only after a full round-trip RMI call. Skipping at the source
+	 * removes the wasted work.</p>
+	 */
+	private final Map<String, GossipSenderOutboundPort> sendersByNeighbour = new HashMap<>();
 	/** Neighboring brokers' URIs. */
 	private List<String> gossipURIs;
 	public static final String GOSSIP_INBOUND_PORT_URI_SUFFIX = "-gossip-in";
 
-	/** Messages from other brokers that are already processed (ignored if received again, periodically deleted) */
-	private final  Map<String, Instant> processedGossipURIs = new HashMap<>();
+	/**
+	 * Messages from other brokers that are already processed (ignored if
+	 * received again, periodically GC'd by {@link #cleanupGossipMemory()}).
+	 *
+	 * <p>{@link ConcurrentHashMap} so that {@link #update(GossipMessageI[])}
+	 * can dedup with a single atomic {@code putIfAbsent} call instead of
+	 * lock + check + put (soutenance §6.6 / Phase F.5). The previous
+	 * lock-based dedup had a window where two threads could both observe
+	 * "not processed" and both proceed to forward the same message.</p>
+	 */
+	private final java.util.concurrent.ConcurrentMap<String, Instant> processedGossipURIs =
+			new java.util.concurrent.ConcurrentHashMap<>();
 
 
 	// -------------------------------------------------------------------------
@@ -479,30 +502,58 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	@Override
 	public void start() throws ComponentStartException {
 		super.start();
-		// connecter le ports sortants gossip
+		// Connecter les ports sortants gossip vers chaque voisin.
+		// On indexe les sender par URI de port d'écoute du voisin
+		// (e.g. "broker-1-gossip-in") afin de pouvoir, dans update(),
+		// retrouver à l'envers le voisin qui vient de nous transmettre
+		// un message et l'exclure de la re-diffusion (soutenance §6.2).
 		try {
-			for (String neighbourURI : this.gossipURIs) {
+			for (String neighbourGossipInURI : this.gossipURIs) {
 				GossipSenderOutboundPort out = new GossipSenderOutboundPort(this);
 				out.publishPort();
 				this.doPortConnection(
 						out.getPortURI(),
-						neighbourURI,
+						neighbourGossipInURI,
 						GossipConnector.class.getCanonicalName());
-				this.gossipSenders.add(out);
+				String neighbourReflectionURI =
+						stripGossipSuffix(neighbourGossipInURI);
+				this.sendersByNeighbour.put(neighbourReflectionURI, out);
 			}
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
 		}
 	}
 
+	/**
+	 * Strip the well-known {@link #GOSSIP_INBOUND_PORT_URI_SUFFIX} suffix
+	 * from a gossip inbound port URI to recover the broker's reflection
+	 * inbound port URI. Returns the input unchanged if the suffix is
+	 * absent (defensive: some demos pass arbitrary URIs).
+	 */
+	private static String stripGossipSuffix(String gossipInboundURI) {
+		if (gossipInboundURI != null
+				&& gossipInboundURI.endsWith(GOSSIP_INBOUND_PORT_URI_SUFFIX)) {
+			return gossipInboundURI.substring(
+					0,
+					gossipInboundURI.length() - GOSSIP_INBOUND_PORT_URI_SUFFIX.length());
+		}
+		return gossipInboundURI;
+	}
+
 	@Override
 	public void execute() throws Exception {
 		super.execute();
-		// Nettoyage périodique de la mémoire gossip toutes les 2 minutes
-		// Il faut un thread ordonnançable
-		this.scheduleTaskAtFixedRate(
-				o -> ((Broker) o).cleanupGossipMemory(),
-				2, 2, TimeUnit.MINUTES);
+		// Nettoyage périodique de la mémoire gossip (toutes les 2 minutes).
+		// Nécessite au moins un thread ordonnançable. Si le constructeur
+		// a été appelé avec nbSchedulableThreads = 0 (cas d'un broker
+		// utilisé en réception pure dans un test), on ne peut pas planifier ;
+		// on bascule alors sur un nettoyage opportuniste lors de l'arrivée
+		// de nouveaux messages gossip (cf. update()).
+		if (this.canScheduleTasks()) {
+			this.scheduleTaskAtFixedRate(
+					o -> ((Broker) o).cleanupGossipMemory(),
+					2, 2, TimeUnit.MINUTES);
+		}
 	}
 
 	@Override
@@ -513,7 +564,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				this.doPortDisconnection(out.getPortURI());
 			}
 		}
-		for (GossipSenderOutboundPort out : this.gossipSenders) {
+		for (GossipSenderOutboundPort out : this.sendersByNeighbour.values()) {
 			if (out.connected()) {
 				this.doPortDisconnection(out.getPortURI());
 			}
@@ -533,13 +584,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			}
 			this.receptionPortsOUT.clear();
 
-			for (GossipSenderOutboundPort out : this.gossipSenders) {
+			for (GossipSenderOutboundPort out : this.sendersByNeighbour.values()) {
 				if (!out.isDestroyed()) {
 					out.unpublishPort();
 					out.destroyPort();
 				}
 			}
-			this.gossipSenders.clear();
+			this.sendersByNeighbour.clear();
 
 			// Unpublishing Inbound ports
 			if (registrationPortIN != null) {
@@ -563,45 +614,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
         super.shutdown();
 }
-/*
-		try {
-			// Disconnect/unpublish per-client outbound ports.
-			for (BrokerReceptionOutboundPort out : this.receptionPortsOUT.values()) {
-				try {
-					if (out.connected()) {
-						this.doPortDisconnection(out.getPortURI());
-					}
-				} catch (Exception ignored) {}
-				try { out.unpublishPort(); } catch (Exception ignored) {}
-				try { out.destroyPort(); } catch (Exception ignored) {}
-			}
-			this.receptionPortsOUT.clear();
-
-			// Unpublish broker inbound ports.
-			try {
-                if (this.publishingPortIN != null) {
-                    this.publishingPortIN.unpublishPort();
-                    this.publishingPortIN.destroyPort();
-                }
-            } catch (Exception ignored) {}
-			try {
-                if (registrationPortIN != null) {
-                    registrationPortIN.unpublishPort();
-                    registrationPortIN.destroyPort();
-                }
-            } catch (Exception ignored) {}
-			try {
-                if (privilegedPortIN != null) {
-                    privilegedPortIN.unpublishPort();
-                    privilegedPortIN.destroyPort();
-                }
-            } catch (Exception ignored) {}
-		} catch (Throwable t) {
-			throw new ComponentShutdownException(t);
-		}
-		super.shutdown();
-	}
-*/
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
@@ -645,11 +657,35 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	}
 
+	/**
+	 * CDC §3.4 contract: returns true iff the client identified by
+	 * {@code receptionPortURI} is currently registered <strong>and</strong>
+	 * registered under the requested service class {@code rc}.
+	 *
+	 * <p>If the client is not registered under any class, this method must
+	 * raise {@link UnknownClientException} (soutenance §2.4) — silently
+	 * returning {@code false} would hide the difference between
+	 * "registered but in another class" and "not registered at all".</p>
+	 *
+	 * @param receptionPortURI URI of the client's reception port.
+	 * @param rc service class to test.
+	 * @return true iff the client is registered under {@code rc}.
+	 * @throws UnknownClientException if the client is not registered.
+	 * @throws Exception propagated from any I/O failure.
+	 */
 	public boolean registered(String receptionPortURI, RegistrationClass rc) throws Exception
 	{
+		assert receptionPortURI != null && !receptionPortURI.isEmpty() :
+				"receptionPortURI cannot be null or empty";
+		assert rc != null : "rc cannot be null";
+
 		this.registrationLock.readLock().lock();
 		try {
-			return rc != null && rc.equals(this.registeredClients.get(receptionPortURI));
+			RegistrationClass current = this.registeredClients.get(receptionPortURI);
+			if (current == null) {
+				throw new UnknownClientException(receptionPortURI);
+			}
+			return rc.equals(current);
 		} finally {
 			this.registrationLock.readLock().unlock();
 		}
@@ -664,19 +700,19 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		if (rc == null) {
 			throw new IllegalArgumentException("rc cannot be null.");
 		}
-		if (this.registered(receptionPortURI)) {
-			throw new AlreadyRegisteredException();
-		}
 
 		// Réservation atomique de l'entrée afin que deux register() concurrents
-		// sur la même URI ne réussissent pas tous les deux.
+		// sur la même URI ne réussissent pas tous les deux. Pas de
+		// double-check préliminaire hors verrou : ce serait un TOCTOU.
 		this.registrationLock.writeLock().lock();
 		try {
 			if (this.registeredLocked(receptionPortURI)) {
 				throw new AlreadyRegisteredException();
 			}
 			this.registeredClients.put(receptionPortURI, rc);
-			this.createdPrivilegedChannelsCount.putIfAbsent(receptionPortURI, 0);
+			if (rc != RegistrationClass.FREE) {
+				this.createdPrivilegedChannelsCount.putIfAbsent(receptionPortURI, 0);
+			}
 		} finally {
 			this.registrationLock.writeLock().unlock();
 		}
@@ -721,10 +757,12 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 		this.gossipToNeighbours(new GossipMessageI[]{ gossip }); //initiation de la propagation
 
+		// Soutenance §2.5 : retourner l'URI du port adapté à la classe de service.
+		// FREE : seulement publish ; STANDARD/PREMIUM : privileged
+		// (qui hérite de PublishingCI, donc couvre publish également).
 		if (rc == RegistrationClass.FREE) {
 			return publishingPortIN.getPortURI();
 		}else{
-			this.createdPrivilegedChannelsCount.putIfAbsent(receptionPortURI, 0);
 			return privilegedPortIN.getPortURI();
 		}
 	}
@@ -1213,7 +1251,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				receptionPortURI,
 				autorisedUsers,
 				rc);
-		System.out.println("gossiping channel creation\n");
 		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
 	}
 
@@ -1425,23 +1462,26 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	@Override
 	public void update(GossipMessageI[] fromSender) {
 		for (GossipMessageI msg : fromSender) {
-			//Vérifier si déjà traité
-			boolean alreadyProcessed;
-			this.gossipLock.writeLock().lock();
-			try {
-				alreadyProcessed = this.processedGossipURIs.containsKey(msg.gossipMessageURI());
-				if (!alreadyProcessed) {
-					this.processedGossipURIs.put(msg.gossipMessageURI(), msg.timestamp());
-				}
-			} finally {
-				this.gossipLock.writeLock().unlock();
+			// Soutenance §6.6 / Phase F.5 : déduplication atomique.
+			// putIfAbsent renvoie l'ancienne valeur si la clé existait déjà
+			// (donc déjà traité). Aucun verrou nécessaire : ConcurrentHashMap.
+			if (this.processedGossipURIs.putIfAbsent(
+					msg.gossipMessageURI(), msg.timestamp()) != null) {
+				continue;
 			}
-			if (alreadyProcessed) continue;
 
-			//traiter le message
-			//TO-DO
+			// Mémoriser l'émetteur immédiat AVANT de remplacer son URI :
+			// soutenance §6.2 — il ne faut pas renvoyer le message au broker
+			// qui vient de nous le transmettre. Tous nos messages gossip
+			// implémentent EmitterAwareGossipMessageI ; le test instanceof
+			// reste défensif au cas où un test fournirait un message tiers.
+			final String immediateSenderReflectionURI =
+					(msg instanceof EmitterAwareGossipMessageI)
+							? ((EmitterAwareGossipMessageI) msg).getEmitterURI()
+							: null;
+
+			// Appliquer le message localement
 			if (msg instanceof RegisterGossipMessage) {
-				System.out.print("received register gossip from "+ ((RegisterGossipMessage) msg).getEmitterURI() +"\n");
 				RegisterGossipMessage regMsg = (RegisterGossipMessage) msg;
 				// Mémoriser localement — sans créer de port outbound
 				// car ce client n'est PAS enregistré chez nous, juste connu
@@ -1456,8 +1496,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				}
 			}
 			if (msg instanceof PublishGossipMessage) {
-				System.out.print("received publish gossip from "+ ((PublishGossipMessage) msg).getEmitterURI() +"\n");
-
 				PublishGossipMessage pubMsg = (PublishGossipMessage) msg;
 				this.beginInFlight(pubMsg.getChannel());
 				this.runTask(this.esPropagationIndex, o -> {
@@ -1472,8 +1510,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				});
 			}
 			if (msg instanceof CreateChannelGossipMessage) {
-				System.out.print("received channel creation gossip from "+ ((CreateChannelGossipMessage) msg).getEmitterURI() +"\n");
-
 				CreateChannelGossipMessage ccMsg = (CreateChannelGossipMessage) msg;
 				Pattern p = null;
 				if (ccMsg.getAuthorisedUsers() != null && !ccMsg.getAuthorisedUsers().isEmpty()) {
@@ -1521,8 +1557,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			}
 
 			if (msg instanceof ModifyServiceClassGossipMessage) {
-				System.out.print("received modify service class gossip from "+ ((ModifyAuthorisedUsersGossipMessage) msg).getEmitterURI() +"\n");
-
 				ModifyServiceClassGossipMessage mscMsg =
 						(ModifyServiceClassGossipMessage) msg;
 
@@ -1547,8 +1581,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				}
 			}
 			if (msg instanceof DestroyChannelGossipMessage) {
-				System.out.print("received destroy channel gossip from "+ ((DestroyChannelGossipMessage) msg).getEmitterURI() +"\n");
-
 				DestroyChannelGossipMessage dcMsg = (DestroyChannelGossipMessage) msg;
 
 				// Détruire la copie locale directement
@@ -1597,8 +1629,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
             }
 
 			if (msg instanceof UnregisterGossipMessage){
-				System.out.print("received unregister gossip from "+ ((UnregisterGossipMessage) msg).getEmitterURI() +"\n");
-
 				UnregisterGossipMessage unregMsg = (UnregisterGossipMessage) msg;
 
 
@@ -1625,22 +1655,27 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 			}
 
-			// Propager aux voisins avec nouvel émetteur
+			// Propager aux voisins avec nouvel émetteur — sauf au voisin
+			// qui vient de nous transmettre le message (soutenance §6.2).
 			GossipMessageI forwarded = msg.copyWithNewEmitterURI(this.getReflectionInboundPortURI());
-			for (GossipSenderOutboundPort sender : this.gossipSenders) {
+			for (Map.Entry<String, GossipSenderOutboundPort> e
+					: this.sendersByNeighbour.entrySet()) {
+				if (immediateSenderReflectionURI != null
+						&& e.getKey().equals(immediateSenderReflectionURI)) {
+					continue; // skip echo
+				}
+				final GossipSenderOutboundPort sender = e.getValue();
 				try {
 					this.runTask(this.esGossipIndex, o -> {
-						System.out.println("[FORWARD TASK] " + ((Broker)o).getReflectionInboundPortURI()
-								+ " forwarding " + forwarded.getClass().getSimpleName());
 						try {
 							sender.send(new GossipMessageI[]{forwarded});
-							System.out.println("[FORWARD TASK] SUCCESS");
-						} catch (Exception e) {
-							System.out.println("[FORWARD TASK] FAILED: " + e);
+						} catch (Exception ex) {
+							((Broker) o).logMessage(
+									"[Broker] gossip forward failed: " + ex + "\n");
 						}
 					});
-				} catch (Exception e) {
-					System.out.println("[FORWARD SUBMIT FAILED] " + e);
+				} catch (Exception ex) {
+					this.logMessage("[Broker] gossip forward submit failed: " + ex + "\n");
 				}
 			}
 		}
@@ -1651,21 +1686,21 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		update(gossipMessages);
 	}
 
+	/**
+	 * Diffuser un lot de messages gossip à <strong>tous</strong> les voisins
+	 * (utilisé pour les messages générés localement, donc sans émetteur
+	 * immédiat à exclure). Pour les retransmissions à partir de {@code update},
+	 * voir le filtrage explicite dans {@link #update(GossipMessageI[])}
+	 * (soutenance §6.2).
+	 */
 	public void gossipToNeighbours(GossipMessageI[] messages) {
-		System.out.println("[GOSSIP] " + this.getReflectionInboundPortURI()
-				+ " gossipSenders.size()=" + this.gossipSenders.size()
-				+ " msg=" + messages[0].getClass().getSimpleName());
-
-		for (GossipSenderOutboundPort sender : this.gossipSenders) {
+		for (GossipSenderOutboundPort sender : this.sendersByNeighbour.values()) {
 			this.runTask(this.esGossipIndex, o -> {
-				System.out.println("[GOSSIP TASK] executing send from "
-						+ ((Broker)o).getReflectionInboundPortURI());
 				try {
 					sender.send(messages);
-					System.out.println("[GOSSIP TASK] send SUCCESS");
 				} catch (Exception e) {
-					System.out.println("[GOSSIP TASK] send FAILED: " + e);
-					e.printStackTrace();
+					((Broker) o).logMessage(
+							"[Broker] gossip send failed: " + e + "\n");
 				}
 			});
 		}
@@ -1673,13 +1708,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	private void cleanupGossipMemory() {
 		Instant threshold = Instant.now().minusSeconds(120);
-		this.gossipLock.writeLock().lock();
-		try {
-			this.processedGossipURIs.entrySet()
-					.removeIf(e -> e.getValue().isBefore(threshold));
-		} finally {
-			this.gossipLock.writeLock().unlock();
-		}
+		// ConcurrentHashMap : nettoyage sans verrou (cf. F.5).
+		this.processedGossipURIs.entrySet()
+				.removeIf(e -> e.getValue().isBefore(threshold));
 	}
 
 }

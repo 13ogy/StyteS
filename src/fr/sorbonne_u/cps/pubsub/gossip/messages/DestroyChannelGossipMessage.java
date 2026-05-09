@@ -1,5 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.gossip.messages;
 
+import fr.sorbonne_u.cps.pubsub.gossip.interfaces.EmitterAwareGossipMessageI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 
 import java.time.Instant;
@@ -10,7 +11,7 @@ import java.time.Instant;
  *
  * Chaque courtier qui reçoit ce message détruit sa copie locale du canal.
  */
-public class DestroyChannelGossipMessage implements GossipMessageI {
+public class DestroyChannelGossipMessage implements EmitterAwareGossipMessageI {
 
     private static final long serialVersionUID = 1L;
 
