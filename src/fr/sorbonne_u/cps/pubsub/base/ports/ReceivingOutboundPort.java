@@ -15,7 +15,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
  * (the CI declares {@code throws Exception} only).
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class ReceivingOutboundPort extends AbstractOutboundPort implements ReceivingCI {
 

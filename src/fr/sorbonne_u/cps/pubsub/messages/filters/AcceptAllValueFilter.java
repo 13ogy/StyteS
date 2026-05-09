@@ -8,7 +8,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
  * Value filter accepting any value.
  *
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class AcceptAllValueFilter implements ValueFilterI
 {

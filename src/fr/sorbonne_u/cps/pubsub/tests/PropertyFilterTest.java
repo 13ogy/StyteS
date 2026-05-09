@@ -29,7 +29,7 @@ import static org.junit.Assert.*;
  *   <li>Constructor rejects a null valueFilter with {@link IllegalArgumentException}.</li>
  * </ul>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class PropertyFilterTest
 {

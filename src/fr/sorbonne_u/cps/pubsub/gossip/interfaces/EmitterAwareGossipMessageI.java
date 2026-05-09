@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.gossip.interfaces;
  * {@code getEmitterURI()}); the only change is the explicit {@code implements}
  * clause that surfaces the method in the type system.</p>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public interface EmitterAwareGossipMessageI extends GossipMessageI
 {

@@ -36,7 +36,7 @@ import static org.junit.Assert.*;
  *   <li>{@code MeteoFilters.anyWind} accepts any wind message and rejects alert messages.</li>
  * </ul>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class MeteoMessageFactoryTest
 {

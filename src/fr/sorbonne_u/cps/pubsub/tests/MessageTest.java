@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
  * - copy() preserves timestamp and properties, while allowing payload updates on the copy
  
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class MessageTest {
 

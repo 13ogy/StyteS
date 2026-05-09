@@ -23,7 +23,7 @@ import java.util.ArrayList;
  * obtained from {@link ClientRegistrationPlugin#getReceptionPortURI()}.
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class ClientPrivilegedPlugin extends ClientPublicationPlugin implements PrivilegedClientI
 {

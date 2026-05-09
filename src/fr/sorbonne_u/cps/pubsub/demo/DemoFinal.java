@@ -73,7 +73,7 @@ import java.util.concurrent.TimeUnit;
  *   ./start-dcvm broker4-jvm
  * </pre>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoFinal extends AbstractDistributedCVM
 {

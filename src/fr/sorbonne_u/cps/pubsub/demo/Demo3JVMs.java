@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
  * invariant {@code true}
  * </pre>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 
 public class Demo3JVMs extends AbstractDistributedCVM {

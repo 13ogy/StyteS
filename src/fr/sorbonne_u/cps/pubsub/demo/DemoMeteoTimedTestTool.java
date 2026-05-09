@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * (subscriptions, publications) with timed test steps instead of Thread.sleep.
  
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoMeteoTimedTestTool extends AbstractCVM
 {

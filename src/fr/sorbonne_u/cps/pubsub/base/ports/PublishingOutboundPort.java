@@ -17,7 +17,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  * exceptions on its methods so the wrap-all path is sufficient.
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class PublishingOutboundPort extends AbstractOutboundPort implements PublishingCI {
 

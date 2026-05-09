@@ -21,7 +21,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  * {@link RemoteException}.
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class RegistrationConnector extends AbstractConnector implements RegistrationCI {
 

@@ -15,7 +15,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
  * {@link ReceivingCI} port URI.
  * </p>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class StubReceivingInboundPort
 	extends AbstractInboundPort

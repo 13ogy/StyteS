@@ -33,7 +33,7 @@ import java.time.Instant;
  * - office publishes GREEN alert concerning turbine -> return normal
  
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoMeteoAudit1 extends AbstractCVM
 {

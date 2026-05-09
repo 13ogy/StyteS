@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  * FREE + privileged channels, authorisedUsers regex, quota errors, and all message
  * filter families - properties, comparable/multi-values and time windows
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoMidSemComplexTimedScenario extends AbstractCVM
 {

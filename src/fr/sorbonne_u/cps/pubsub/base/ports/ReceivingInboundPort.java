@@ -29,7 +29,7 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
  * (the CI declares {@code throws Exception} only).
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class ReceivingInboundPort extends AbstractInboundPort implements ReceivingCI {
 

@@ -9,7 +9,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.TimeFilterI;
  * {@code endInclusive}].
  *
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class BetweenTimeFilter implements TimeFilterI
 {

@@ -38,7 +38,7 @@ import static org.junit.Assert.*;
  *   <li>match returns false on non-Comparable input.</li>
  * </ul>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class ComparableValueFilterTest
 {

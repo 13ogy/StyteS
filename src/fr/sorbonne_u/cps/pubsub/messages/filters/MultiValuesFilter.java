@@ -13,7 +13,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.MultiValuesFilterI;
  * </p>
  *
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public abstract class MultiValuesFilter implements MultiValuesFilterI
 {

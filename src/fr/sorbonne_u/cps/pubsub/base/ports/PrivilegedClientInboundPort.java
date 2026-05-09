@@ -35,7 +35,7 @@ import fr.sorbonne_u.cps.pubsub.base.components.Broker;
  * handleRequest}-based.
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class PrivilegedClientInboundPort extends PublishingInboundPort implements PrivilegedClientCI
 {

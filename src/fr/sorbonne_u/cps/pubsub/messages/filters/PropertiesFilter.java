@@ -17,7 +17,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI.PropertyI;
  * </p>
  *
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class PropertiesFilter implements PropertiesFilterI
 {

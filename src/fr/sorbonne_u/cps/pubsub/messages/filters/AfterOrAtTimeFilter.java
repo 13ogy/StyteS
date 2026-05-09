@@ -8,7 +8,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.TimeFilterI;
  * Time filter accepting timestamps greater than or equal to a given instant.
  *
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class AfterOrAtTimeFilter implements TimeFilterI
 {

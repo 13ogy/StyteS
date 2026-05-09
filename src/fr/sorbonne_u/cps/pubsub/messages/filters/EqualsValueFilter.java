@@ -9,7 +9,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
  * (comparaison via {@link Object#equals(Object)}).
  *
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class EqualsValueFilter implements ValueFilterI
 {

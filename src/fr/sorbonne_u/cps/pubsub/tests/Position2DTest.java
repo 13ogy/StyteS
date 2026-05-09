@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
  *   <li>{@code isInside} with a {@link CircularRegion}: true at center, true at edge, false beyond.</li>
  * </ul>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class Position2DTest
 {

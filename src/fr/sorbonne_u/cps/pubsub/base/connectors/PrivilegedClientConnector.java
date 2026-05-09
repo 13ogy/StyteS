@@ -27,7 +27,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
  * {@link RemoteException}.
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class PrivilegedClientConnector extends PublishingConnector
 	implements PrivilegedClientCI {

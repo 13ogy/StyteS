@@ -28,7 +28,7 @@ import fr.sorbonne_u.cps.pubsub.messages.filters.PropertyFilter;
  *   <li>The owner then destroys the channel.</li>
  * </ul>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoMidTermDemoV2 extends AbstractCVM
 {

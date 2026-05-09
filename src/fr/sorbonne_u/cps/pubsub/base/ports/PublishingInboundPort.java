@@ -30,7 +30,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  * {@link RemoteException}.
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class PublishingInboundPort extends AbstractInboundPort implements PublishingCI {
 

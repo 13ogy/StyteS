@@ -20,7 +20,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
  * and privileged management ports.
  
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRegistrationI
 {

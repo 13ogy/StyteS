@@ -53,7 +53,7 @@ import static org.junit.Assert.*;
  *       {@link UnknownClientException}.</li>
  * </ul>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class BrokerRegistrationTest
 {

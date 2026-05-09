@@ -34,7 +34,7 @@ import static org.junit.Assert.*;
  * - MessageFilter: global match on a full message (properties + time)
  
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class MessageFilterTest {
 

@@ -27,7 +27,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  * (the contract is asynchronous; callers cannot observe them).
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class RegistrationInboundPort extends AbstractInboundPort implements RegistrationCI{
 

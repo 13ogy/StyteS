@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  * Client-side plugin implementing subscription operations (CDC §3.5).
  * 
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 
 public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSubscriptionI

@@ -13,7 +13,7 @@ import java.time.Instant;
  * Quand un client privilégié crée un canal auprès de C1, C1 crée
  * ce message et le propage pour que tous les courtiers dupliquent
  * ce canal localement.
- * @author Melissa Setbel
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class CreateChannelGossipMessage implements EmitterAwareGossipMessageI {
 

@@ -26,7 +26,7 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
  * This component coexists with the legacy {@link Client} component so that
  * previous demos remain unchanged.
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
 @RequiredInterfaces(required = {

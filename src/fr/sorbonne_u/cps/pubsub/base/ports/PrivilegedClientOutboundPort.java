@@ -28,7 +28,7 @@ import java.rmi.RemoteException;
  * {@link RemoteException}.
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class PrivilegedClientOutboundPort extends PublishingOutboundPort implements PrivilegedClientCI
 {

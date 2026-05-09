@@ -8,7 +8,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.TimeFilterI;
  * Time filter that accepts any timestamp.
  *
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class AcceptAllTimeFilter implements TimeFilterI
 {

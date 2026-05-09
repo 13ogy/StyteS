@@ -17,7 +17,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
  * offered interface that is already declared in {@code @OfferedInterfaces}.
  * </p>
  *
- * @author Bogdan Styn, Setbel Melissa
+ * @author Bogdan Styn, Setbel Mélissa
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
 public class StubReceiverComponent extends AbstractComponent

@@ -18,7 +18,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  * only and {@link PublishingCI} carries no business exceptions).
  * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class PublishingConnector extends AbstractConnector implements PublishingCI {
 
