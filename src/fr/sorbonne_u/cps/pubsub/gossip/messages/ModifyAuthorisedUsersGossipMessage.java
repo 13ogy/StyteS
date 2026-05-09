@@ -94,7 +94,7 @@ public class ModifyAuthorisedUsersGossipMessage implements EmitterAwareGossipMes
      */
     @Override
     public GossipMessageI copyWithNewEmitterURI(String newGossipEmitterURI) {
-        return new CreateChannelGossipMessage(
+        return new ModifyAuthorisedUsersGossipMessage(
                 this.gossipMessageURI,
                 this.timestamp,
                 newGossipEmitterURI,  // seul ce champ change
