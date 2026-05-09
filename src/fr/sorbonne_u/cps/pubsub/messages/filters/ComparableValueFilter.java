@@ -52,16 +52,29 @@ public abstract class ComparableValueFilter implements ValueFilterI
 	// Factory methods (preserved for source compatibility)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * @param lowerBoundInclusive borne inférieure inclusive (non {@code null}).
+	 * @return un filtre acceptant {@code value >= lowerBoundInclusive}.
+	 */
 	public static ComparableValueFilter greaterOrEqual(Comparable<?> lowerBoundInclusive)
 	{
 		return new GreaterOrEqualValueFilter(lowerBoundInclusive);
 	}
 
+	/**
+	 * @param upperBoundInclusive borne supérieure inclusive (non {@code null}).
+	 * @return un filtre acceptant {@code value <= upperBoundInclusive}.
+	 */
 	public static ComparableValueFilter lowerOrEqual(Comparable<?> upperBoundInclusive)
 	{
 		return new LowerOrEqualValueFilter(upperBoundInclusive);
 	}
 
+	/**
+	 * @param lowerBoundInclusive borne inférieure inclusive (non {@code null}).
+	 * @param upperBoundInclusive borne supérieure inclusive (non {@code null}).
+	 * @return un filtre acceptant {@code lowerBoundInclusive <= value <= upperBoundInclusive}.
+	 */
 	public static ComparableValueFilter betweenInclusive(
 		Comparable<?> lowerBoundInclusive,
 		Comparable<?> upperBoundInclusive
@@ -70,11 +83,19 @@ public abstract class ComparableValueFilter implements ValueFilterI
 		return new BetweenInclusiveValueFilter(lowerBoundInclusive, upperBoundInclusive);
 	}
 
+	/**
+	 * @param lowerBoundExclusive borne inférieure exclusive (non {@code null}).
+	 * @return un filtre acceptant {@code value > lowerBoundExclusive}.
+	 */
 	public static ComparableValueFilter strictlyGreater(Comparable<?> lowerBoundExclusive)
 	{
 		return new StrictlyGreaterValueFilter(lowerBoundExclusive);
 	}
 
+	/**
+	 * @param upperBoundExclusive borne supérieure exclusive (non {@code null}).
+	 * @return un filtre acceptant {@code value < upperBoundExclusive}.
+	 */
 	public static ComparableValueFilter strictlyLower(Comparable<?> upperBoundExclusive)
 	{
 		return new StrictlyLowerValueFilter(upperBoundExclusive);

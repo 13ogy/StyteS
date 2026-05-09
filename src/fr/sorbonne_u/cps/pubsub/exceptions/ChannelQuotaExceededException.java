@@ -42,7 +42,16 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * reached.
  *
  * <p><strong>Description</strong></p>
- * 
+ *
+ * <p>
+ * Levée par le courtier dans {@code Broker#createPrivilegedChannel(...)}
+ * (CDC §3.3) lorsque le nombre de canaux privilégiés déjà détenus par le
+ * client atteint le quota associé à sa classe de service ({@code STANDARD} :
+ * {@code Broker.STANDARD_PRIVILEGED_CHANNEL_QUOTA} ; {@code PREMIUM} :
+ * {@code Broker.PREMIUM_PRIVILEGED_CHANNEL_QUOTA}). Les clients {@code FREE}
+ * ne peuvent pas en créer du tout.
+ * </p>
+ *
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
@@ -58,6 +67,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p>Created on : 2026-01-23</p>
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class			ChannelQuotaExceededException
 extends		BCMException

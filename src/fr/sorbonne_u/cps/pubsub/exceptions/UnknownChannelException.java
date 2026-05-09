@@ -41,7 +41,15 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * exception thrown when a user tries to use a channel that does not exist.
  *
  * <p><strong>Description</strong></p>
- * 
+ *
+ * <p>
+ * Levée par le courtier dans {@code Broker#publish(...)},
+ * {@code Broker#subscribe(...)}, {@code Broker#unsubscribe(...)},
+ * {@code Broker#modifyFilter(...)} et {@code Broker#destroyPrivilegedChannel(...)}
+ * (CDC §3.3 / §3.5) lorsque le nom de canal cible ne correspond ni à un canal
+ * libre ({@code channelN}) ni à un canal privilégié connu.
+ * </p>
+ *
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
@@ -57,6 +65,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p>Created on : 2026-01-20</p>
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class			UnknownChannelException
 extends		BCMException

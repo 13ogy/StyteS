@@ -35,8 +35,18 @@ import java.util.List;
  *
  * <p>
  * Le composant reçoit des observations de vent ({@link WindDataI}) et des
- * alertes ({@link MeteoAlertI}).
+ * alertes ({@link MeteoAlertI}). Les observations de vent sont filtrées par
+ * distance côté courtier via {@link MeteoFilters#windWithinDistance(PositionI, double)}
+ * (offload du filtrage géographique vers le pub/sub, cf. revue soutenance §1.10).
  * </p>
+ *
+ * <p>
+ * Sur réception d'une alerte concernant la région de l'éolienne, le composant
+ * bascule en mode "safety" lorsque le niveau atteint le seuil configuré, et
+ * revient à la normale sur niveau {@link MeteoAlertI.Level#GREEN}.
+ * </p>
+ *
+ * @author Bogdan Styn, Setbel Mélissa
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
 @RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
@@ -216,11 +226,23 @@ public class WindTurbine extends AbstractComponent
 	}
 	*/
 
+	/** @return la position géographique de l'éolienne. */
 	public PositionI getPosition()
 	{
 		return position;
 	}
 
+	/**
+	 * Souscrit aux observations de vent (filtrées par distance) et à toutes
+	 * les alertes météo.
+	 *
+	 * @param windChannel  canal des observations de vent (FREE,
+	 *                     typiquement {@link MeteoProperties#DEFAULT_WIND_CHANNEL}).
+	 * @param alertChannel canal des alertes (FREE,
+	 *                     typiquement {@link MeteoProperties#DEFAULT_ALERT_CHANNEL}).
+	 * @throws Exception si l'enregistrement des souscriptions auprès du
+	 *                   courtier échoue.
+	 */
 	public void subscribeToWindAndAlerts(String windChannel, String alertChannel) throws Exception
 	{
 		MessageFilterI windFilter = MeteoFilters.windWithinDistance(this.position, this.maxDistance);
@@ -231,6 +253,13 @@ public class WindTurbine extends AbstractComponent
 		this.traceMessage("WindTurbine[" + turbineId + "] subscribed to " + windChannel + " and " + alertChannel + "\n");
 	}
 
+	/**
+	 * Callback de livraison appelé par le greffon de souscription pour chaque
+	 * message reçu sur l'un des canaux souscrits.
+	 *
+	 * @param channel canal d'origine.
+	 * @param message message reçu (non {@code null}).
+	 */
 	public void onReceive(String channel, MessageI message)
 	{
 		try {

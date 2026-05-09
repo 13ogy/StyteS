@@ -42,7 +42,13 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * to.
  *
  * <p><strong>Description</strong></p>
- * 
+ *
+ * <p>
+ * Levée par le courtier dans {@code Broker#unsubscribe(...)} et
+ * {@code Broker#modifyFilter(...)} (CDC §3.5) lorsque le client appelant n'a
+ * pas (ou plus) de souscription active sur le canal indiqué.
+ * </p>
+ *
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
@@ -58,6 +64,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p>Created on : 2026-01-20</p>
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class			NotSubscribedChannelException
 extends		BCMException

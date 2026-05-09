@@ -22,6 +22,13 @@ public class PropertyFilter implements PropertyFilterI
 	protected final String name;
 	protected final ValueFilterI valueFilter;
 
+	/**
+	 * Crée le filtre.
+	 *
+	 * @param name        nom de la propriété ciblée (non {@code null}, non vide).
+	 * @param valueFilter filtre appliqué à la valeur de la propriété (non {@code null}).
+	 * @throws IllegalArgumentException si une précondition n'est pas respectée.
+	 */
 	public PropertyFilter(String name, ValueFilterI valueFilter)
 	{
 		if (name == null || name.isEmpty()) {
@@ -34,18 +41,25 @@ public class PropertyFilter implements PropertyFilterI
 		this.valueFilter = valueFilter;
 	}
 
+	/** @return le nom de la propriété ciblée (jamais {@code null}). */
 	@Override
 	public String getName()
 	{
 		return this.name;
 	}
 
+	/** @return le filtre de valeur sous-jacent (jamais {@code null}). */
 	@Override
 	public ValueFilterI getValueFilter()
 	{
 		return this.valueFilter;
 	}
 
+	/**
+	 * @param property propriété candidate.
+	 * @return {@code true} ssi {@code property != null}, son nom correspond
+	 *         à {@link #getName()} et sa valeur satisfait {@link #getValueFilter()}.
+	 */
 	@Override
 	public boolean match(PropertyI property)
 	{

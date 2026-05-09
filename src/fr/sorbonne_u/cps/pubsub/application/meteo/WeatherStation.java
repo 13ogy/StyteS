@@ -25,6 +25,8 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
  * Avantage : la station bénéficie directement des fonctionnalités côté client
  * (notamment CDC §3.5.3 si besoin) sans embarquer un second composant.
  * </p>
+ *
+ * @author Bogdan Styn, Setbel Mélissa
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
 @RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
@@ -107,12 +109,26 @@ public class WeatherStation extends AbstractComponent
 		super.shutdown();
 	}
 
+	/** @return la position géographique de la station. */
 	public PositionI getPosition()
 	{
 		return position;
 	}
 
 
+	/**
+	 * Publie une observation de vent sur le canal indiqué.
+	 *
+	 * <p>
+	 * Le message est construit via {@link WindMessageFactory#build(String, WindDataI)}
+	 * (CDC §3.5 — convention de propriétés des messages vent).
+	 * </p>
+	 *
+	 * @param windChannel canal de publication (typiquement
+	 *                    {@link MeteoProperties#DEFAULT_WIND_CHANNEL}).
+	 * @param wind        observation de vent à publier (non {@code null}).
+	 * @throws Exception si la publication via le greffon échoue.
+	 */
 	public void publishWind(String windChannel, WindDataI wind) throws Exception
 	{
 		MessageI m = WindMessageFactory.build(stationId, wind);

@@ -25,17 +25,25 @@ public class Position2D implements PositionI
 	private final double x;
 	private final double y;
 
+	/**
+	 * Crée une position 2D.
+	 *
+	 * @param x abscisse.
+	 * @param y ordonnée.
+	 */
 	public Position2D(double x, double y)
 	{
 		this.x = x;
 		this.y = y;
 	}
 
+	/** @return l'abscisse. */
 	public double getX()
 	{
 		return x;
 	}
 
+	/** @return l'ordonnée. */
 	public double getY()
 	{
 		return y;

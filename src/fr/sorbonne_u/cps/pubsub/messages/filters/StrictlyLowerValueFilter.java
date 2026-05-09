@@ -11,11 +11,18 @@ public final class StrictlyLowerValueFilter extends ComparableValueFilter
 
 	private final Comparable<?> bound;
 
+	/**
+	 * @param bound borne supérieure exclusive (non {@code null}).
+	 */
 	public StrictlyLowerValueFilter(Comparable<?> bound)
 	{
 		this.bound = requireBound(bound, "bound");
 	}
 
+	/**
+	 * @param value valeur candidate.
+	 * @return {@code true} ssi {@code value < bound}.
+	 */
 	@Override
 	protected boolean matches(Comparable<?> value)
 	{

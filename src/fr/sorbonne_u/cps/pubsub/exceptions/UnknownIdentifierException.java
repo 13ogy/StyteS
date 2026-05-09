@@ -42,7 +42,12 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * registered in the system.
  *
  * <p><strong>Description</strong></p>
- * 
+ *
+ * <p>
+ * Variante générique de {@link UnknownClientException} ; conservée pour
+ * compatibilité avec d'anciennes signatures de l'API courtier (CDC §3.2).
+ * </p>
+ *
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
@@ -58,6 +63,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p>Created on : 2026-01-20</p>
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class			UnknownIdentifierException
 extends		BCMException

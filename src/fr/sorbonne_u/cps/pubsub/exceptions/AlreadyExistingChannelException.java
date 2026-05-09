@@ -41,7 +41,15 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * exception thrown when a new channel is created that already exists.
  *
  * <p><strong>Description</strong></p>
- * 
+ *
+ * <p>
+ * Levée par le courtier ({@code Broker}) lors d'un appel à
+ * {@code createPrivilegedChannel(channel, ...)} (CDC §3.3) lorsque
+ * {@code channel} existe déjà comme canal libre ou privilégié, ou plus
+ * généralement chaque fois qu'une opération exigerait la création d'un canal
+ * dont le nom est déjà connu.
+ * </p>
+ *
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
@@ -57,6 +65,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p>Created on : 2026-01-20</p>
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class			AlreadyExistingChannelException
 extends		BCMException

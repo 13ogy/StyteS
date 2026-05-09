@@ -25,6 +25,13 @@ public class PropertiesFilter implements PropertiesFilterI
 
 	protected final MultiValuesFilterI multiValuesFilter;
 
+	/**
+	 * Crée le filtre.
+	 *
+	 * @param multiValuesFilter filtre multi-valeurs portant la contrainte croisée
+	 *                          (non {@code null}).
+	 * @throws IllegalArgumentException si {@code multiValuesFilter} est {@code null}.
+	 */
 	public PropertiesFilter(MultiValuesFilterI multiValuesFilter)
 	{
 		if (multiValuesFilter == null) {
@@ -33,12 +40,19 @@ public class PropertiesFilter implements PropertiesFilterI
 		this.multiValuesFilter = multiValuesFilter;
 	}
 
+	/** @return le filtre multi-valeurs sous-jacent (jamais {@code null}). */
 	@Override
 	public MultiValuesFilterI getMultiValuesFilter()
 	{
 		return this.multiValuesFilter;
 	}
 
+	/**
+	 * @param properties propriétés candidates ({@code length >= 2} attendu).
+	 * @return {@code true} ssi toutes les propriétés requises par le
+	 *         {@link MultiValuesFilterI} sont présentes dans {@code properties}
+	 *         et que leurs valeurs satisfont {@link MultiValuesFilterI#match}.
+	 */
 	@Override
 	public boolean match(PropertyI... properties)
 	{

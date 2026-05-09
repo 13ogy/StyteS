@@ -28,6 +28,12 @@ public class EqualsValueFilter implements ValueFilterI
 		this.expected = expected;
 	}
 
+	/**
+	 * @param value valeur candidate (peut être {@code null}).
+	 * @return {@code true} ssi {@code value} est égale à la valeur attendue
+	 *         au sens de {@link Object#equals(Object)} (deux {@code null} sont
+	 *         considérés égaux).
+	 */
 	@Override
 	public boolean match(Serializable value)
 	{

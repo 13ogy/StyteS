@@ -42,7 +42,13 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * provided identifier has already been registered on the system.
  *
  * <p><strong>Description</strong></p>
- * 
+ *
+ * <p>
+ * Levée par le courtier dans {@code Broker#register(...)} (CDC §3.2) lorsque
+ * l'URI de port de réception du client appelant est déjà connue côté courtier
+ * (premier enregistrement déjà effectué).
+ * </p>
+ *
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
@@ -58,6 +64,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p>Created on : 2026-01-20</p>
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class			AlreadyRegisteredException
 extends		BCMException

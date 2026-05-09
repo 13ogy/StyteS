@@ -37,12 +37,20 @@ import fr.sorbonne_u.components.exceptions.BCMException;
 
 // -----------------------------------------------------------------------------
 /**
- * The class <code>UnknownIdentifierException</code> implements the
+ * The class <code>UnknownClientException</code> implements the
  * exception thrown when a user tries to use an identifier that has not been
  * registered in the system.
  *
  * <p><strong>Description</strong></p>
- * 
+ *
+ * <p>
+ * Levée par le courtier dans {@code Broker#unregister(...)},
+ * {@code Broker#modifyServiceClass(...)} ou toute opération exigeant un
+ * client préalablement enregistré (CDC §3.2) lorsque l'URI de port de
+ * réception fournie n'est pas connue côté courtier (jamais enregistré, ou
+ * désenregistré).
+ * </p>
+ *
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
@@ -58,6 +66,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p>Created on : 2026-01-20</p>
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class			UnknownClientException
 extends		BCMException

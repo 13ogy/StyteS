@@ -37,10 +37,20 @@ import fr.sorbonne_u.components.exceptions.BCMException;
 
 // -----------------------------------------------------------------------------
 /**
- * The class <code>UnauthrorisedClientException</code>
+ * The class <code>UnauthorisedClientException</code> implements the
+ * exception thrown when a client attempts an operation it is not authorised
+ * to perform.
  *
  * <p><strong>Description</strong></p>
- * 
+ *
+ * <p>
+ * Levée par le courtier ({@code Broker}) dans deux situations principales
+ * (CDC §3.3) : lorsqu'un client {@code FREE} tente de créer ou détruire un
+ * canal privilégié, et lorsqu'un client (quelle que soit sa classe) tente de
+ * publier ou souscrire sur un canal privilégié dont l'expression
+ * {@code authorisedUsers} ne contient pas son URI de port de réception.
+ * </p>
+ *
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
@@ -56,6 +66,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p>Created on : 2026-02-04</p>
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class			UnauthorisedClientException
 extends		BCMException

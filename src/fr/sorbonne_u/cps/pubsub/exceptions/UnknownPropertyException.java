@@ -42,7 +42,14 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * on a message.
  *
  * <p><strong>Description</strong></p>
- * 
+ *
+ * <p>
+ * Levée par {@link fr.sorbonne_u.cps.pubsub.messages.Message#getProperty(String)}
+ * lorsque le nom de propriété demandé n'a pas été défini par
+ * {@code putProperty(...)} sur le message courant (CDC §3.5 — contrat des
+ * messages).
+ * </p>
+ *
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
@@ -58,6 +65,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p>Created on : 2026-01-20</p>
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class			UnknownPropertyException
 extends		BCMException

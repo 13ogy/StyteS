@@ -19,6 +19,14 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 /**
  * Composant "Bureau météo" (CDC §3.4) implémenté comme un client pub/sub
  * basé sur greffons ({@link PluginClient}).
+ *
+ * <p>
+ * Le bureau s'enregistre comme client {@code FREE} puis se promeut en
+ * {@code STANDARD} pour bénéficier des canaux privilégiés (CDC §3.3 — quotas
+ * par classe de service).
+ * </p>
+ *
+ * @author Bogdan Styn, Setbel Mélissa
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
 @RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
@@ -81,6 +89,20 @@ public class WeatherOffice extends AbstractComponent
 		super.shutdown();
 	}
 
+	/**
+	 * Publie une alerte météo sur le canal indiqué.
+	 *
+	 * <p>
+	 * Le message est construit via {@link MeteoAlertMessageFactory#build(String, MeteoAlertI)}
+	 * (CDC §3.5 — convention de propriétés des messages d'alerte).
+	 * </p>
+	 *
+	 * @param alertChannel canal de publication (typiquement
+	 *                     {@link MeteoProperties#DEFAULT_ALERT_CHANNEL} ou un
+	 *                     canal privilégié appartenant au bureau).
+	 * @param alert        alerte à publier (non {@code null}).
+	 * @throws Exception si la publication via le greffon échoue.
+	 */
 	public void publishAlert(String alertChannel, MeteoAlertI alert) throws Exception
 	{
 		MessageI m = MeteoAlertMessageFactory.build(officeId, alert);

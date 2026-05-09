@@ -11,11 +11,18 @@ public final class GreaterOrEqualValueFilter extends ComparableValueFilter
 
 	private final Comparable<?> bound;
 
+	/**
+	 * @param bound borne inférieure inclusive (non {@code null}).
+	 */
 	public GreaterOrEqualValueFilter(Comparable<?> bound)
 	{
 		this.bound = requireBound(bound, "bound");
 	}
 
+	/**
+	 * @param value valeur candidate.
+	 * @return {@code true} ssi {@code value >= bound}.
+	 */
 	@Override
 	protected boolean matches(Comparable<?> value)
 	{

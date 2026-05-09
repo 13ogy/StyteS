@@ -17,6 +17,15 @@ public class CircularRegion implements RegionI
 	private final Position2D center;
 	private final double radius;
 
+	/**
+	 * Crée une région circulaire.
+	 *
+	 * @param center centre de la région (non {@code null}).
+	 * @param radius rayon (en unités de distance utilisées par
+	 *               {@link Position2D#distanceTo(PositionI)}, doit être {@code >= 0}).
+	 * @throws IllegalArgumentException si {@code center} est {@code null} ou si
+	 *                                  {@code radius < 0}.
+	 */
 	public CircularRegion(Position2D center, double radius)
 	{
 		if (center == null) {
@@ -29,16 +38,22 @@ public class CircularRegion implements RegionI
 		this.radius = radius;
 	}
 
+	/** @return le centre du disque (jamais {@code null}). */
 	public Position2D getCenter()
 	{
 		return center;
 	}
 
+	/** @return le rayon du disque ({@code >= 0}). */
 	public double getRadius()
 	{
 		return radius;
 	}
 
+	/**
+	 * @param p position candidate.
+	 * @return {@code true} ssi {@code p} est à distance {@code <= radius} du centre.
+	 */
 	@Override
 	public boolean in(PositionI p)
 	{

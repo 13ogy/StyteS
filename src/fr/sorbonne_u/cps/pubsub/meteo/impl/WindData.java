@@ -19,6 +19,14 @@ public class WindData implements WindDataI
 	private final double x;
 	private final double y;
 
+	/**
+	 * Crée une mesure de vent.
+	 *
+	 * @param position position d'observation (non {@code null}).
+	 * @param x        composante horizontale du vecteur vent.
+	 * @param y        composante verticale du vecteur vent.
+	 * @throws IllegalArgumentException si {@code position} est {@code null}.
+	 */
 	public WindData(PositionI position, double x, double y)
 	{
 		if (position == null) {
@@ -29,24 +37,31 @@ public class WindData implements WindDataI
 		this.y = y;
 	}
 
+	/** @return la position d'observation. */
 	@Override
 	public PositionI getPosition()
 	{
 		return position;
 	}
 
+	/** @return la composante horizontale du vecteur vent. */
 	@Override
 	public double xComponent()
 	{
 		return x;
 	}
 
+	/** @return la composante verticale du vecteur vent. */
 	@Override
 	public double yComponent()
 	{
 		return y;
 	}
 
+	/**
+	 * @return la norme euclidienne du vecteur vent
+	 *         ({@code sqrt(x*x + y*y)}, en m/s).
+	 */
 	@Override
 	public double force()
 	{

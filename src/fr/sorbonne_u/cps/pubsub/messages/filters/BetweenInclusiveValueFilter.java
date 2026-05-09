@@ -12,12 +12,22 @@ public final class BetweenInclusiveValueFilter extends ComparableValueFilter
 	private final Comparable<?> lower;
 	private final Comparable<?> upper;
 
+	/**
+	 * Crée le filtre.
+	 *
+	 * @param lower borne inférieure inclusive (non {@code null}).
+	 * @param upper borne supérieure inclusive (non {@code null}).
+	 */
 	public BetweenInclusiveValueFilter(Comparable<?> lower, Comparable<?> upper)
 	{
 		this.lower = requireBound(lower, "lower");
 		this.upper = requireBound(upper, "upper");
 	}
 
+	/**
+	 * @param value valeur candidate (déjà connue {@link Comparable}).
+	 * @return {@code true} ssi {@code lower <= value <= upper}.
+	 */
 	@Override
 	protected boolean matches(Comparable<?> value)
 	{

@@ -21,6 +21,13 @@ public abstract class MultiValuesFilter implements MultiValuesFilterI
 
 	protected final String[] names;
 
+	/**
+	 * Crée le filtre.
+	 *
+	 * @param names noms des propriétés ciblées (non {@code null}, longueur {@code >= 2},
+	 *              chaque nom non {@code null} ni vide). Une copie défensive est faite.
+	 * @throws IllegalArgumentException si la précondition n'est pas respectée.
+	 */
 	public MultiValuesFilter(String... names)
 	{
 		if (names == null || names.length < 2) {
@@ -34,12 +41,21 @@ public abstract class MultiValuesFilter implements MultiValuesFilterI
 		this.names = names.clone();
 	}
 
+	/**
+	 * @return une copie défensive des noms de propriétés ciblés (jamais {@code null}).
+	 */
 	@Override
 	public String[] getNames()
 	{
 		return this.names.clone();
 	}
 
+	/**
+	 * @param values valeurs des propriétés (mêmes positions que {@link #getNames()}).
+	 * @return {@code false} si {@code values} est {@code null} ou n'a pas la même
+	 *         arité que {@link #getNames()} ; sinon délègue à
+	 *         {@link #matchValues(Serializable...)}.
+	 */
 	@Override
 	public final boolean match(Serializable... values)
 	{
