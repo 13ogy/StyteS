@@ -1999,29 +1999,47 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					this.registeredClients.putIfAbsent(
 							ccMsg.getOwnerReceptionPortURI(),
 							ccMsg.getOwnerClass());
-					this.createdPrivilegedChannelsCount.merge(
-							ccMsg.getOwnerReceptionPortURI(), 1, Integer::sum);
 
 					this.channelsLock.writeLock().lock();
 					try {
-						// Ne créer que si pas déjà présent
-						if (!this.channelExistLocked(ccMsg.getChannel())) {
-							this.subscriptionsLock.writeLock().lock();
-							try {
-								// Tout mettre à jour
-								this.channels.add(ccMsg.getChannel());
-								this.privilegedChannels.put(ccMsg.getChannel(),
-										new PrivilegedChannelInfo(
-												ccMsg.getOwnerReceptionPortURI(), pattern));
-								this.subscriptions.put(ccMsg.getChannel(), new HashMap<>());
-								this.inFlightPerChannel.put(ccMsg.getChannel(), 0);
-							} finally {
-								this.subscriptionsLock.writeLock().unlock();
-							}
-						} else {
-							this.createdPrivilegedChannelsCount.merge(
-									ccMsg.getOwnerReceptionPortURI(), -1, Integer::sum);
-						}
+						// C.8-find-2: atomic compute() for the owner's
+						// quota counter. The previous "+1 then maybe -1"
+						// pattern transiently inflated the count, which
+						// a concurrent gossip arrival could observe and
+						// reject as quota-exceeded. compute() makes the
+						// existence check + count update + channel
+						// installation a single critical section under
+						// channelsLock.writeLock().
+						this.createdPrivilegedChannelsCount.compute(
+								ccMsg.getOwnerReceptionPortURI(),
+								(k, v) -> {
+									int current = (v == null) ? 0 : v;
+									if (this.channelExistLocked(ccMsg.getChannel())) {
+										return current;
+									}
+									int maxQuota = (ccMsg.getOwnerClass() == RegistrationClass.PREMIUM)
+											? this.premiumQuota : this.standardQuota;
+									if (current >= maxQuota) {
+										this.logMessage(
+												"[Broker] gossip CreateChannel dropped:"
+												+ " quota " + maxQuota + " reached for "
+												+ ccMsg.getOwnerReceptionPortURI()
+												+ ", channel=" + ccMsg.getChannel() + "\n");
+										return current;
+									}
+									this.subscriptionsLock.writeLock().lock();
+									try {
+										this.channels.add(ccMsg.getChannel());
+										this.privilegedChannels.put(ccMsg.getChannel(),
+												new PrivilegedChannelInfo(
+														ccMsg.getOwnerReceptionPortURI(), pattern));
+										this.subscriptions.put(ccMsg.getChannel(), new HashMap<>());
+										this.inFlightPerChannel.put(ccMsg.getChannel(), 0);
+									} finally {
+										this.subscriptionsLock.writeLock().unlock();
+									}
+									return current + 1;
+								});
 					} finally {
 						this.channelsLock.writeLock().unlock();
 					}
