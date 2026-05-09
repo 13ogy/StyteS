@@ -11,23 +11,42 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
 /**
- * Demo-only client component: a {@link PluginClient} that executes the timed
- * {@link TestScenario} steps assigned to its reflection inbound port URI.
+ * Composant client de démo (TEST-ONLY) : un {@link PluginClient} qui exécute
+ * les étapes du {@link TestScenario} qui lui sont assignées via son URI de
+ * port de réflexion. Utilisé dans les démos temporisées (audit 2, mid-sem
+ * complexe…) comme participant générique.
  *
  * <p>
- * BCM4Java's {@code executeTestScenario(...)} schedules only the steps of the
- * component that calls it, hence every participant must call it.
+ * Particularité BCM4Java : {@code executeTestScenario(...)} ne planifie que
+ * les étapes du composant qui l'appelle ; chaque participant doit donc
+ * appeler {@code executeTestScenario} dans son propre {@link #execute()}.
  * </p>
+ *
+ * <p>
+ * Constructeur recommandé : 5 arguments
+ * {@code (reflectionInboundPortURI, scenario, nbThreads, nbSchedulableThreads,
+ * brokerReflectionURI)}. Le constructeur 4-arg est conservé pour rétro-compat
+ * et marqué {@code @Deprecated} (voir Phase C.3).
+ * </p>
+ *
+ * @author Bogdan Styn, Setbel Mélissa
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
 @RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
 public class ScenarioPluginClient extends PluginClient
 {
+	/** Scénario temporisé partagé ; uniquement les étapes ciblant ce composant sont exécutées. */
 	protected final TestScenario scenario;
 
 	/**
-	 * @deprecated use the 5-arg variant taking a broker reflection URI
-	 *             (Phase C.3).
+	 * Constructeur historique sans URI de broker.
+	 *
+	 * @param reflectionInboundPortURI URI du port de réflexion (= URI participant).
+	 * @param scenario                 scénario à exécuter.
+	 * @param nbThreads                taille du pool standard de threads.
+	 * @param nbSchedulableThreads     taille du pool schedulable.
+	 * @throws Exception si la création du composant échoue.
+	 * @deprecated utiliser le constructeur 5-arg avec l'URI du broker (Phase C.3).
 	 */
 	@Deprecated
 	protected ScenarioPluginClient(
@@ -39,6 +58,18 @@ public class ScenarioPluginClient extends PluginClient
 		this(reflectionInboundPortURI, scenario, nbThreads, nbSchedulableThreads, null);
 	}
 
+	/**
+	 * Construit un participant de scénario relié à un broker connu par son URI
+	 * de réflexion.
+	 *
+	 * @param reflectionInboundPortURI URI du port de réflexion (= URI participant
+	 *                                 dans le scénario).
+	 * @param scenario                 scénario à exécuter.
+	 * @param nbThreads                taille du pool standard.
+	 * @param nbSchedulableThreads     taille du pool schedulable.
+	 * @param brokerReflectionURI      URI du broker auquel se connecter (post C.3).
+	 * @throws Exception si la création du composant ou du parent échoue.
+	 */
 	protected ScenarioPluginClient(
 			String reflectionInboundPortURI,
 			TestScenario scenario,
@@ -50,6 +81,12 @@ public class ScenarioPluginClient extends PluginClient
 		this.scenario = scenario;
 	}
 
+	/**
+	 * Initialise l'horloge accélérée puis lance l'exécution du scénario si ce
+	 * composant y apparaît comme participant.
+	 *
+	 * @throws Exception si l'initialisation de l'horloge ou l'exécution échoue.
+	 */
 	@Override
 	public void execute() throws Exception
 	{
@@ -65,6 +102,14 @@ public class ScenarioPluginClient extends PluginClient
 	// Reception hook override (make receptions always visible in console)
 	// ---------------------------------------------------------------------
 
+	/**
+	 * Surcharge du hook {@code onReceive} de {@link PluginClient} qui ajoute
+	 * une trace console préfixée {@code [MidSemScenario][RECEIVE]} pour rendre
+	 * les livraisons visibles pendant la démo.
+	 *
+	 * @param channel canal sur lequel le message est délivré.
+	 * @param message message livré ({@code null} = wakeup signalant un canal vide).
+	 */
 	@Override
 	public void onReceive(String channel, fr.sorbonne_u.cps.pubsub.interfaces.MessageI message)
 	{

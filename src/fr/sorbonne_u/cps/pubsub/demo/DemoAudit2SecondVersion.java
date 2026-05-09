@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
  *   → esDeliveryIndex livre 25 combinaisons (5 msgs × 5 abonnés) en parallèle
  * - Concurrence maîtrisée dans le broker (sections critiques)
  * - Modes de réception avancés : getNextMessage (Future) et waitForNextMessage(Duration)
+ *
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoAudit2SecondVersion extends AbstractCVM
 {
@@ -63,6 +65,12 @@ public class DemoAudit2SecondVersion extends AbstractCVM
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 
     public DemoAudit2SecondVersion() throws Exception { super(); }
 
@@ -271,6 +279,12 @@ public class DemoAudit2SecondVersion extends AbstractCVM
     // =========================================================================
     // CVM deploy
     // =========================================================================
+	/**
+	 * Crée et publie tous les composants du scénario, puis active le tracing
+	 * sur les participants pertinents.
+	 *
+	 * @throws Exception si la création / publication d'un composant échoue.
+	 */
 
     @Override
     public void deploy() throws Exception
@@ -344,6 +358,12 @@ public class DemoAudit2SecondVersion extends AbstractCVM
     // =========================================================================
     // Main
     // =========================================================================
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
     public static void main(String[] args)
     {

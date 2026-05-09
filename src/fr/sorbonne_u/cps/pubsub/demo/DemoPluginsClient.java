@@ -14,6 +14,12 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
  */
 public class DemoPluginsClient extends AbstractCVM
 {
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 	public DemoPluginsClient() throws Exception
 	{
 		super();
@@ -23,6 +29,12 @@ public class DemoPluginsClient extends AbstractCVM
 	public static final String C1_URI = "plugin-client-1";
 	public static final String C2_URI = "plugin-client-2";
 	public static final String CHANNEL = "channel0";
+	/**
+	 * Crée et publie tous les composants du scénario, puis active le tracing
+	 * sur les participants pertinents.
+	 *
+	 * @throws Exception si la création / publication d'un composant échoue.
+	 */
 
 	@Override
 	public void deploy() throws Exception
@@ -45,6 +57,12 @@ public class DemoPluginsClient extends AbstractCVM
 		this.toggleLogging(C2_URI);
 		this.toggleLogging(C1_URI);
 	}
+	/**
+	 * Lance la phase d'exécution du CVM ; appelé par le cycle de vie BCM
+	 * après {@link #deploy()}.
+	 *
+	 * @throws Exception si l'exécution échoue.
+	 */
 
 	@Override
 	public void execute() throws Exception
@@ -89,6 +107,12 @@ public class DemoPluginsClient extends AbstractCVM
 			super.executeComponent(componentURI);
 		}
 	}
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
 	public static void main(String[] args)
 	{

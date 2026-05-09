@@ -34,6 +34,14 @@ public final class PortCleanupUtil
 {
 	private PortCleanupUtil() {}
 
+	/**
+	 * Best-effort port cleanup: walks the owner's port map via reflection,
+	 * disconnects every connected outbound port and unpublishes every
+	 * published port. Any individual failure is swallowed so that the cleanup
+	 * never breaks the surrounding {@code shutdown()} call.
+	 *
+	 * @param owner the component being shut down (must not be {@code null}).
+	 */
 	public static void disconnectStillConnectedOutboundPorts(ComponentI owner)
 	{
 		try {

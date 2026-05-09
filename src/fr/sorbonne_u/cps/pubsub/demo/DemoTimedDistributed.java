@@ -103,6 +103,12 @@ public class DemoTimedDistributed extends AbstractDistributedCVM {
 
 
     @Override
+    /**
+     * Hook d'initialisation BCM appelé avant {@link #instantiateAndPublish()} :
+     * point d'entrée standard pour activer les modes de debug.
+     *
+     * @throws Exception si l'initialisation parent échoue.
+     */
     public void initialise() throws Exception
     {
         /*AbstractCVM.DEBUG_MODE.add(CVMDebugModes.LIFE_CYCLE);
@@ -294,6 +300,12 @@ public class DemoTimedDistributed extends AbstractDistributedCVM {
 
 
     @Override
+    /**
+     * Établit les connexions inter-JVM gossip et clients ↔ brokers une fois
+     * tous les composants publiés.
+     *
+     * @throws Exception en cas d'échec de connexion.
+     */
     public void	interconnect() throws Exception{
         super.interconnect();
     }

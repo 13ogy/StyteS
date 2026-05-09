@@ -70,6 +70,7 @@ public class MeteoMessageFactoryTest
 	// WindMessageFactory
 	// -------------------------------------------------------------------------
 
+	/** {@link WindMessageFactory#build} positionne TYPE, STATION_ID, FORCE, X, Y, PAYLOAD. */
 	@Test
 	public void testWindMessageFactoryProperties() throws Exception
 	{
@@ -99,6 +100,7 @@ public class MeteoMessageFactoryTest
 		assertSame(wind, m.getPropertyValue(MeteoProperties.PAYLOAD));
 	}
 
+	/** {@link WindMessageFactory#build} stocke le {@link WindDataI} comme payload du message. */
 	@Test
 	public void testWindMessageFactoryPayload()
 	{
@@ -110,6 +112,7 @@ public class MeteoMessageFactoryTest
 		assertSame(wind, m.getPayload());
 	}
 
+	/** {@link WindMessageFactory#build} rejette un {@code stationId} null. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testWindMessageFactoryNullStationIdThrows()
 	{
@@ -117,6 +120,7 @@ public class MeteoMessageFactoryTest
 		WindMessageFactory.build(null, makeWind(1.0, 0.0, 0.0, 0.0));
 	}
 
+	/** {@link WindMessageFactory#build} rejette un {@code wind} null. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testWindMessageFactoryNullWindThrows()
 	{
@@ -128,6 +132,7 @@ public class MeteoMessageFactoryTest
 	// MeteoAlertMessageFactory
 	// -------------------------------------------------------------------------
 
+	/** {@link MeteoAlertMessageFactory#build} positionne TYPE, OFFICE_ID, LEVEL, ALERT_TYPE, PAYLOAD. */
 	@Test
 	public void testAlertMessageFactoryProperties() throws Exception
 	{
@@ -154,6 +159,7 @@ public class MeteoMessageFactoryTest
 		assertSame(alert, m.getPropertyValue(MeteoProperties.PAYLOAD));
 	}
 
+	/** {@link MeteoAlertMessageFactory#build} rejette un {@code officeId} null. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testAlertMessageFactoryNullOfficeIdThrows()
 	{
@@ -161,6 +167,7 @@ public class MeteoMessageFactoryTest
 		MeteoAlertMessageFactory.build(null, makeAlert());
 	}
 
+	/** {@link MeteoAlertMessageFactory#build} rejette un {@code alert} null. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testAlertMessageFactoryNullAlertThrows()
 	{
@@ -172,6 +179,7 @@ public class MeteoMessageFactoryTest
 	// MeteoFilters.windWithinDistance
 	// -------------------------------------------------------------------------
 
+	/** {@link MeteoFilters#windWithinDistance} accepte un message vent dans le rayon donné. */
 	@Test
 	public void testWindWithinDistanceMatchesInsideRadius()
 	{
@@ -187,6 +195,7 @@ public class MeteoMessageFactoryTest
 		assertTrue(filter.match(msg));
 	}
 
+	/** {@link MeteoFilters#windWithinDistance} rejette un message vent au-delà du rayon. */
 	@Test
 	public void testWindWithinDistanceRejectsBeyondRadius()
 	{
@@ -202,6 +211,7 @@ public class MeteoMessageFactoryTest
 		assertFalse(filter.match(msg));
 	}
 
+	/** {@link MeteoFilters#windWithinDistance} rejette un message d'alerte (mauvais type). */
 	@Test
 	public void testWindWithinDistanceRejectsAlertMessage()
 	{
@@ -217,6 +227,7 @@ public class MeteoMessageFactoryTest
 	// MeteoFilters.anyAlert
 	// -------------------------------------------------------------------------
 
+	/** {@link MeteoFilters#anyAlert} accepte tout message d'alerte. */
 	@Test
 	public void testAnyAlertMatchesAlertMessage()
 	{
@@ -227,6 +238,7 @@ public class MeteoMessageFactoryTest
 		assertTrue(filter.match(alertMsg));
 	}
 
+	/** {@link MeteoFilters#anyAlert} rejette les messages vent. */
 	@Test
 	public void testAnyAlertRejectsWindMessage()
 	{
@@ -237,6 +249,7 @@ public class MeteoMessageFactoryTest
 		assertFalse(filter.match(windMsg));
 	}
 
+	/** {@link MeteoFilters#anyAlert} accepte les alertes de tous les {@code AlertType}. */
 	@Test
 	public void testAnyAlertMatchesDifferentAlertTypes()
 	{
@@ -262,6 +275,7 @@ public class MeteoMessageFactoryTest
 	// MeteoFilters.anyWind
 	// -------------------------------------------------------------------------
 
+	/** {@link MeteoFilters#anyWind} accepte tout message vent. */
 	@Test
 	public void testAnyWindMatchesWindMessage()
 	{
@@ -272,6 +286,7 @@ public class MeteoMessageFactoryTest
 		assertTrue(filter.match(windMsg));
 	}
 
+	/** {@link MeteoFilters#anyWind} rejette les messages d'alerte. */
 	@Test
 	public void testAnyWindRejectsAlertMessage()
 	{

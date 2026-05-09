@@ -5,16 +5,22 @@ import fr.sorbonne_u.components.annotations.OfferedInterfaces;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 
 /**
- * Minimal stub component that publishes a {@link ReceivingCI} inbound port so
- * the {@link fr.sorbonne_u.cps.pubsub.base.components.Broker} can connect to
- * it during broker registration tests.
+ * Composant stub minimal (TEST-ONLY) qui publie un port d'entrée
+ * {@link ReceivingCI} pour permettre au {@link
+ * fr.sorbonne_u.cps.pubsub.base.components.Broker} de se connecter à lui
+ * pendant les tests d'enregistrement.
  *
  * <p>
- * This component does nothing beyond creating and publishing the port. It is
- * used in {@link BrokerRegistrationTest} instead of
- * {@link fr.sorbonne_u.cps.pubsub.base.components.PluginClient} to avoid a
- * BCM precondition that fires with {@code -ea} when a plugin tries to add an
- * offered interface that is already declared in {@code @OfferedInterfaces}.
+ * Ce composant n'a aucune logique métier au-delà de la création/publication du
+ * port. Il est utilisé dans {@link BrokerRegistrationTest} à la place de
+ * {@link fr.sorbonne_u.cps.pubsub.base.components.PluginClient} pour éviter une
+ * pré-condition BCM qui se déclenche sous {@code -ea} lorsqu'un plugin tente
+ * d'ajouter une interface offerte déjà déclarée par {@code @OfferedInterfaces}.
+ * </p>
+ *
+ * <p>
+ * <strong>Cette classe n'est PAS du code de production</strong> ; elle vit
+ * uniquement dans le package {@code tests/}.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
@@ -36,6 +42,7 @@ public class StubReceiverComponent extends AbstractComponent
 	 * Return the URI of the published {@link ReceivingCI} inbound port.
 	 *
 	 * @return URI as a String; never null.
+	 * @throws Exception if the port URI cannot be retrieved.
 	 */
 	public String getReceptionPortURI() throws Exception
 	{

@@ -141,6 +141,12 @@ public class DemoFinal extends AbstractDistributedCVM
     // =========================================================================
     // Constructor
     // =========================================================================
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 
     public DemoFinal(String[] args) throws Exception { super(args); }
 
@@ -620,6 +626,12 @@ public class DemoFinal extends AbstractDistributedCVM
     // =========================================================================
     // Main
     // =========================================================================
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
     public static void main(String[] args)
     {

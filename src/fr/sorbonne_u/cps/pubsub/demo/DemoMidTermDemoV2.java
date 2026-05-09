@@ -37,11 +37,23 @@ public class DemoMidTermDemoV2 extends AbstractCVM
 	public static final String SUBSCRIBER_URI = "midterm-subscriber";
 
 	public static final String PRIV_CHANNEL = "midterm-priv-channel";
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 
 	public DemoMidTermDemoV2() throws Exception
 	{
 		super();
 	}
+	/**
+	 * Crée et publie tous les composants du scénario, puis active le tracing
+	 * sur les participants pertinents.
+	 *
+	 * @throws Exception si la création / publication d'un composant échoue.
+	 */
 
 	@Override
 	public void deploy() throws Exception
@@ -61,6 +73,12 @@ public class DemoMidTermDemoV2 extends AbstractCVM
 		this.toggleLogging(OWNER_URI);
 		this.toggleLogging(SUBSCRIBER_URI);
 	}
+	/**
+	 * Lance la phase d'exécution du CVM ; appelé par le cycle de vie BCM
+	 * après {@link #deploy()}.
+	 *
+	 * @throws Exception si l'exécution échoue.
+	 */
 
 	@Override
 	public void execute() throws Exception
@@ -109,6 +127,12 @@ public class DemoMidTermDemoV2 extends AbstractCVM
 		System.out.println("[MidTermDemoV2] owner destroys channel " + PRIV_CHANNEL);
 		owner.destroyChannelNow(PRIV_CHANNEL);
 	}
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
 	public static void main(String[] args)
 	{

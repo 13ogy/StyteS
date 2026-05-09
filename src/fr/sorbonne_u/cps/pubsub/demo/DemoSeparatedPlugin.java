@@ -82,6 +82,12 @@ public class DemoSeparatedPlugin extends AbstractCVM
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 
     public DemoSeparatedPlugin() throws Exception { super(); }
 
@@ -339,6 +345,12 @@ public class DemoSeparatedPlugin extends AbstractCVM
     // =========================================================================
     // CVM deploy — creates components and passes them the scenario
     // =========================================================================
+	/**
+	 * Crée et publie tous les composants du scénario, puis active le tracing
+	 * sur les participants pertinents.
+	 *
+	 * @throws Exception si la création / publication d'un composant échoue.
+	 */
 
     @Override
     public void deploy() throws Exception {
@@ -425,10 +437,20 @@ public class DemoSeparatedPlugin extends AbstractCVM
         private static final long serialVersionUID = 1L;
         private final String[] accepted;
 
+        /**
+         * Crée un filtre acceptant les valeurs présentes dans {@code accepted}.
+         *
+         * @param accepted ensemble des chaînes acceptées (clones défensifs).
+         */
         public MultiValuesFilter(String... accepted) {
             this.accepted = accepted.clone();
         }
 
+        /**
+         * @param value valeur testée.
+         * @return {@code true} ssi {@code value.toString()} appartient à
+         *         l'ensemble fourni au constructeur.
+         */
         @Override
         public boolean match(Serializable value) {
             if (value == null) return false;
@@ -443,6 +465,12 @@ public class DemoSeparatedPlugin extends AbstractCVM
     // =========================================================================
     // Main
     // =========================================================================
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
     public static void main(String[] args) {
         try {

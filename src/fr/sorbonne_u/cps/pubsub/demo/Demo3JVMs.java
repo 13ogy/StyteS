@@ -98,6 +98,12 @@ public class Demo3JVMs extends AbstractDistributedCVM {
 
 
     @Override
+    /**
+     * Hook d'initialisation BCM appelé avant {@link #instantiateAndPublish()} :
+     * point d'entrée standard pour activer les modes de debug.
+     *
+     * @throws Exception si l'initialisation parent échoue.
+     */
     public void initialise() throws Exception
     {
         /*AbstractCVM.DEBUG_MODE.add(CVMDebugModes.LIFE_CYCLE);

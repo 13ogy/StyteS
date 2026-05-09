@@ -32,6 +32,8 @@ import java.util.concurrent.TimeUnit;
  *   <li>Modes de réception avancés côté client : {@code getNextMessage} et
  *       {@code waitForNextMessage(Duration)}.</li>
  * </ul>
+ *
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoAudit2TimedScenario extends AbstractCVM
 {
@@ -45,6 +47,12 @@ public class DemoAudit2TimedScenario extends AbstractCVM
 	public static final String CLIENT_A_RIP_URI = "audit2-client-A";
 	public static final String CLIENT_B_RIP_URI = "audit2-client-B";
 	public static final String CHANNEL = "channel0";
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 
 	public DemoAudit2TimedScenario() throws Exception
 	{
@@ -157,6 +165,12 @@ public class DemoAudit2TimedScenario extends AbstractCVM
 				})
 			});
 	}
+	/**
+	 * Crée et publie tous les composants du scénario, puis active le tracing
+	 * sur les participants pertinents.
+	 *
+	 * @throws Exception si la création / publication d'un composant échoue.
+	 */
 
 	@Override
 	public void deploy() throws Exception
@@ -213,6 +227,12 @@ public class DemoAudit2TimedScenario extends AbstractCVM
 		// Pour avoir du contenu, on produit des traces via les participants
 		// (voir les TestStep qui appellent owner.traceMessage(...)).
 	}
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
 	public static void main(String[] args)
 	{

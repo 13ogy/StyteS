@@ -14,7 +14,20 @@ import fr.sorbonne_u.utils.aclocks.ClocksServer;
 import java.util.ArrayList;
 
 /**
- * Publisher-only demo client (registration + publication plugins).
+ * Composant client de démonstration jouant le rôle de <strong>publieur
+ * pur</strong> : enregistré au broker (par défaut FREE) puis publie sur des
+ * canaux. Compose deux plugins :
+ * </p>
+ * <ul>
+ *   <li>{@link ClientRegistrationPlugin} — registration + port {@code ReceivingCI} ;</li>
+ *   <li>{@link ClientPublicationPlugin} — port sortant
+ *       {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}.</li>
+ * </ul>
+ *
+ * <p>
+ * <strong>Convention constructeur</strong> : {@code (uri, brokerReflectionURI,
+ * scenario, registrationClass)}.
+ * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
@@ -30,6 +43,15 @@ public class PublisherClient extends AbstractComponent {
     private final RegistrationCI.RegistrationClass initialRC;
     private final String brokerReflectionURI;
 
+    /**
+     * Crée un publieur.
+     *
+     * @param uri                 URI de port de réflexion / identifiant.
+     * @param brokerReflectionURI URI de réflexion du broker cible.
+     * @param ts                  scénario temporisé optionnel ({@code null} = aucun).
+     * @param rc                  classe initiale d'enregistrement.
+     * @throws Exception si la construction échoue.
+     */
     protected PublisherClient(String uri, String brokerReflectionURI,
                            TestScenario ts,
                            RegistrationCI.RegistrationClass rc) throws Exception {
@@ -48,6 +70,11 @@ public class PublisherClient extends AbstractComponent {
         this.getTracer().setTitle(uri);
     }
 
+    /**
+     * Installe les plugins {@code reg} + {@code pub} avant {@link #execute()}.
+     *
+     * @throws ComponentStartException si un plugin ne peut être installé.
+     */
     @Override
     public synchronized void start() throws ComponentStartException {
         try {
@@ -59,6 +86,12 @@ public class PublisherClient extends AbstractComponent {
         super.start();
     }
 
+    /**
+     * Enregistre le client à la classe initiale, initialise l'horloge
+     * accélérée et exécute le scénario si ce composant y apparaît.
+     *
+     * @throws Exception en cas d'échec d'enregistrement, d'horloge ou de scénario.
+     */
     @Override
     public void execute() throws Exception {
         super.execute();
@@ -74,20 +107,52 @@ public class PublisherClient extends AbstractComponent {
     }
 
 
+    /**
+     * Publie un message unique sur le canal donné.
+     *
+     * @param channel canal cible.
+     * @param message message à publier.
+     * @throws Exception si la publication échoue côté broker.
+     */
     public void publish(String channel, MessageI message) throws Exception {
         this.pubPlugin.publish(channel, message);
     }
+
+    /**
+     * Publie un lot de messages sur le canal donné.
+     *
+     * @param channel  canal cible.
+     * @param messages liste de messages à publier en lot.
+     * @throws Exception si la publication échoue côté broker.
+     */
     public void publish(String channel, ArrayList<MessageI> messages) throws Exception {
         this.pubPlugin.publish(channel, messages);
     }
 
+    /**
+     * Désenregistre le client auprès du broker.
+     *
+     * @throws UnknownClientException si le client n'est plus connu côté broker.
+     */
     public void unregister() throws UnknownClientException {
         this.regPlugin.unregister();
     }
+
+    /**
+     * Modifie la classe d'enregistrement (FREE ↔ STANDARD ↔ PREMIUM).
+     *
+     * @param rc nouvelle classe d'enregistrement.
+     * @throws Exception si l'opération échoue côté broker.
+     */
     public void modifyServiceClass(RegistrationCI.RegistrationClass rc) throws Exception {
         this.regPlugin.modifyServiceClass(rc);
     }
 
+    /**
+     * Hook d'arrêt BCM : déconnecte d'abord les ports sortants encore actifs.
+     *
+     * @throws ComponentShutdownException si le shutdown parent échoue.
+     */
     @Override
     public synchronized void shutdown() throws ComponentShutdownException {
         PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);

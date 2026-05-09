@@ -40,11 +40,23 @@ public class DemoMeteoAudit1 extends AbstractCVM
 	public static final String BROKER_URI = "broker";
 	public static final String WIND_CHANNEL = "channel0";
 	public static final String ALERT_CHANNEL = "channel1";
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 
 	public DemoMeteoAudit1() throws Exception
 	{
 		super();
 	}
+	/**
+	 * Crée et publie tous les composants du scénario, puis active le tracing
+	 * sur les participants pertinents.
+	 *
+	 * @throws Exception si la création / publication d'un composant échoue.
+	 */
 
 	@Override
 	public void deploy() throws Exception
@@ -101,6 +113,12 @@ public class DemoMeteoAudit1 extends AbstractCVM
 	{
 		super.start();
 	}
+	/**
+	 * Lance la phase d'exécution du CVM ; appelé par le cycle de vie BCM
+	 * après {@link #deploy()}.
+	 *
+	 * @throws Exception si l'exécution échoue.
+	 */
 
 	@Override
 	public void execute() throws Exception
@@ -144,6 +162,12 @@ public class DemoMeteoAudit1 extends AbstractCVM
 
 		Thread.sleep(500L);
 	}
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
 	public static void main(String[] args)
 	{

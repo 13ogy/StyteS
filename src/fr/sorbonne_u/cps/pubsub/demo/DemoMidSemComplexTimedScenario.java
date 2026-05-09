@@ -73,6 +73,12 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	public static final String OFFICE_PREMIUM_URI = "office-premium";
 	public static final String INTRUDER_FREE_URI = "intruder-free";
 	public static final String SCENARIO_RUNNER_URI = "scenario-runner";
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 
 	public DemoMidSemComplexTimedScenario() throws Exception
 	{
@@ -285,6 +291,12 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 				"[MidSemScenario] step failed: " + e.getClass().getSimpleName() + " - " + e.getMessage() + "\n");
 		}
 	}
+	/**
+	 * Crée et publie tous les composants du scénario, puis active le tracing
+	 * sur les participants pertinents.
+	 *
+	 * @throws Exception si la création / publication d'un composant échoue.
+	 */
 
 	@Override
 	public void deploy() throws Exception
@@ -357,6 +369,12 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 			return false;
 		}
 	}
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
 	public static void main(String[] args)
 	{

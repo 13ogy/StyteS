@@ -6,13 +6,18 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 
 /**
- * Minimal ReceivingCI inbound port used by {@link StubReceiverComponent}
- * in broker registration tests.
+ * Port entrant minimal {@link ReceivingCI} (TEST-ONLY) utilisé par
+ * {@link StubReceiverComponent} dans les tests d'enregistrement du broker.
  *
  * <p>
- * The port does nothing on {@code receive()} — it is only needed so the
- * broker can call {@code doPortConnection()} against a real published
- * {@link ReceivingCI} port URI.
+ * Le port ne fait rien sur {@code receive()} : il sert uniquement à fournir
+ * une URI publiée à laquelle le broker peut se connecter via
+ * {@code doPortConnection()} sans avoir à fabriquer un client réel.
+ * </p>
+ *
+ * <p>
+ * <strong>Cette classe n'est PAS du code de production</strong> ; elle vit
+ * uniquement dans le package {@code tests/}.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
@@ -23,6 +28,12 @@ public class StubReceivingInboundPort
 {
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * Construit le port stub et l'attache au composant propriétaire.
+	 *
+	 * @param owner composant qui possède ce port (ne doit pas être {@code null}).
+	 * @throws Exception si l'enregistrement de l'interface échoue.
+	 */
 	public StubReceivingInboundPort(ComponentI owner) throws Exception
 	{
 		super(ReceivingCI.class, owner);

@@ -39,6 +39,7 @@ public class Position2DTest
 	// distanceTo
 	// -------------------------------------------------------------------------
 
+	/** {@code distanceTo} sur la même instance retourne 0. */
 	@Test
 	public void testDistanceToSamePoint()
 	{
@@ -47,6 +48,7 @@ public class Position2DTest
 		assertEquals(0.0, p.distanceTo(p), EPS);
 	}
 
+	/** {@code distanceTo} entre deux Position2D de coordonnées égales retourne 0. */
 	@Test
 	public void testDistanceToIdenticalCoordinates()
 	{
@@ -56,6 +58,7 @@ public class Position2DTest
 		assertEquals(0.0, a.distanceTo(b), EPS);
 	}
 
+	/** {@code distanceTo} respecte la distance euclidienne (cas 3-4-5 → 5). */
 	@Test
 	public void testDistanceToKnownEuclidean()
 	{
@@ -66,6 +69,7 @@ public class Position2DTest
 		assertEquals(5.0, p.distanceTo(origin), EPS);
 	}
 
+	/** {@code distanceTo} cas général : sqrt((Δx)² + (Δy)²). */
 	@Test
 	public void testDistanceToGeneral()
 	{
@@ -75,6 +79,7 @@ public class Position2DTest
 		assertEquals(Math.sqrt(8.0), a.distanceTo(b), EPS);
 	}
 
+	/** {@code distanceTo(null)} retourne {@link Double#POSITIVE_INFINITY} (défensif). */
 	@Test
 	public void testDistanceToNullReturnsInfinity()
 	{
@@ -83,6 +88,7 @@ public class Position2DTest
 		assertEquals(Double.POSITIVE_INFINITY, p.distanceTo(null), EPS);
 	}
 
+	/** {@code distanceTo} sur un {@code PositionI} non Position2D retourne {@link Double#POSITIVE_INFINITY}. */
 	@Test
 	public void testDistanceToIncompatibleTypeReturnsInfinity()
 	{
@@ -97,6 +103,7 @@ public class Position2DTest
 	// isInside
 	// -------------------------------------------------------------------------
 
+	/** {@code isInside(null)} retourne {@code false}. */
 	@Test
 	public void testIsInsideNullRegionReturnsFalse()
 	{
@@ -105,6 +112,7 @@ public class Position2DTest
 		assertFalse(p.isInside(null));
 	}
 
+	/** {@code isInside} délègue à {@code RegionI.in(this)} (vérifié avec lambdas stubs). */
 	@Test
 	public void testIsInsideDelegatesToRegion()
 	{
@@ -117,6 +125,7 @@ public class Position2DTest
 		assertFalse(p.isInside(alwaysFalse));
 	}
 
+	/** {@code isInside} sur {@link CircularRegion} : le centre est dedans. */
 	@Test
 	public void testIsInsideCircularRegionAtCenter()
 	{
@@ -126,6 +135,7 @@ public class Position2DTest
 		assertTrue(center.isInside(region));
 	}
 
+	/** {@code isInside} sur {@link CircularRegion} : la borne (rayon exact) est dedans (inclusif). */
 	@Test
 	public void testIsInsideCircularRegionAtEdge()
 	{
@@ -136,6 +146,7 @@ public class Position2DTest
 		assertTrue(edge.isInside(region));
 	}
 
+	/** {@code isInside} sur {@link CircularRegion} : au-delà du rayon, dehors. */
 	@Test
 	public void testIsInsideCircularRegionBeyondEdge()
 	{
@@ -146,6 +157,7 @@ public class Position2DTest
 		assertFalse(outside.isInside(region));
 	}
 
+	/** {@code isInside} sur {@link CircularRegion} non centrée à l'origine. */
 	@Test
 	public void testIsInsideCircularRegionOffCenter()
 	{

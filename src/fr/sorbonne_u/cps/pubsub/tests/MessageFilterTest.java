@@ -21,27 +21,44 @@ import java.time.Instant;
 import static org.junit.Assert.*;
 
 /**
- * Unit tests for the filter subsystem (CDC §3.2).
+ * Tests JUnit 4 unitaires pour le sous-système de filtres (CDC §3.2) ; couvre
+ * les classes du package {@code fr.sorbonne_u.cps.pubsub.messages.filters}
+ * ainsi que {@link MessageFilter} (productions classes under test).
  *
- * What is being tested:
- * - Value filters:
- *   - EqualsValueFilter: strict equality
- *   - ComparableValueFilter: comparisons on Comparable values (e.g., GE, LE, BETWEEN)
- *   - AcceptAllValueFilter: always matches
- * - PropertyFilter: applies a ValueFilter on a MessageI.PropertyI (not on a whole Message)
- * - PropertiesFilter: applies a MultiValuesFilterI on a set of properties (cross-constraints)
- * - Time filters: accept-all and time interval inclusion
- * - MessageFilter: global match on a full message (properties + time)
- 
+ * <p>
+ * Points vérifiés :
+ * </p>
+ * <ul>
+ *   <li>filtres de valeur :
+ *     <ul>
+ *       <li>{@link EqualsValueFilter} : égalité stricte ;</li>
+ *       <li>{@link ComparableValueFilter} : comparaisons sur Comparable
+ *           (GE, LE, BETWEEN) ;</li>
+ *       <li>{@link AcceptAllValueFilter} : accepte toujours.</li>
+ *     </ul>
+ *   </li>
+ *   <li>{@link PropertyFilter} : applique un {@code ValueFilterI} sur une
+ *       {@link MessageI.PropertyI} (pas sur un message entier) ;</li>
+ *   <li>{@link PropertiesFilter} : applique un {@code MultiValuesFilterI} sur
+ *       plusieurs propriétés (contraintes croisées) ;</li>
+ *   <li>filtres temporels : accept-all + intervalles inclusifs ;</li>
+ *   <li>{@link MessageFilter} : match global sur un message complet
+ *       (propriétés + temps).</li>
+ * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class MessageFilterTest {
 
+	/** Helper : trace de progression dans la console pour faciliter le diagnostic. */
 	private static void info(String s) {
 		System.out.println("[MessageFilterTest] " + s);
 	}
 
+	/**
+	 * {@link EqualsValueFilter} accepte uniquement la valeur exactement égale
+	 * (au sens de {@code Object.equals}) à la valeur attendue ; rejette {@code null}.
+	 */
 	@Test
 	public void testEqualsValueFilter() {
 		info("EqualsValueFilter matches only if value.equals(expected).");
@@ -52,6 +69,10 @@ public class MessageFilterTest {
 		assertFalse(f.match(null));
 	}
 
+	/**
+	 * {@link ComparableValueFilter} et ses sous-classes effectuent des comparaisons
+	 * cohérentes sur des valeurs {@code Comparable} (Integer ici).
+	 */
 	@Test
 	public void testComparableValueFilterNumbersAsComparable() {
 		info("ComparableValueFilter compares Comparable values (we use Integers here).");
@@ -74,6 +95,10 @@ public class MessageFilterTest {
 		assertFalse(between.match(21));
 	}
 
+	/**
+	 * {@link AcceptAllValueFilter} accepte n'importe quelle valeur, y compris
+	 * {@code null}.
+	 */
 	@Test
 	public void testAcceptAllValueFilter() {
 		info("AcceptAllValueFilter always matches (including null).");
@@ -83,6 +108,10 @@ public class MessageFilterTest {
 		assertTrue(f.match(null));
 	}
 
+	/**
+	 * {@link PropertyFilter#match} retourne {@code true} ssi le nom de propriété
+	 * correspond à celui du filtre ET que le value filter accepte la valeur.
+	 */
 	@Test
 	public void testPropertyFilterPositiveAndNegative() {
 		info("PropertyFilter.match applies to a single PropertyI.");
@@ -99,6 +128,10 @@ public class MessageFilterTest {
 		assertFalse(pf.match(p3));
 	}
 
+	/**
+	 * {@link PropertiesFilter} évalue une contrainte croisée sur plusieurs
+	 * propriétés via un {@code MultiValuesFilterI} fourni par l'appelant.
+	 */
 	@Test
 	public void testPropertiesFilterCrossConstraintWithCustomMultiValuesFilter() {
 		info("PropertiesFilter applies a MultiValuesFilterI over several properties (cross-constraint).");
@@ -122,6 +155,12 @@ public class MessageFilterTest {
 		assertFalse(pf.match(typeOk, stationKo));
 	}
 
+	/**
+	 * Les trois filtres temporels concrets ({@link AcceptAllTimeFilter},
+	 * {@link BetweenTimeFilter}, {@link AfterOrAtTimeFilter},
+	 * {@link BeforeOrAtTimeFilter}) implémentent correctement les inclusions
+	 * d'intervalle.
+	 */
 	@Test
 	public void testTimeFilters() {
 		info("Time filters check inclusion in a time interval.");
@@ -149,6 +188,13 @@ public class MessageFilterTest {
 		assertFalse(beforeOrAt.match(after));
 	}
 
+	/**
+	 * {@link MessageFilter#match} effectue un AND global sur le message complet :
+	 * propriétés (via {@code PropertyFilterI}) ET fenêtre temporelle (via
+	 * {@code TimeFilterI}).
+	 *
+	 * @throws Exception si la construction du message lève (ne doit pas se produire).
+	 */
 	@Test
 	public void testMessageFilterGlobalMatch() throws Exception {
 		info("MessageFilter global match on a full Message: propertyFilters + time filter.");

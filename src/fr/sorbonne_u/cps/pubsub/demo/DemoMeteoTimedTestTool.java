@@ -50,6 +50,12 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	public static final String STATION_NEAR_RIP_URI = "meteo-station-near";
 	public static final String STATION_FAR_RIP_URI = "meteo-station-far";
 	public static final String OFFICE_RIP_URI = "meteo-office";
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 
 	public DemoMeteoTimedTestTool() throws Exception
 	{
@@ -165,6 +171,12 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 					})
 			});
 	}
+	/**
+	 * Crée et publie tous les composants du scénario, puis active le tracing
+	 * sur les participants pertinents.
+	 *
+	 * @throws Exception si la création / publication d'un composant échoue.
+	 */
 
 	@Override
 	public void deploy() throws Exception
@@ -217,6 +229,12 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 
 		// No tracing/logging here to avoid opening multiple trace windows during the timed demo.
 	}
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
 	public static void main(String[] args)
 	{

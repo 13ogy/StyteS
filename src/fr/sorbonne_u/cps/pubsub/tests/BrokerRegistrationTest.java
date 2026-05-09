@@ -80,11 +80,16 @@ public class BrokerRegistrationTest
 		private String stubAUri;
 		private String stubBUri;
 
+		/** Crée la CVM (rien d'autre à faire — le déploiement est dans {@link #deploy}). */
 		public BrokerRegistrationCVM() throws Exception
 		{
 			super();
 		}
 
+		/**
+		 * Crée le {@link Broker} et deux {@link StubReceiverComponent}, puis
+		 * délègue à {@code super.deploy()}.
+		 */
 		@Override
 		public void deploy() throws Exception
 		{
@@ -114,6 +119,12 @@ public class BrokerRegistrationTest
 			super.deploy();
 		}
 
+		/**
+		 * Exécute synchroniquement les six tests de registration du broker et
+		 * stocke chaque résultat (valeur ou exception) dans
+		 * {@link BrokerRegistrationTest#results}, sous une clé {@code Tn_*}
+		 * lue par les @{@link Test} méthodes.
+		 */
 		@Override
 		public void execute() throws Exception
 		{
@@ -218,6 +229,13 @@ public class BrokerRegistrationTest
 	// One-time fixture execution
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Démarre une fois la fixture BCM avant l'ensemble des @{@link Test} de cette
+	 * classe. La méthode {@link BrokerRegistrationCVM#execute()} exécute tous les
+	 * scénarios synchrones et stocke leurs résultats dans {@link #results}.
+	 *
+	 * @throws Exception si le démarrage de la CVM échoue.
+	 */
 	@BeforeClass
 	public static void runFixture() throws Exception
 	{
@@ -239,6 +257,7 @@ public class BrokerRegistrationTest
 	// @Test methods — check stored results
 	// -------------------------------------------------------------------------
 
+	/** La fixture BCM a démarré et résolu le {@link Broker} et les deux {@link StubReceiverComponent}. */
 	@Test
 	public void testFixtureSetupSucceeded()
 	{
@@ -246,6 +265,7 @@ public class BrokerRegistrationTest
 		assertNull("Fixture setup failed", results.get("fixture_setup_failed"));
 	}
 
+	/** {@code register(uri, FREE)} retourne une URI non vide ; {@code registered(uri)} vaut {@code true} ensuite. */
 	@Test
 	public void testRegisterFreeReturnsPublishingPortAndIsRegistered()
 	{
@@ -258,6 +278,7 @@ public class BrokerRegistrationTest
 			(Boolean) results.get("T1_registered"));
 	}
 
+	/** Enregistrer deux fois la même URI doit lever {@link AlreadyRegisteredException}. */
 	@Test
 	public void testRegisterDuplicateThrowsAlreadyRegisteredException()
 	{
@@ -267,6 +288,7 @@ public class BrokerRegistrationTest
 			results.get("T2_result"));
 	}
 
+	/** {@code register(uri, STANDARD)} retourne l'URI du port privilégié, distincte de celle retournée pour FREE. */
 	@Test
 	public void testRegisterStandardReturnsPrivilegedPortUri()
 	{
@@ -279,6 +301,7 @@ public class BrokerRegistrationTest
 			(Boolean) results.get("T3_differentFromFree"));
 	}
 
+	/** {@code registered(unknownUri, rc)} doit lever {@link UnknownClientException} (contrat C.1). */
 	@Test
 	public void testRegisteredWithClassThrowsUnknownClientExceptionForUnknownUri()
 	{
@@ -288,6 +311,7 @@ public class BrokerRegistrationTest
 			results.get("T4_result"));
 	}
 
+	/** {@code registered(uri, FREE)} vaut {@code true} après une inscription FREE ; {@code registered(uri, STANDARD)} vaut {@code false}. */
 	@Test
 	public void testRegisteredWithClassMatchAndMismatch()
 	{
@@ -299,6 +323,7 @@ public class BrokerRegistrationTest
 			(Boolean) results.get("T5_notMatchStandard"));
 	}
 
+	/** {@code unregister} retire le client ; un second appel doit lever {@link UnknownClientException}. */
 	@Test
 	public void testUnregisterRemovesClientAndSecondUnregisterThrows()
 	{

@@ -13,6 +13,28 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * <strong>Démo distribuée historique (gossip)</strong> du projet pub/sub :
+ * deux brokers tournant chacun dans une JVM séparée échangent des messages
+ * via le réseau gossip (CDC §4.5 — fédération inter-brokers). Cible le
+ * cycle de vie {@link AbstractDistributedCVM} de BCM4Java et nécessite donc
+ * un lancement multi-JVM par {@code bash-scripts/launch} (cf.
+ * {@code docs/SOUTENANCE.md}).
+ *
+ * <p>
+ * <strong>Préconditions d'exécution :</strong>
+ * </p>
+ * <ul>
+ *   <li>JDK 8 (les scripts BCM4Java {@code launch} se basent sur le
+ *       {@code SecurityManager} déprécié sur JDK 19).</li>
+ *   <li>Un fichier de configuration XML mappant les URIs JVM aux IPs et
+ *       passé en ligne de commande.</li>
+ *   <li>Lancer trois processus : {@code broker1-jvm}, {@code broker2-jvm},
+ *       puis le contrôleur.</li>
+ * </ul>
+ *
+ * @author Bogdan Styn, Setbel Mélissa
+ */
 public class DemoDistributed extends AbstractDistributedCVM {
     /**
      * instantiate the DCVM object.
@@ -60,6 +82,12 @@ public class DemoDistributed extends AbstractDistributedCVM {
     public static final String  START_INSTANT_STR  = "2026-02-01T10:00:00.00Z";
     public static final double  ACCELERATION_FACTOR = 1.0;
     public static final long    DELAY_TO_START_MS  = 5_000L;
+	/**
+	 * Construit ce CVM ; la création réelle des composants se produit dans
+	 * {@link #deploy()}.
+	 *
+	 * @throws Exception si l'initialisation parent échoue.
+	 */
 
 
     public DemoDistributed(String[] args) throws Exception {
@@ -68,6 +96,12 @@ public class DemoDistributed extends AbstractDistributedCVM {
 
 
     @Override
+    /**
+     * Initialise les modes de debug BCM avant la phase
+     * {@link #instantiateAndPublish()} ; appelé par le cycle de vie distribué.
+     *
+     * @throws Exception si l'initialisation parent échoue.
+     */
     public void initialise() throws Exception
     {
        AbstractCVM.DEBUG_MODE.add(CVMDebugModes.LIFE_CYCLE);/*
@@ -78,6 +112,12 @@ public class DemoDistributed extends AbstractDistributedCVM {
 
 
     @Override
+    /**
+     * Instancie et publie les composants spécifiques à la JVM courante :
+     * deux brokers connectés en gossip, plus un client par JVM.
+     *
+     * @throws Exception en cas d'échec de création / publication.
+     */
     public void instantiateAndPublish() throws Exception{
 
         if (thisJVMURI.equals(BROKER1_JVM_URI)) {
@@ -145,6 +185,12 @@ public class DemoDistributed extends AbstractDistributedCVM {
 
 
     @Override
+    /**
+     * Établit les connexions inter-JVM (gossip + ports clients ↔ brokers)
+     * une fois tous les composants publiés.
+     *
+     * @throws Exception en cas d'échec de connexion.
+     */
     public void	interconnect() throws Exception{
         super.interconnect();
     }
@@ -153,7 +199,20 @@ public class DemoDistributed extends AbstractDistributedCVM {
     // =========================================================================
     // Main
     // =========================================================================
+	/**
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
+	 * pendant la durée codée en dur, puis termine la JVM.
+	 *
+	 * @param args ignorés.
+	 */
 
+    /**
+     * Point d'entrée par JVM : instancie le DCVM avec les arguments BCM
+     * (URI de la JVM courante + fichier XML de mapping) puis lance le cycle
+     * de vie distribué.
+     *
+     * @param args arguments BCM4Java standard du DCVM.
+     */
     public static void main(String[] args)
     {
 

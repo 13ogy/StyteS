@@ -42,6 +42,7 @@ public class PropertyFilterTest
 	// match() behaviour
 	// -------------------------------------------------------------------------
 
+	/** {@code match(null)} doit retourner {@code false} indépendamment du value filter interne. */
 	@Test
 	public void testMatchReturnsFalseOnNullProperty()
 	{
@@ -51,6 +52,7 @@ public class PropertyFilterTest
 		assertFalse(pf.match(null));
 	}
 
+	/** {@code match} renvoie {@code false} si le nom de la propriété ne correspond pas au filtre. */
 	@Test
 	public void testMatchReturnsFalseWhenNameDoesNotMatch()
 	{
@@ -61,6 +63,7 @@ public class PropertyFilterTest
 		assertFalse(pf.match(p));
 	}
 
+	/** {@code match} renvoie {@code true} si le nom correspond ET que le value filter accepte. */
 	@Test
 	public void testMatchReturnsTrueWhenNameMatchesAndValueFilterAccepts()
 	{
@@ -71,6 +74,7 @@ public class PropertyFilterTest
 		assertTrue(pf.match(p));
 	}
 
+	/** {@code match} renvoie {@code false} quand le nom correspond mais que le value filter rejette. */
 	@Test
 	public void testMatchReturnsFalseWhenNameMatchesButValueFilterRejects()
 	{
@@ -81,6 +85,7 @@ public class PropertyFilterTest
 		assertFalse(pf.match(p));
 	}
 
+	/** {@link AcceptAllValueFilter} combiné à un nom correspondant accepte toute valeur, même {@code null}. */
 	@Test
 	public void testMatchAcceptAllValueFilterAlwaysAcceptsOnNameMatch()
 	{
@@ -97,6 +102,7 @@ public class PropertyFilterTest
 	// getters
 	// -------------------------------------------------------------------------
 
+	/** {@code getName()} et {@code getValueFilter()} retournent ce qui a été passé au constructeur. */
 	@Test
 	public void testGetters()
 	{
@@ -112,6 +118,7 @@ public class PropertyFilterTest
 	// Constructor validation
 	// -------------------------------------------------------------------------
 
+	/** Le constructeur rejette un nom {@code null} avec {@link IllegalArgumentException}. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testConstructorRejectsNullName()
 	{
@@ -119,6 +126,7 @@ public class PropertyFilterTest
 		new PropertyFilter(null, new AcceptAllValueFilter());
 	}
 
+	/** Le constructeur rejette un nom vide avec {@link IllegalArgumentException}. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testConstructorRejectsEmptyName()
 	{
@@ -126,6 +134,7 @@ public class PropertyFilterTest
 		new PropertyFilter("", new AcceptAllValueFilter());
 	}
 
+	/** Le constructeur rejette un value filter {@code null} avec {@link IllegalArgumentException}. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testConstructorRejectsNullValueFilter()
 	{
