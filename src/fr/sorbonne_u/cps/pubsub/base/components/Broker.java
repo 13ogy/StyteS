@@ -388,6 +388,27 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		return nbFreeChannels;
 	}
 
+	// -------------------------------------------------------------------------
+	// Executor service indices (Phase D.3)
+	//
+	// Exposed so inbound ports can dispatch incoming requests off the RMI
+	// dispatch thread onto the broker's own dedicated executor pools. This
+	// prevents RMI thread starvation under deep gossip propagation chains
+	// (e.g. 4 federated JVMs).
+	// -------------------------------------------------------------------------
+
+	/** Index of the dedicated reception executor service ({@value #ES_RECEPTION_URI}). */
+	public int getReceptionExecutorIndex()   { return this.esReceptionIndex; }
+
+	/** Index of the dedicated propagation executor service ({@value #ES_PROPAGATION_URI}). */
+	public int getPropagationExecutorIndex() { return this.esPropagationIndex; }
+
+	/** Index of the dedicated delivery executor service ({@value #ES_DELIVERY_URI}). */
+	public int getDeliveryExecutorIndex()    { return this.esDeliveryIndex; }
+
+	/** Index of the dedicated gossip executor service ({@value #ES_GOSSIP_URI}). */
+	public int getGossipExecutorIndex()      { return this.esGossipIndex; }
+
 	protected static class DeliveryTarget
 	{
 		final String subscriberURI;
