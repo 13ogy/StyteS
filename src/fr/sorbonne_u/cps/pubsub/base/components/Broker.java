@@ -225,6 +225,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	private final java.util.concurrent.ConcurrentHashMap<String, Integer> inFlightPerChannel =
 			new java.util.concurrent.ConcurrentHashMap<>();
 
+	/** C.8-find-3: per-channel mutex used by destroyChannel to wait for
+	 *  in-flight delivery to drain without busy-polling. The corresponding
+	 *  finishInFlight call notifies any waiter when the count transitions
+	 *  from > 0 to 0. */
+	private final java.util.concurrent.ConcurrentHashMap<String, Object> inFlightWaiters =
+			new java.util.concurrent.ConcurrentHashMap<>();
+
 	// -------------------------------------------------------------------------
 	// Gossip data
 	// -------------------------------------------------------------------------
@@ -506,11 +513,26 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	protected void finishInFlight(String channel)
 	{
+		// C.8-find-3: capture whether this call drove the count from
+		// > 0 to 0; if so, notify any thread blocked in destroyChannel.
+		final boolean[] reachedZero = new boolean[]{ false };
 		this.inFlightPerChannel.compute(channel, (k, v) -> {
 			if (v == null) return 0;
 			int next = v - 1;
-			return next < 0 ? 0 : next;
+			if (next <= 0) {
+				reachedZero[0] = (v > 0);
+				return 0;
+			}
+			return next;
 		});
+		if (reachedZero[0]) {
+			Object waiter = this.inFlightWaiters.get(channel);
+			if (waiter != null) {
+				synchronized (waiter) {
+					waiter.notifyAll();
+				}
+			}
+		}
 	}
 
 	protected void propagationStage(String channel, MessageI message) throws Exception
@@ -1782,17 +1804,27 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		// le nettoyage se fait en arrière plan après que le client reçoit confimation direct de la destruction
 		this.runTask(this.esDeliveryIndex, o -> {
 			try {
-				// Attente que les messages en vol se terminent
-				while (true) {
-					int inFlight = ((Broker) o).inFlightPerChannel
-							.getOrDefault(channel, 0);
-					if (inFlight == 0) break;
-					Thread.sleep(10);
+				// C.8-find-3: wait/notify instead of Thread.sleep busy-poll.
+				// finishInFlight notifies on the per-channel waiter when
+				// the in-flight count transitions to 0; the bounded
+				// wait(50) is a safety net against missed notifications.
+				final Object waiter = ((Broker) o).inFlightWaiters
+						.computeIfAbsent(channel, k -> new Object());
+				while (((Broker) o).inFlightPerChannel
+						.getOrDefault(channel, 0) > 0) {
+					synchronized (waiter) {
+						if (((Broker) o).inFlightPerChannel
+								.getOrDefault(channel, 0) > 0) {
+							waiter.wait(50);
+						}
+					}
 				}
 				((Broker) o).destroyChannelCleanup(receptionPortURI, channel);
 			} catch (Exception e) {
 				((Broker) o).logMessage(
 						"[Broker] destroyChannel cleanup failed: " + e + "\n");
+			} finally {
+				((Broker) o).inFlightWaiters.remove(channel);
 			}
 		});
 	}
