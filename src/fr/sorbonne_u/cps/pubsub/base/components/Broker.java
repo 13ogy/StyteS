@@ -122,6 +122,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		if (message == null) {
 			throw new IllegalArgumentException("message cannot be null.");
 		}
+		assert publisherReceptionPortURI != null && !publisherReceptionPortURI.isEmpty()
+				: "publisherReceptionPortURI normalised to non-empty after requireClient";
+		assert channel != null && !channel.isEmpty()
+				: "channel normalised to non-empty after requireChannel";
 		// Audit 2: asynchronous submission.
 		this.submitPublish(publisherReceptionPortURI, channel, message, notificationInbounhdPortURI);
 	}
@@ -147,6 +151,12 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		if (messages == null || messages.isEmpty()) {
 			throw new IllegalArgumentException("messages cannot be null or empty.");
 		}
+		assert publisherReceptionPortURI != null && !publisherReceptionPortURI.isEmpty()
+				: "publisherReceptionPortURI normalised to non-empty after requireClient";
+		assert channel != null && !channel.isEmpty()
+				: "channel normalised to non-empty after requireChannel";
+		assert messages != null && !messages.isEmpty()
+				: "messages normalised to non-empty after explicit check";
 		this.bulkSubmit(publisherReceptionPortURI, channel, messages, notificationInbounhdPortURI);
 	}
 
@@ -749,10 +759,18 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 
 	private boolean registeredLocked(String receptionPortURI){
+		// Internal contract: caller must hold registrationLock (read or write).
+		assert this.registrationLock.getReadHoldCount() > 0
+				|| this.registrationLock.isWriteLockedByCurrentThread()
+				: "registrationLock (read or write) must be held by current thread";
 		return this.registeredClients.containsKey(receptionPortURI);
 	}
 	private boolean channelExistLocked(String channel)
 	{
+		// Internal contract: caller must hold channelsLock (read or write).
+		assert this.channelsLock.getReadHoldCount() > 0
+				|| this.channelsLock.isWriteLockedByCurrentThread()
+				: "channelsLock (read or write) must be held by current thread";
 		return this.channels.contains(channel);
 	}
 
@@ -857,6 +875,12 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		} finally {
 			this.registrationLock.writeLock().unlock();
 		}
+
+		// Post-mutation invariant: client is now visible in both maps.
+		assert this.registered(receptionPortURI)
+				: "client must be registered after successful register: " + receptionPortURI;
+		assert this.receptionPortsOUT.containsKey(receptionPortURI)
+				: "outbound port must be wired after successful register: " + receptionPortURI;
 
 
 		RegisterGossipMessage gossip = new RegisterGossipMessage(
@@ -1013,6 +1037,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		} finally {
 			this.registrationLock.writeLock().unlock();
 		}
+		// Post-mutation invariants: client gone from every relevant map.
+		assert !this.registeredClients.containsKey(receptionPortURI)
+				: "client must be removed from registeredClients after unregister: " + receptionPortURI;
+		assert !this.receptionPortsOUT.containsKey(receptionPortURI)
+				: "client must be removed from receptionPortsOUT after unregister: " + receptionPortURI;
+		assert !this.createdPrivilegedChannelsCount.containsKey(receptionPortURI)
+				: "client must be removed from createdPrivilegedChannelsCount after unregister: " + receptionPortURI;
 		// propager la suppression
 		this.gossipToNeighbours(gossipMessages.toArray(new GossipMessageI[0]));
 
@@ -1085,6 +1116,14 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	private boolean channelAuthorisedLocked(String receptionPortURI, String channel) throws Exception{
 
+		// Internal contract: both registrationLock AND channelsLock must
+		// be held (read or write) by the current thread.
+		assert this.registrationLock.getReadHoldCount() > 0
+				|| this.registrationLock.isWriteLockedByCurrentThread()
+				: "registrationLock must be held by current thread";
+		assert this.channelsLock.getReadHoldCount() > 0
+				|| this.channelsLock.isWriteLockedByCurrentThread()
+				: "channelsLock must be held by current thread";
 		if (!this.registeredLocked(receptionPortURI)) {
 			throw new UnknownClientException(receptionPortURI);
 		}
@@ -1202,6 +1241,12 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 						throw new UnknownChannelException(channel);
 					}
 					subs.put(receptionPortURI, effective);
+					// Post-mutation invariant: subscription is now visible.
+					assert subs.containsKey(receptionPortURI)
+							: "subscriber must be present after subscribe: "
+							+ receptionPortURI + " on " + channel;
+					assert subs.get(receptionPortURI) == effective
+							: "stored filter must be the effective (non-null) filter";
 				} finally {
 					this.subscriptionsLock.writeLock().unlock();
 				}
@@ -1242,6 +1287,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 								"Client " + receptionPortURI + " not subscribed to " + channel);
 					}
 					subs.remove(receptionPortURI);
+					// Post-mutation invariant: subscription is gone.
+					assert !subs.containsKey(receptionPortURI)
+							: "subscriber must be absent after unsubscribe: "
+							+ receptionPortURI + " on " + channel;
 				} finally {
 					this.subscriptionsLock.writeLock().unlock();
 				}
@@ -1288,6 +1337,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 								"Client " + receptionPortURI + " not subscribed to " + channel);
 					}
 					subs.put(receptionPortURI, effective);
+					// Post-mutation invariant: stored filter == new filter.
+					assert subs.get(receptionPortURI) == effective
+							: "stored filter must match the new effective filter for "
+							+ receptionPortURI + " on " + channel;
 					return true;
 				} finally {
 					this.subscriptionsLock.writeLock().unlock();
@@ -1460,6 +1513,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Pré-requis : registrationLock.read (ou .write) déjà détenu.
 	private boolean channelQuotaReachedLocked(String receptionPortURI) throws Exception
 	{
+		assert this.registrationLock.getReadHoldCount() > 0
+				|| this.registrationLock.isWriteLockedByCurrentThread()
+				: "registrationLock must be held by current thread";
 		if (!this.registeredLocked(receptionPortURI)) {
 			throw new UnknownClientException(receptionPortURI);
 		}
@@ -1529,6 +1585,22 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					this.subscriptions.put(channel, new HashMap<>());
 					this.inFlightPerChannel.put(channel, 0);
 					this.createdPrivilegedChannelsCount.merge(receptionPortURI, 1, Integer::sum);
+					// Post-mutation invariants.
+					assert this.channels.contains(channel)
+							: "channel must be present after createChannel: " + channel;
+					assert this.privilegedChannels.containsKey(channel)
+							: "channel must be in privilegedChannels after createChannel: " + channel;
+					assert this.subscriptions.containsKey(channel)
+							: "channel must have a subscriptions map after createChannel: " + channel;
+					// Quota invariant: the new count must not exceed the
+					// applicable quota for the owner's class.
+					int maxQuota = (rc == RegistrationClass.PREMIUM)
+							? this.premiumQuota : this.standardQuota;
+					int newCount = this.createdPrivilegedChannelsCount
+							.getOrDefault(receptionPortURI, 0);
+					assert newCount > 0 && newCount <= maxQuota
+							: "createdPrivilegedChannelsCount for " + receptionPortURI
+							+ " must be in (0, " + maxQuota + "] after createChannel, got " + newCount;
 
 				} finally {
 					this.subscriptionsLock.writeLock().unlock();
@@ -1600,6 +1672,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					throw new UnauthorisedClientException();
 				}
 				info.authorisedUsersPattern = newPattern;
+				// Post-mutation invariant: pattern reference replaced.
+				assert info.authorisedUsersPattern == newPattern
+						: "authorisedUsersPattern must be the freshly compiled pattern";
 			} finally {
 				this.channelsLock.writeLock().unlock();
 			}
@@ -1671,6 +1746,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		} finally {
 			this.channelsLock.writeLock().unlock();
 		}
+		// Post-mutation invariant: channel no longer accepts new publish/subscribe.
+		assert !this.channels.contains(channel)
+				: "channel must be hidden immediately after destroyChannel: " + channel;
 
 		DestroyChannelGossipMessage gossip = new DestroyChannelGossipMessage(
 				java.util.UUID.randomUUID().toString(),
@@ -1717,6 +1795,19 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				this.inFlightPerChannel.remove(channel);
 				this.createdPrivilegedChannelsCount.merge(
 						receptionPortURI, -1, Integer::sum);
+				// Post-mutation invariants: cleanup wiped everything and
+				// the quota counter cannot go negative.
+				assert !this.subscriptions.containsKey(channel)
+						: "subscriptions must be wiped after destroyChannelCleanup: " + channel;
+				assert !this.privilegedChannels.containsKey(channel)
+						: "privilegedChannels must be wiped after destroyChannelCleanup: " + channel;
+				assert !this.inFlightPerChannel.containsKey(channel)
+						: "inFlightPerChannel must be wiped after destroyChannelCleanup: " + channel;
+				int currentCount = this.createdPrivilegedChannelsCount
+						.getOrDefault(receptionPortURI, 0);
+				assert currentCount >= 0
+						: "createdPrivilegedChannelsCount must stay non-negative for "
+						+ receptionPortURI + ", got " + currentCount;
 			} finally {
 				this.channelsLock.writeLock().unlock();
 			}
@@ -1769,6 +1860,19 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					int next = a + b;
 					return next < 0 ? 0 : next;
 				});
+				// Post-mutation invariants: channel state fully wiped and
+				// the owner's quota counter remains non-negative.
+				assert !this.channels.contains(channel)
+						: "channel must be removed after destroyChannelNow: " + channel;
+				assert !this.privilegedChannels.containsKey(channel)
+						: "channel must be removed from privilegedChannels: " + channel;
+				assert !this.inFlightPerChannel.containsKey(channel)
+						: "channel must be removed from inFlightPerChannel: " + channel;
+				int currentCount = this.createdPrivilegedChannelsCount
+						.getOrDefault(receptionPortURI, 0);
+				assert currentCount >= 0
+						: "createdPrivilegedChannelsCount must stay non-negative for "
+						+ receptionPortURI + ", got " + currentCount;
 			} finally {
 				this.channelsLock.writeLock().unlock();
 			}
@@ -1799,6 +1903,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	@Override
 	public void update(GossipMessageI[] fromSender) {
+		assert fromSender != null : "gossip array must not be null";
 		for (GossipMessageI msg : fromSender) {
 			// Soutenance §6.6 / Phase F.5 : déduplication atomique.
 			// putIfAbsent renvoie l'ancienne valeur si la clé existait déjà
@@ -1807,6 +1912,11 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					msg.gossipMessageURI(), msg.timestamp()) != null) {
 				continue;
 			}
+			// Post-dedup invariant: the URI is now memoised so that any
+			// subsequent putIfAbsent for the same key is a no-op.
+			assert this.processedGossipURIs.containsKey(msg.gossipMessageURI())
+					: "gossip URI must be memoised after successful putIfAbsent: "
+					+ msg.gossipMessageURI();
 
 			// Mémoriser l'émetteur immédiat AVANT de remplacer son URI :
 			// soutenance §6.2 — il ne faut pas renvoyer le message au broker
