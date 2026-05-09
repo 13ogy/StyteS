@@ -98,21 +98,15 @@ public class WeatherStation extends AbstractComponent
 
 	@Override
 	public void finalise() throws Exception {
-		regPlugin.finalise();
-		pubPlugin.finalise();
 		super.finalise();
 	}
 
 	@Override
-	public synchronized void shutdown() throws ComponentShutdownException {
-		try {
-			this.pubPlugin.uninstall();
-			this.regPlugin.uninstall();
-		} catch (Exception e) {
-			throw new ComponentShutdownException(e);
-		}
+	public synchronized void shutdown() throws fr.sorbonne_u.components.exceptions.ComponentShutdownException {
+		fr.sorbonne_u.cps.pubsub.demo.PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
 		super.shutdown();
 	}
+
 	public PositionI getPosition()
 	{
 		return position;

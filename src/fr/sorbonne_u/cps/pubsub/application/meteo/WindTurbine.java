@@ -94,6 +94,23 @@ public class WindTurbine extends AbstractComponent
 				maxDistance, recentWindowMillis, threshold, null);
 	}
 
+	/**
+	 * Convenience constructor for untimed deployments (no TestScenario)
+	 * that still need to identify their broker via Phase C.3 reflection URI.
+	 */
+	protected WindTurbine(
+		String reflectionInboundPortURI,
+		String turbineId,
+		PositionI position,
+		double maxDistance,
+		long recentWindowMillis,
+		MeteoAlertI.Level threshold,
+		String brokerReflectionURI) throws Exception
+	{
+		this(reflectionInboundPortURI, null, turbineId, position,
+				maxDistance, recentWindowMillis, threshold, brokerReflectionURI);
+	}
+
 	/** Phase C.3: identifie le courtier cible via son URI de réflexion. */
 	protected WindTurbine(
 		String reflectionInboundPortURI,
@@ -112,9 +129,10 @@ public class WindTurbine extends AbstractComponent
 		if (position == null) {
 			throw new IllegalArgumentException("position cannot be null");
 		}
-		assert testScenario != null && testScenario.entityAppearsIn(getReflectionInboundPortURI()) :
-				new PreconditionException("testScenario != null && testScenario.entityAppearsIn(" +
-						"+ "+getReflectionInboundPortURI());
+		assert testScenario == null
+				|| testScenario.entityAppearsIn(getReflectionInboundPortURI()) :
+				new PreconditionException("testScenario == null"
+						+ " || testScenario.entityAppearsIn(" + getReflectionInboundPortURI() + ")");
 
 		this.turbineId = turbineId;
 		this.position = position;
@@ -151,10 +169,10 @@ public class WindTurbine extends AbstractComponent
 			super.execute();
 			this.regPlugin.register(RegistrationClass.FREE);
 			subscribeToWindAndAlerts("channel0", "channel1");
-			if (this.testScenario != null) {
+			if (this.testScenario != null
+				&& this.testScenario.entityAppearsIn(getReflectionInboundPortURI())) {
 				this.traceMessage("[TimedDemo] WindTurbine.execute() rip=" + this.getReflectionInboundPortURI() + "\n");
 				this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, this.testScenario.getClockURI());
-				this.getClock().waitUntilStart();
 				this.executeTestScenario(this.testScenario);
 			}
 		} catch (Exception e) {
@@ -164,21 +182,14 @@ public class WindTurbine extends AbstractComponent
 
 	@Override
 	public void finalise() throws Exception {
-		regPlugin.finalise();
-		subPlugin.finalise();
 		super.finalise();
 	}
 
 	@Override
-	public synchronized void shutdown() throws ComponentShutdownException {
-	try {
-		this.subPlugin.uninstall();
-		this.regPlugin.uninstall();
-	} catch (Exception e) {
-		throw new ComponentShutdownException(e);
+	public synchronized void shutdown() throws fr.sorbonne_u.components.exceptions.ComponentShutdownException {
+		fr.sorbonne_u.cps.pubsub.demo.PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
+		super.shutdown();
 	}
-	super.shutdown();
-}
 	/*
 	@Override
 	public void execute() throws Exception

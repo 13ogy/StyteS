@@ -72,19 +72,12 @@ public class WeatherOffice extends AbstractComponent
 	}
 	@Override
 	public void finalise() throws Exception {
-		regPlugin.finalise();
-		privPlugin.finalise();
 		super.finalise();
 	}
 
 	@Override
-	public synchronized void shutdown() throws ComponentShutdownException {
-		try {
-			this.privPlugin.uninstall();
-			this.regPlugin.uninstall();
-		} catch (Exception e) {
-			throw new ComponentShutdownException(e);
-		}
+	public synchronized void shutdown() throws fr.sorbonne_u.components.exceptions.ComponentShutdownException {
+		fr.sorbonne_u.cps.pubsub.demo.PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
 		super.shutdown();
 	}
 
