@@ -11,8 +11,8 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
-import fr.sorbonne_u.cps.pubsub.messages.Message;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientPrivilegedPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 
@@ -84,11 +84,7 @@ public class WeatherOffice extends AbstractComponent
 
 	public void publishAlert(String alertChannel, MeteoAlertI alert) throws Exception
 	{
-		Message m = new Message((java.io.Serializable) alert);
-		m.putProperty("type", "alert");
-		m.putProperty("officeId", officeId);
-		m.putProperty("level", alert.getLevel().toString());
-		m.putProperty("alertType", alert.getAlertType().toString());
+		MessageI m = MeteoAlertMessageFactory.build(officeId, alert);
 
 		String out = "WeatherOffice[" + officeId + "] publish alert " + alert + " on " + alertChannel;
 		this.traceMessage(out + "\n");

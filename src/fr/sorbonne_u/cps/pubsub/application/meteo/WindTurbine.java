@@ -13,11 +13,6 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
-import fr.sorbonne_u.cps.pubsub.messages.MessageFilter;
-import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
-import fr.sorbonne_u.cps.pubsub.messages.filters.DistanceWindFilter;
-import fr.sorbonne_u.cps.pubsub.messages.filters.EqualsValueFilter;
-import fr.sorbonne_u.cps.pubsub.messages.filters.PropertyFilter;
 import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
 import fr.sorbonne_u.cps.pubsub.meteo.PositionI;
 import fr.sorbonne_u.cps.pubsub.meteo.RegionI;
@@ -202,18 +197,8 @@ public class WindTurbine extends AbstractComponent
 
 	public void subscribeToWindAndAlerts(String windChannel, String alertChannel) throws Exception
 	{
-		MessageFilterI windFilter = new MessageFilter(
-			new MessageFilterI.PropertyFilterI[] {
-				new PropertyFilter("type", new EqualsValueFilter("wind")),
-				new PropertyFilter("payload", new DistanceWindFilter(this.position, this.maxDistance))
-			},
-			new MessageFilterI.PropertiesFilterI[0],
-			new AcceptAllTimeFilter());
-
-		MessageFilterI alertFilter = new MessageFilter(
-			new MessageFilterI.PropertyFilterI[] { new PropertyFilter("type", new EqualsValueFilter("alert")) },
-			new MessageFilterI.PropertiesFilterI[0],
-			new AcceptAllTimeFilter());
+		MessageFilterI windFilter = MeteoFilters.windWithinDistance(this.position, this.maxDistance);
+		MessageFilterI alertFilter = MeteoFilters.anyAlert();
 
 		this.subPlugin.subscribe(windChannel, windFilter);
 		this.subPlugin.subscribe(alertChannel, alertFilter);
@@ -242,14 +227,14 @@ public class WindTurbine extends AbstractComponent
 		long now = Instant.now().toEpochMilli();
 		windBuffer.removeIf(tw -> now - tw.ts > recentWindowMillis);
 
-		double d = distance(this.position, wind.getPosition());
+		double d = distanceFromTurbine(wind.getPosition());
 		windBuffer.add(new TimedWind(messageTs, wind));
 		this.traceMessage("WindTurbine[" + turbineId + "] accept wind d=" + d + ": " + wind + "\n");
 
 		double sumX = 0.0;
 		double sumY = 0.0;
 		for (TimedWind tw : windBuffer) {
-			double dist = distance(this.position, tw.wind.getPosition());
+			double dist = distanceFromTurbine(tw.wind.getPosition());
 			double w = 1.0 / (dist + 1e-6);
 			sumX += w * tw.wind.xComponent();
 			sumY += w * tw.wind.yComponent();
@@ -294,14 +279,14 @@ public class WindTurbine extends AbstractComponent
 		}
 	}
 
-	private static double distance(PositionI a, PositionI b)
+	private double distanceFromTurbine(PositionI other)
 	{
-		if (a instanceof Position2D && b instanceof Position2D) {
-			Position2D pa = (Position2D) a;
-			Position2D pb = (Position2D) b;
-			double dx = pa.getX() - pb.getX();
-			double dy = pa.getY() - pb.getY();
-			return Math.sqrt(dx * dx + dy * dy);
+		// Encapsulated geometry; cf. soutenance review 1.8.
+		if (this.position instanceof Position2D) {
+			return ((Position2D) this.position).distanceTo(other);
+		}
+		if (other instanceof Position2D) {
+			return ((Position2D) other).distanceTo(this.position);
 		}
 		return Double.POSITIVE_INFINITY;
 	}

@@ -25,12 +25,12 @@ import java.io.Serializable;
  * </ul>
  *
  * <p>
- * The current implementation computes distances when positions are {@link Position2D}.
- * Other {@link PositionI} implementations are rejected (distance treated as +infinity).
+ * Distance computation is delegated to {@link Position2D#distanceTo(PositionI)}
+ * (cf. soutenance review 1.8): no caller may reach into the private coordinates
+ * of a {@link Position2D}.
  * </p>
- 
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class DistanceWindFilter implements MessageFilterI.ValueFilterI
 {
@@ -58,20 +58,15 @@ public class DistanceWindFilter implements MessageFilterI.ValueFilterI
 			return false;
 		}
 		WindDataI wind = (WindDataI) value;
+		PositionI windPos = wind.getPosition();
 
-		double d = distance(this.referencePosition, wind.getPosition());
-		return d <= this.maxDistance;
-	}
-
-	protected static double distance(PositionI a, PositionI b)
-	{
-		if (a instanceof Position2D && b instanceof Position2D) {
-			Position2D pa = (Position2D) a;
-			Position2D pb = (Position2D) b;
-			double dx = pa.getX() - pb.getX();
-			double dy = pa.getY() - pb.getY();
-			return Math.sqrt(dx * dx + dy * dy);
+		if (this.referencePosition instanceof Position2D) {
+			return ((Position2D) this.referencePosition).distanceTo(windPos) <= this.maxDistance;
 		}
-		return Double.POSITIVE_INFINITY;
+		if (windPos instanceof Position2D) {
+			return ((Position2D) windPos).distanceTo(this.referencePosition) <= this.maxDistance;
+		}
+		// Unknown position implementation: fail safely.
+		return false;
 	}
 }

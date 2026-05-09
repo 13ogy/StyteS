@@ -42,13 +42,10 @@ public class CircularRegion implements RegionI
 	@Override
 	public boolean in(PositionI p)
 	{
-		if (!(p instanceof Position2D)) {
-			return false;
-		}
-		Position2D pos = (Position2D) p;
-		double dx = pos.getX() - center.getX();
-		double dy = pos.getY() - center.getY();
-		return (dx * dx + dy * dy) <= radius * radius;
+		// Encapsulation: delegate the geometry to Position2D rather than
+		// reaching into its private state.
+		double d = this.center.distanceTo(p);
+		return d <= this.radius;
 	}
 
 	@Override

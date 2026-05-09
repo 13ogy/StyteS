@@ -1,12 +1,13 @@
 package fr.sorbonne_u.cps.pubsub.messages;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI.PropertyI;
+import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllMessageFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
 
 /**
@@ -76,45 +77,41 @@ public class MessageFilter implements MessageFilterI
 		TimeFilterI timeFilter
 		)
 	{
-		if (propertyFilters == null || propertiesFilters == null) {
-			throw new IllegalArgumentException("Filter arrays cannot be null.");
+		Objects.requireNonNull(propertyFilters, "propertyFilters cannot be null");
+		Objects.requireNonNull(propertiesFilters, "propertiesFilters cannot be null");
+
+		for (int k = 0; k < propertyFilters.length; k++) {
+			Objects.requireNonNull(propertyFilters[k],
+				"propertyFilters[" + k + "] cannot be null");
+		}
+		for (int k = 0; k < propertiesFilters.length; k++) {
+			Objects.requireNonNull(propertiesFilters[k],
+				"propertiesFilters[" + k + "] cannot be null");
+			Objects.requireNonNull(propertiesFilters[k].getMultiValuesFilter(),
+				"propertiesFilters[" + k + "].getMultiValuesFilter() cannot be null");
 		}
 
-		// ne pas garder les valeurs null du tableau
-		int countPF =0;
-		for (PropertyFilterI pf : propertyFilters){
-			if (pf != null) countPF++;
-		}
-		this.propertyFilters = new PropertyFilterI[countPF];
-		int i = 0;
-		for (PropertyFilterI pf: propertyFilters){
-			if(pf != null ) this.propertyFilters[i++] = pf;
-		}
-
-		int countPSF =0;
-		for (PropertiesFilterI pf : propertiesFilters){
-			if (pf != null) countPSF++;
-		}
-		this.propertiesFilters = new PropertiesFilterI[countPSF];
-		i = 0;
-		for (PropertiesFilterI pf: propertiesFilters){
-			if(pf != null ) this.propertiesFilters[i++] = pf;
-		}
-
+		this.propertyFilters = Arrays.copyOf(propertyFilters, propertyFilters.length);
+		this.propertiesFilters = Arrays.copyOf(propertiesFilters, propertiesFilters.length);
 		this.timeFilter = timeFilter != null ? timeFilter : new AcceptAllTimeFilter();
 	}
 
 	/**
-	 * Create an empty message filter that accepts every message.
+	 * Return a singleton message filter that accepts every message.
+	 *
+	 * <p>
+	 * Implements the soutenance recommendation: rather than building a
+	 * {@link MessageFilter} with empty arrays — whose {@link #match(MessageI)}
+	 * still allocates and iterates — we return a singleton implementing
+	 * {@link MessageFilterI} directly with a trivial {@code match} that returns
+	 * {@code true}.
+	 * </p>
 	 *
 	 * @return un filtre acceptant tous les messages.
 	 */
-	public static MessageFilter acceptAll()
+	public static MessageFilterI acceptAll()
 	{
-		return new MessageFilter(
-			new PropertyFilterI[0],
-			new PropertiesFilterI[0],
-			new AcceptAllTimeFilter());
+		return AcceptAllMessageFilter.INSTANCE;
 	}
 
 	// -------------------------------------------------------------------------
@@ -146,53 +143,65 @@ public class MessageFilter implements MessageFilterI
 			return false;
 		}
 
-		final Map<String, PropertyI> propsByName = indexProperties(message);
-
-		for (PropertyFilterI pf : this.propertyFilters) {
-			PropertyI p = propsByName.get(pf.getName());
-			if (p == null || !pf.match(p)) {
-				return false;
-			}
-		}
-
-		for (PropertiesFilterI mpf : this.propertiesFilters) {
-			if (mpf.getMultiValuesFilter() == null) {
-				throw new IllegalStateException("PropertiesFilterI has null MultiValuesFilterI.");
-			}
-			String[] required = mpf.getMultiValuesFilter().getNames();
-			PropertyI[] selected = new PropertyI[required.length];
-			for (int i = 0; i < required.length; i++) {
-				PropertyI p = propsByName.get(required[i]);
-				if (p == null) {
+		// Reuse the immutable view exposed by Message rather than rebuild a
+		// HashMap on every call (cf. soutenance review). Fall back to a linear
+		// scan over getProperties() if the message is some other MessageI impl.
+		if (message instanceof Message) {
+			final Map<String, PropertyI> byName = ((Message) message).getPropertiesMap();
+			for (PropertyFilterI pf : this.propertyFilters) {
+				PropertyI p = byName.get(pf.getName());
+				if (p == null || !pf.match(p)) {
 					return false;
 				}
-				selected[i] = p;
 			}
-			if (!mpf.match(selected)) {
-				return false;
+			for (PropertiesFilterI mpf : this.propertiesFilters) {
+				String[] required = mpf.getMultiValuesFilter().getNames();
+				PropertyI[] selected = new PropertyI[required.length];
+				for (int i = 0; i < required.length; i++) {
+					PropertyI p = byName.get(required[i]);
+					if (p == null) {
+						return false;
+					}
+					selected[i] = p;
+				}
+				if (!mpf.match(selected)) {
+					return false;
+				}
+			}
+		} else {
+			final PropertyI[] props = message.getProperties();
+			for (PropertyFilterI pf : this.propertyFilters) {
+				PropertyI p = findByName(props, pf.getName());
+				if (p == null || !pf.match(p)) {
+					return false;
+				}
+			}
+			for (PropertiesFilterI mpf : this.propertiesFilters) {
+				String[] required = mpf.getMultiValuesFilter().getNames();
+				PropertyI[] selected = new PropertyI[required.length];
+				for (int i = 0; i < required.length; i++) {
+					PropertyI p = findByName(props, required[i]);
+					if (p == null) {
+						return false;
+					}
+					selected[i] = p;
+				}
+				if (!mpf.match(selected)) {
+					return false;
+				}
 			}
 		}
 
 		return this.timeFilter.match(message.getTimeStamp());
 	}
 
-	/**
-	 * Build an index of properties by name.
-	 *
-	 * @param message message source.
-	 * @return map {nom -> propriété}.
-	 */
-	protected Map<String, PropertyI> indexProperties(MessageI message)
+	private static PropertyI findByName(PropertyI[] props, String name)
 	{
-		Map<String, PropertyI> ret = new HashMap<String, PropertyI>();
-		PropertyI[] props = message.getProperties();
-		if (props != null) {
-			for (PropertyI p : props) {
-				if (p != null) {
-					ret.put(p.getName(), p);
-				}
+		for (PropertyI p : props) {
+			if (name.equals(p.getName())) {
+				return p;
 			}
 		}
-		return ret;
+		return null;
 	}
 }

@@ -11,9 +11,9 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.meteo.PositionI;
 import fr.sorbonne_u.cps.pubsub.meteo.WindDataI;
-import fr.sorbonne_u.cps.pubsub.messages.Message;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 
@@ -111,14 +111,7 @@ public class WeatherStation extends AbstractComponent
 
 	public void publishWind(String windChannel, WindDataI wind) throws Exception
 	{
-		Message m = new Message((java.io.Serializable) wind);
-		m.putProperty("type", "wind");
-		// Le payload aussi sous forme de propriété pour permettre les filtres par valeur.
-		m.putProperty("payload", (java.io.Serializable) wind);
-		m.putProperty("stationId", stationId);
-		m.putProperty("force", Double.toString(wind.force()));
-		m.putProperty("x", Double.toString(wind.xComponent()));
-		m.putProperty("y", Double.toString(wind.yComponent()));
+		MessageI m = WindMessageFactory.build(stationId, wind);
 
 		String out = "WeatherStation[" + stationId + "] publish wind " + wind + " on " + windChannel;
 		this.traceMessage(out + "\n");

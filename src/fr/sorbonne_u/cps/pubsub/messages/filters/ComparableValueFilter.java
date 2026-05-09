@@ -1,69 +1,65 @@
 package fr.sorbonne_u.cps.pubsub.messages.filters;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
 
 /**
- * A value filter for values that implement {@link Comparable}.
+ * Abstract base class for value filters comparing the value against bounds.
  *
  * <p>
- * This filter supports comparisons: <=, >= and interval checks
- * (between, inclusive).
+ * Per the soutenance review (1.6 + 1.7) we replaced the {@code Operator} enum
+ * + {@code switch} construction with a class hierarchy: each comparison kind
+ * is its own concrete subclass. Adding a new comparison only requires adding
+ * a new subclass; no existing code (in particular, no {@code switch} clause)
+ * needs to be updated. This is the Strategy pattern applied to comparable
+ * value matching.
  * </p>
  *
+ * <p>
+ * The static factory methods on this class produce instances of the
+ * appropriate concrete subclass and are kept for backward source compatibility
+ * with all existing callers (demos, tests, application code).
+ * </p>
  *
- * @author Bogdan Styn
+ * @author Bogdan Styn, Setbel Mélissa
  */
-public class ComparableValueFilter implements ValueFilterI
+public abstract class ComparableValueFilter implements ValueFilterI
 {
 	private static final long serialVersionUID = 1L;
 
-	public enum Operator
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Override
+	public final boolean match(Serializable value)
 	{
-		/** value >= bound1 */
-		GE,
-		/** value <= bound1 */
-		LE,
-		/** bound1 <= value <= bound2 */
-		BETWEEN_INCLUSIVE
+		if (!(value instanceof Comparable)) {
+			return false;
+		}
+		// Subclasses define how the value compares against their bound(s).
+		return matches((Comparable) value);
 	}
-
-	protected final Operator operator;
-	protected final Comparable<?> bound1;
-	protected final Comparable<?> bound2;
 
 	/**
-	 * Create a comparable value filter.
+	 * Subclass-defined comparison.
 	 *
-	 * @param operator comparison operator.
-	 * @param bound1   first bound (must not be null).
-	 * @param bound2   second bound (only required for BETWEEN_INCLUSIVE).
+	 * @param value the value to test (already known to be {@link Comparable}).
+	 * @return {@code true} if {@code value} satisfies this filter's relation.
 	 */
-	public ComparableValueFilter(Operator operator, Comparable<?> bound1, Comparable<?> bound2)
-	{
-		if (operator == null) {
-			throw new IllegalArgumentException("operator cannot be null.");
-		}
-		if (bound1 == null) {
-			throw new IllegalArgumentException("bound1 cannot be null.");
-		}
-		if (operator == Operator.BETWEEN_INCLUSIVE && bound2 == null) {
-			throw new IllegalArgumentException("bound2 cannot be null for BETWEEN_INCLUSIVE.");
-		}
-		this.operator = operator;
-		this.bound1 = bound1;
-		this.bound2 = bound2;
-	}
+	protected abstract boolean matches(Comparable<?> value);
+
+	// -------------------------------------------------------------------------
+	// Factory methods (preserved for source compatibility)
+	// -------------------------------------------------------------------------
 
 	public static ComparableValueFilter greaterOrEqual(Comparable<?> lowerBoundInclusive)
 	{
-		return new ComparableValueFilter(Operator.GE, lowerBoundInclusive, null);
+		return new GreaterOrEqualValueFilter(lowerBoundInclusive);
 	}
 
 	public static ComparableValueFilter lowerOrEqual(Comparable<?> upperBoundInclusive)
 	{
-		return new ComparableValueFilter(Operator.LE, upperBoundInclusive, null);
+		return new LowerOrEqualValueFilter(upperBoundInclusive);
 	}
 
 	public static ComparableValueFilter betweenInclusive(
@@ -71,34 +67,31 @@ public class ComparableValueFilter implements ValueFilterI
 		Comparable<?> upperBoundInclusive
 		)
 	{
-		return new ComparableValueFilter(
-			Operator.BETWEEN_INCLUSIVE,
-			lowerBoundInclusive,
-			upperBoundInclusive);
+		return new BetweenInclusiveValueFilter(lowerBoundInclusive, upperBoundInclusive);
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@Override
-	public boolean match(Serializable value)
+	public static ComparableValueFilter strictlyGreater(Comparable<?> lowerBoundExclusive)
 	{
-		if (value == null) {
-			return false;
-		}
-		if (!(value instanceof Comparable)) {
-			return false;
-		}
+		return new StrictlyGreaterValueFilter(lowerBoundExclusive);
+	}
 
-		Comparable c = (Comparable) value;
+	public static ComparableValueFilter strictlyLower(Comparable<?> upperBoundExclusive)
+	{
+		return new StrictlyLowerValueFilter(upperBoundExclusive);
+	}
 
-		switch (this.operator) {
-			case GE:
-				return c.compareTo(this.bound1) >= 0;
-			case LE:
-				return c.compareTo(this.bound1) <= 0;
-			case BETWEEN_INCLUSIVE:
-				return c.compareTo(this.bound1) >= 0 && c.compareTo(this.bound2) <= 0;
-			default:
-				return false;
-		}
+	// -------------------------------------------------------------------------
+	// Shared helper
+	// -------------------------------------------------------------------------
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	static int compareUnchecked(Comparable<?> a, Comparable<?> b)
+	{
+		return ((Comparable) a).compareTo(b);
+	}
+
+	static Comparable<?> requireBound(Comparable<?> bound, String name)
+	{
+		return Objects.requireNonNull(bound, name + " cannot be null.");
 	}
 }

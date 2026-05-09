@@ -1,14 +1,22 @@
 package fr.sorbonne_u.cps.pubsub.meteo.impl;
 
 import fr.sorbonne_u.cps.pubsub.meteo.PositionI;
+import fr.sorbonne_u.cps.pubsub.meteo.RegionI;
 
 import java.util.Objects;
 
 /**
  * A 2D position implementation (CDC §3.4).
- 
  *
- * @author Bogdan Styn
+ * <p>
+ * Per the soutenance review (1.8 + 1.9), distance and inclusion logic
+ * involving 2D positions are now methods of this class rather than callers
+ * pulling out raw {@code x}/{@code y} coordinates. This restores the
+ * encapsulation of the position state.
+ * </p>
+ *
+ *
+ * @author Bogdan Styn, Setbel Mélissa
  */
 public class Position2D implements PositionI
 {
@@ -31,6 +39,43 @@ public class Position2D implements PositionI
 	public double getY()
 	{
 		return y;
+	}
+
+	/**
+	 * Euclidean distance between {@code this} and {@code other}.
+	 *
+	 * <p>
+	 * Returns {@link Double#POSITIVE_INFINITY} for any incompatible
+	 * {@link PositionI} subtype so callers remain comparison-safe.
+	 * </p>
+	 *
+	 * @param other another position.
+	 * @return the Euclidean distance, or {@link Double#POSITIVE_INFINITY} if
+	 *         {@code other} is not a {@link Position2D}.
+	 */
+	public double distanceTo(PositionI other)
+	{
+		if (!(other instanceof Position2D)) {
+			return Double.POSITIVE_INFINITY;
+		}
+		Position2D o = (Position2D) other;
+		double dx = this.x - o.x;
+		double dy = this.y - o.y;
+		return Math.sqrt(dx * dx + dy * dy);
+	}
+
+	/**
+	 * Test whether {@code this} is inside the given region.
+	 *
+	 * @param region a region.
+	 * @return {@code true} if the region accepts this position.
+	 */
+	public boolean isInside(RegionI region)
+	{
+		if (region == null) {
+			return false;
+		}
+		return region.in(this);
 	}
 
 	@Override
