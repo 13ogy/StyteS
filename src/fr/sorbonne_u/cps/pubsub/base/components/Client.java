@@ -9,9 +9,9 @@ import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnecto
 
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingInboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.PublishingOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.RegistrationOutboundPort;
 
 
 import fr.sorbonne_u.components.AbstractComponent;
@@ -57,9 +57,9 @@ public class Client extends AbstractComponent {
 		}
 	}
 
-	private ClientPublishingOutboundPort publishingPortOUT;
-	private ClientRegistrationOutboundPort registrationPortOUT;
-	private ClientPrivilegedOutboundPort privilegedPortOUT;
+	private PublishingOutboundPort publishingPortOUT;
+	private RegistrationOutboundPort registrationPortOUT;
+	private PrivilegedClientOutboundPort privilegedPortOUT;
 
 	private RegistrationClass rcCurrent;
 
@@ -94,13 +94,13 @@ public class Client extends AbstractComponent {
 		this.receptionPortIN = new ReceivingInboundPort(this);
 		this.receptionPortIN.publishPort();
 
-		this.publishingPortOUT = new ClientPublishingOutboundPort(this);
+		this.publishingPortOUT = new PublishingOutboundPort(this);
 		this.publishingPortOUT.publishPort();
 
-		this.registrationPortOUT = new ClientRegistrationOutboundPort(this);
+		this.registrationPortOUT = new RegistrationOutboundPort(this);
 		this.registrationPortOUT.publishPort();
 
-		this.privilegedPortOUT = new ClientPrivilegedOutboundPort(this);
+		this.privilegedPortOUT = new PrivilegedClientOutboundPort(this);
 		this.privilegedPortOUT.publishPort();
 
 	}

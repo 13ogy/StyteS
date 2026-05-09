@@ -2,7 +2,7 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.AbstractPlugin;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.PublishingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;

@@ -14,14 +14,14 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  *
  * @author Bogdan Styn
  */
-public class ClientPublishingOutboundPort extends AbstractOutboundPort implements PublishingCI {
+public class PublishingOutboundPort extends AbstractOutboundPort implements PublishingCI {
 
-	public ClientPublishingOutboundPort(ComponentI owner)
+	public PublishingOutboundPort(ComponentI owner)
 			throws Exception {
 		super(PublishingCI.class, owner);
 	}
 
-	public ClientPublishingOutboundPort(Class c, ComponentI owner) throws Exception{
+	public PublishingOutboundPort(Class c, ComponentI owner) throws Exception{
 		super(c, owner);
 	}
 

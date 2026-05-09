@@ -14,9 +14,9 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
  *
  * @author Bogdan Styn
  */
-public class BrokerReceptionOutboundPort extends AbstractOutboundPort implements ReceivingCI {
+public class ReceivingOutboundPort extends AbstractOutboundPort implements ReceivingCI {
 
-	public BrokerReceptionOutboundPort(ComponentI owner) throws Exception {
+	public ReceivingOutboundPort(ComponentI owner) throws Exception {
 		super(ReceivingCI.class, owner);
 	}
 

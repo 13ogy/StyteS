@@ -6,9 +6,9 @@ import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingInboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.PublishingOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.RegistrationOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.*;
@@ -27,9 +27,9 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	private static final long serialVersionUID = 1L;
 
 	protected ReceivingInboundPort receptionPortIN;
-	protected ClientRegistrationOutboundPort registrationPortOUT;
-	protected ClientPublishingOutboundPort publishingPortOUT;
-	protected ClientPrivilegedOutboundPort privilegedPortOUT;
+	protected RegistrationOutboundPort registrationPortOUT;
+	protected PublishingOutboundPort publishingPortOUT;
+	protected PrivilegedClientOutboundPort privilegedPortOUT;
 
 	private ClientSubscriptionPlugin subscriptionPlugin;
 
@@ -93,13 +93,13 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		this.receptionPortIN = new ReceivingInboundPort(this.getOwner(), this.getPluginURI());
 		this.receptionPortIN.publishPort();
 
-		this.registrationPortOUT = new ClientRegistrationOutboundPort(this.getOwner());
+		this.registrationPortOUT = new RegistrationOutboundPort(this.getOwner());
 		this.registrationPortOUT.publishPort();
 
-		this.publishingPortOUT = new ClientPublishingOutboundPort(this.getOwner());
+		this.publishingPortOUT = new PublishingOutboundPort(this.getOwner());
 		this.publishingPortOUT.publishPort();
 
-		this.privilegedPortOUT = new ClientPrivilegedOutboundPort(this.getOwner());
+		this.privilegedPortOUT = new PrivilegedClientOutboundPort(this.getOwner());
 		this.privilegedPortOUT.publishPort();
 
 		// Connect ports
@@ -159,17 +159,17 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		return this.receptionPortIN.getPortURI();
 	}
 
-	public ClientRegistrationOutboundPort getRegistrationPortOUT()
+	public RegistrationOutboundPort getRegistrationPortOUT()
 	{
 		return this.registrationPortOUT;
 	}
 
-	public ClientPublishingOutboundPort getPublishingPortOUT()
+	public PublishingOutboundPort getPublishingPortOUT()
 	{
 		return this.publishingPortOUT;
 	}
 
-	public ClientPrivilegedOutboundPort getPrivilegedPortOUT()
+	public PrivilegedClientOutboundPort getPrivilegedPortOUT()
 	{
 		return this.privilegedPortOUT;
 	}

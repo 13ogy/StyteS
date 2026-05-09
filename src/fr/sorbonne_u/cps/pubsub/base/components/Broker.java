@@ -12,7 +12,7 @@ import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.cps.pubsub.base.connectors.BrokerClientReceivingConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.PublishingInboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.BrokerReceptionOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.RegistrationInboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
@@ -176,7 +176,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/** Registered clients: receptionPortURI -> registration class. */
 	private final Map<String, RegistrationClass> registeredClients = new HashMap<>();
 	/** Per-client outbound port to deliver messages. */
-	private final Map<String, BrokerReceptionOutboundPort> receptionPortsOUT = new HashMap<>();
+	private final Map<String, ReceivingOutboundPort> receptionPortsOUT = new HashMap<>();
 	/** All channels (FREE + privileged). */
 	private final Set<String> channels = new HashSet<>();
 
@@ -381,10 +381,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	protected static class DeliveryTarget
 	{
 		final String subscriberURI;
-		final BrokerReceptionOutboundPort out;
+		final ReceivingOutboundPort out;
 		final MessageFilterI filter;
 
-		DeliveryTarget(String subscriberURI, BrokerReceptionOutboundPort out, MessageFilterI filter)
+		DeliveryTarget(String subscriberURI, ReceivingOutboundPort out, MessageFilterI filter)
 		{
 			this.subscriberURI = subscriberURI;
 			this.out = out;
@@ -510,7 +510,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				for (Map.Entry<String, MessageFilterI> e : subs.entrySet()) {
 					String subscriberURI = e.getKey();
 					MessageFilterI filter = e.getValue();
-					BrokerReceptionOutboundPort out = this.receptionPortsOUT.get(subscriberURI);
+					ReceivingOutboundPort out = this.receptionPortsOUT.get(subscriberURI);
 					if (out != null) {
 						targets.add(new DeliveryTarget(subscriberURI, out, filter));
 					}
@@ -653,7 +653,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	@Override
 	public void finalise() throws Exception {
 
-		for (BrokerReceptionOutboundPort out : this.receptionPortsOUT.values()) {
+		for (ReceivingOutboundPort out : this.receptionPortsOUT.values()) {
 			if (out.connected()) {
 				this.doPortDisconnection(out.getPortURI());
 			}
@@ -670,7 +670,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	@Override
 	public synchronized void shutdown() throws ComponentShutdownException {
 		try {
-			for (BrokerReceptionOutboundPort out : this.receptionPortsOUT.values()) {
+			for (ReceivingOutboundPort out : this.receptionPortsOUT.values()) {
 				if (!out.isDestroyed()) {
 					out.unpublishPort();
 					out.destroyPort();
@@ -829,7 +829,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 
 		// Connexion distante hors verrou : règle "no remote call under lock".
-		BrokerReceptionOutboundPort out = new BrokerReceptionOutboundPort(this);
+		ReceivingOutboundPort out = new ReceivingOutboundPort(this);
 		try {
 			out.publishPort();
 			this.doPortConnection(
@@ -1004,7 +1004,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 
 		// maintenant retirer le client
-		BrokerReceptionOutboundPort out;
+		ReceivingOutboundPort out;
 		this.registrationLock.writeLock().lock();
 		try {
 			out = this.receptionPortsOUT.remove(receptionPortURI);
@@ -1977,7 +1977,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				}
 
 				// maintenant retirer le client
-				BrokerReceptionOutboundPort out;
+				ReceivingOutboundPort out;
 				this.registrationLock.writeLock().lock();
 				try {
 					this.registeredClients.remove(unregMsg.getClientReceptionPortURI());

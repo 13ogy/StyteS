@@ -1,7 +1,7 @@
 package fr.sorbonne_u.cps.pubsub.plugins;
 
 import fr.sorbonne_u.components.AbstractPlugin;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;

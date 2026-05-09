@@ -17,9 +17,9 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  *
  * @author Bogdan Styn
  */
-public class ClientRegistrationOutboundPort extends AbstractOutboundPort implements RegistrationCI{
+public class RegistrationOutboundPort extends AbstractOutboundPort implements RegistrationCI{
 
-	public ClientRegistrationOutboundPort(ComponentI owner) throws Exception {
+	public RegistrationOutboundPort(ComponentI owner) throws Exception {
 		super(RegistrationCI.class, owner);
 
 	}
