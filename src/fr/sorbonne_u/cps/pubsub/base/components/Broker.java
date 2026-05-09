@@ -196,8 +196,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/** Privileged channels: channel -> info (owner + authorisedUsers regex). */
 	private final Map<String, PrivilegedChannelInfo> privilegedChannels = new HashMap<>();
 
-	/** Per-client created privileged channels count. */
-	private final Map<String, Integer> createdPrivilegedChannelsCount = new HashMap<>();
+	/** Per-client created privileged channels count. ConcurrentHashMap so
+	 *  callers can use atomic compute/merge without holding extra locks. */
+	private final java.util.concurrent.ConcurrentHashMap<String, Integer> createdPrivilegedChannelsCount =
+			new java.util.concurrent.ConcurrentHashMap<>();
 
 	/** Channel quotas */
 	private int standardQuota;
@@ -207,8 +209,11 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/** Subscriptions: channel -> (client receptionPortURI -> filter). */
 	private final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
 
-	/** Number of messages currently in-flight per channel. */
-	private final Map<String, Integer> inFlightPerChannel = new HashMap<>();
+	/** Number of messages currently in-flight per channel. ConcurrentHashMap
+	 *  so beginInFlight/finishInFlight use atomic compute() rather than
+	 *  synchronized blocks. */
+	private final java.util.concurrent.ConcurrentHashMap<String, Integer> inFlightPerChannel =
+			new java.util.concurrent.ConcurrentHashMap<>();
 
 	// -------------------------------------------------------------------------
 	// Gossip data
@@ -464,17 +469,17 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 	protected void beginInFlight(String channel)
 	{
-		synchronized (this.inFlightPerChannel) {
-			this.inFlightPerChannel.put(channel, this.inFlightPerChannel.getOrDefault(channel, 0) + 1);
-		}
+		// CHM.compute is atomic for a given key: no extra lock needed.
+		this.inFlightPerChannel.compute(channel, (k, v) -> v == null ? 1 : v + 1);
 	}
 
 	protected void finishInFlight(String channel)
 	{
-		synchronized (this.inFlightPerChannel) {
-			int v = this.inFlightPerChannel.getOrDefault(channel, 0);
-			this.inFlightPerChannel.put(channel, Math.max(0, v - 1));
-		}
+		this.inFlightPerChannel.compute(channel, (k, v) -> {
+			if (v == null) return 0;
+			int next = v - 1;
+			return next < 0 ? 0 : next;
+		});
 	}
 
 	protected void propagationStage(String channel, MessageI message) throws Exception
@@ -1522,9 +1527,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					this.channels.add(channel);
 					this.privilegedChannels.put(channel, new PrivilegedChannelInfo(receptionPortURI, p));
 					this.subscriptions.put(channel, new HashMap<>());
-					synchronized (this.inFlightPerChannel) {
-						this.inFlightPerChannel.put(channel, 0);
-					}
+					this.inFlightPerChannel.put(channel, 0);
 					this.createdPrivilegedChannelsCount.merge(receptionPortURI, 1, Integer::sum);
 
 				} finally {
@@ -1682,11 +1685,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			try {
 				// Attente que les messages en vol se terminent
 				while (true) {
-					int inFlight;
-					synchronized (((Broker) o).inFlightPerChannel) {
-						inFlight = ((Broker) o).inFlightPerChannel
-								.getOrDefault(channel, 0);
-					}
+					int inFlight = ((Broker) o).inFlightPerChannel
+							.getOrDefault(channel, 0);
 					if (inFlight == 0) break;
 					Thread.sleep(10);
 				}
@@ -1714,9 +1714,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					this.subscriptionsLock.writeLock().unlock();
 				}
 				this.privilegedChannels.remove(channel);
-				synchronized (this.inFlightPerChannel) {
-					this.inFlightPerChannel.remove(channel);
-				}
+				this.inFlightPerChannel.remove(channel);
 				this.createdPrivilegedChannelsCount.merge(
 						receptionPortURI, -1, Integer::sum);
 			} finally {
@@ -1766,12 +1764,11 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				}
 				this.channels.remove(channel);
 				this.privilegedChannels.remove(channel);
-				synchronized (this.inFlightPerChannel) {
-					this.inFlightPerChannel.remove(channel);
-				}
-				this.createdPrivilegedChannelsCount.put(
-						receptionPortURI,
-						Math.max(0, this.createdPrivilegedChannelsCount.getOrDefault(receptionPortURI, 1) - 1));
+				this.inFlightPerChannel.remove(channel);
+				this.createdPrivilegedChannelsCount.merge(receptionPortURI, -1, (a, b) -> {
+					int next = a + b;
+					return next < 0 ? 0 : next;
+				});
 			} finally {
 				this.channelsLock.writeLock().unlock();
 			}
@@ -1879,9 +1876,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 										new PrivilegedChannelInfo(
 												ccMsg.getOwnerReceptionPortURI(), pattern));
 								this.subscriptions.put(ccMsg.getChannel(), new HashMap<>());
-								synchronized (this.inFlightPerChannel) {
-									this.inFlightPerChannel.put(ccMsg.getChannel(), 0);
-								}
+								this.inFlightPerChannel.put(ccMsg.getChannel(), 0);
 							} finally {
 								this.subscriptionsLock.writeLock().unlock();
 							}
@@ -1939,9 +1934,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 							}
 							this.channels.remove(dcMsg.getChannel());
 							this.privilegedChannels.remove(dcMsg.getChannel());
-							synchronized (this.inFlightPerChannel) {
-								this.inFlightPerChannel.remove(dcMsg.getChannel());
-							}
+							this.inFlightPerChannel.remove(dcMsg.getChannel());
 							// Décrémenter le quota du propriétaire
 							this.createdPrivilegedChannelsCount.merge(
 									dcMsg.getOwnerReceptionPortURI(), -1, Integer::sum);
