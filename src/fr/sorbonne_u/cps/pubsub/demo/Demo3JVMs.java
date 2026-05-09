@@ -39,20 +39,7 @@ import java.util.concurrent.TimeUnit;
  *       {@link PrivilegedClient} C2 (starts FREE, upgrades to STANDARD)</li>
  * </ul>
  *
- * <p><strong>Test scenario</strong></p>
- * <ol>
- *   <li>C1 and C2 register at their respective local brokers; registration
- *       is propagated via {@code RegisterGossipMessage}.</li>
- *   <li>C2 upgrades to STANDARD via {@code modifyServiceClass}.</li>
- *   <li>C2 creates a privileged channel {@value #CHANNEL} restricted to C1;
- *       creation is propagated via {@code CreateChannelGossipMessage} so B1
- *       replicates the channel locally.</li>
- *   <li>C1 subscribes to {@value #CHANNEL} on B1.</li>
- *   <li>C2 publishes a message on {@value #CHANNEL} via B2; B2 validates
- *       and propagates a {@code PublishGossipMessage} to B1, which delivers
- *       the message to C1.</li>
- * </ol>
- * </pre>
+ *
  *
  * <p><strong>Invariant</strong></p>
  * <pre>
@@ -125,15 +112,17 @@ public class Demo3JVMs extends AbstractDistributedCVM {
      * Steps (all instants relative to {@value #START_INSTANT_STR},
      * real-time with {@code ACCELERATION_FACTOR = 1.0}):
      * </p>
-     * <ol>
-     *   <li><strong>t+5 s</strong>  — C2 upgrades to STANDARD.</li>
-     *   <li><strong>t+15 s</strong> — C2 creates privileged channel
-     *       {@value #CHANNEL}; gossip propagates to B1.</li>
-     *   <li><strong>t+25 s</strong> — C1 subscribes to {@value #CHANNEL}
-     *       on B1 (channel is now known locally via gossip).</li>
-     *   <li><strong>t+35 s</strong> — C2 publishes a message; B2 sends a
-     *       {@code PublishGossipMessage} to B1 which delivers it to C1.</li>
-     * </ol>
+     *
+     * C3 creates channel std that only allows C1
+     * C1 subscribes to channel while C2 fails
+     * C3 modifies authorized used to include C2
+     * C2 subscribes
+     * C3 publishes a messages that both clients get
+     * C2 unregisters
+     * C3 publishes a message that only C1 gets
+     * C3 deletes channel
+     *
+     * TO-DO : make sure the channel is deleted
      *
      * @return the fully configured {@link TestScenario}.
      * @throws Exception if scenario construction fails.
@@ -265,7 +254,7 @@ public class Demo3JVMs extends AbstractDistributedCVM {
                         new TestStep(CLOCK_URI, CLIENT2_URI, unregisterC2Instant,
                                 owner ->{
                             try{
-                                ((PublisherClient) owner).unregister();
+                                ((SubscriberClient) owner).unregister();
                                 owner.traceMessage("[Test gossip] C2 unregistered (gossip Unregister→all)\n");
                             } catch (Exception e) {
                                 owner.traceMessage("[Test gossip] C2 unregister failed: " + e + "\n");

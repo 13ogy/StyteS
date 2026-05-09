@@ -4,6 +4,7 @@ import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.components.utils.tests.TestScenario;
+import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
@@ -83,6 +84,9 @@ public class SubscriberClient extends AbstractComponent {
     // Domain actions called from scenario steps
     public void subscribe(String channel, MessageFilterI filter) throws Exception {
         this.subPlugin.subscribe(channel, filter);
+    }
+    public void unregister() throws UnknownClientException {
+        this.regPlugin.unregister();
     }
     public void unsubscribe(String channel) throws Exception {
         this.subPlugin.unsubscribe(channel);

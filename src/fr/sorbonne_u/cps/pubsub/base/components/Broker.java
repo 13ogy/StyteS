@@ -1627,28 +1627,28 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 			// Propager aux voisins avec nouvel émetteur
 			GossipMessageI forwarded = msg.copyWithNewEmitterURI(this.getReflectionInboundPortURI());
-			try {
-				for (GossipSenderOutboundPort sender : this.gossipSenders) {
+			for (GossipSenderOutboundPort sender : this.gossipSenders) {
+				try {
 					this.runTask(this.esGossipIndex, o -> {
+						System.out.println("[FORWARD TASK] " + ((Broker)o).getReflectionInboundPortURI()
+								+ " forwarding " + forwarded.getClass().getSimpleName());
 						try {
 							sender.send(new GossipMessageI[]{forwarded});
+							System.out.println("[FORWARD TASK] SUCCESS");
 						} catch (Exception e) {
-							((Broker) o).logMessage("[Broker] gossip forward failed: " + e + "\n");
+							System.out.println("[FORWARD TASK] FAILED: " + e);
 						}
 					});
+				} catch (Exception e) {
+					System.out.println("[FORWARD SUBMIT FAILED] " + e);
 				}
-			} catch (Exception e) {
-				throw new RuntimeException(e);
 			}
 		}
 	}
 
 	@Override
 	public void receive(GossipMessageI[] gossipMessages) throws Exception {
-		this.handleRequest(o -> {
-			((Broker) o).update(gossipMessages);
-			return null;
-		});
+		update(gossipMessages);
 	}
 
 	public void gossipToNeighbours(GossipMessageI[] messages) {

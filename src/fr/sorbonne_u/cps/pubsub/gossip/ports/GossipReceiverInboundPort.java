@@ -22,9 +22,12 @@ public class GossipReceiverInboundPort
 
     @Override
     public void receive(GossipMessageI[] gossipMessages) throws Exception {
-        this.getOwner().handleRequest(o -> {
-            ((GossipImplementationI) o).receive(gossipMessages);
-            return null;
+        this.getOwner().runTask(o -> {
+            try {
+                ((GossipImplementationI) o).receive(gossipMessages);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
     }
 }
