@@ -3,7 +3,6 @@ package fr.sorbonne_u.cps.pubsub.base.ports;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
-import fr.sorbonne_u.cps.pubsub.base.connectors.PublishingConnector;
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.components.ports.AbstractOutboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
@@ -11,6 +10,12 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
 /**
  * Outbound port used by clients to access the broker publishing service.
+ *
+ * <p>
+ * Phase D.5: technical exceptions raised by the connector are wrapped in
+ * {@link RemoteException}; {@link PublishingCI} declares no business
+ * exceptions on its methods so the wrap-all path is sufficient.
+ * </p>
  *
  * @author Bogdan Styn
  */
@@ -25,17 +30,23 @@ public class PublishingOutboundPort extends AbstractOutboundPort implements Publ
 		super(c, owner);
 	}
 
-	
+
 	@Override
 	public void publish(String receptionPortURI, String channel, MessageI message) throws Exception {
-		((PublishingCI) this.getConnector()).publish(receptionPortURI, channel, message);
-
+		try {
+			((PublishingCI) this.getConnector()).publish(receptionPortURI, channel, message);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
 	}
 
 	@Override
 	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception {
-		((PublishingCI) this.getConnector()).publish(receptionPortURI, channel, messages);
-
+		try {
+			((PublishingCI) this.getConnector()).publish(receptionPortURI, channel, messages);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -50,9 +61,12 @@ public class PublishingOutboundPort extends AbstractOutboundPort implements Publ
 		String notificationInbounhdPortURI
 		) throws Exception
 	{
-		((PublishingCI) this.getConnector()).asyncPublishAndNotify(
-				receptionPortURI, channel, message, notificationInbounhdPortURI);
-
+		try {
+			((PublishingCI) this.getConnector()).asyncPublishAndNotify(
+					receptionPortURI, channel, message, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
 	}
 
 	@Override
@@ -63,14 +77,11 @@ public class PublishingOutboundPort extends AbstractOutboundPort implements Publ
 		String notificationInbounhdPortURI
 		) throws Exception
 	{
-
-		((PublishingCI) this.getConnector()).asyncPublishAndNotify(
-				receptionPortURI, channel, messages, notificationInbounhdPortURI);
-
+		try {
+			((PublishingCI) this.getConnector()).asyncPublishAndNotify(
+					receptionPortURI, channel, messages, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
 	}
-	
-	
-
-
-
 }

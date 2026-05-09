@@ -12,20 +12,32 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 /**
  * Connector used by clients to call the broker publishing service.
  *
+ * <p>
+ * Phase D.5: technical exceptions raised on the offering side are wrapped
+ * in {@link RemoteException} (the CI declares {@code throws Exception}
+ * only and {@link PublishingCI} carries no business exceptions).
+ * </p>
+ *
  * @author Bogdan Styn
  */
 public class PublishingConnector extends AbstractConnector implements PublishingCI {
 
 	@Override
 	public void publish(String receptionPortURI, String channel, MessageI message) throws Exception {
-		((PublishingCI) this.offering).publish(receptionPortURI, channel, message);
-
+		try {
+			((PublishingCI) this.offering).publish(receptionPortURI, channel, message);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
 	}
 
 	@Override
 	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception {
-		((PublishingCI) this.offering).publish(receptionPortURI, channel, messages);
-
+		try {
+			((PublishingCI) this.offering).publish(receptionPortURI, channel, messages);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -40,9 +52,12 @@ public class PublishingConnector extends AbstractConnector implements Publishing
 		String notificationInbounhdPortURI
 		) throws Exception
 	{
-		((PublishingCI) this.offering).asyncPublishAndNotify(
-				receptionPortURI, channel, message, notificationInbounhdPortURI);
-
+		try {
+			((PublishingCI) this.offering).asyncPublishAndNotify(
+					receptionPortURI, channel, message, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
 	}
 
 	@Override
@@ -53,8 +68,11 @@ public class PublishingConnector extends AbstractConnector implements Publishing
 		String notificationInbounhdPortURI
 		) throws Exception
 	{
-		((PublishingCI) this.offering).asyncPublishAndNotify(
-				receptionPortURI, channel, messages, notificationInbounhdPortURI);
-
+		try {
+			((PublishingCI) this.offering).asyncPublishAndNotify(
+					receptionPortURI, channel, messages, notificationInbounhdPortURI);
+		} catch (Exception e) {
+			throw new RemoteException(e.getMessage(), e);
+		}
 	}
 }
