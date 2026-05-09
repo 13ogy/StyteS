@@ -15,6 +15,11 @@ import fr.sorbonne_u.utils.aclocks.ClocksServer;
 import java.time.Duration;
 import java.util.concurrent.Future;
 
+/**
+ * Full-featured demo client (registration + subscription + publication plugins).
+ *
+ * @author Bogdan Styn, Setbel Mélissa
+ */
 public class FullClient extends AbstractComponent {
 
     private final ClientRegistrationPlugin regPlugin;
@@ -24,14 +29,17 @@ public class FullClient extends AbstractComponent {
     private final TestScenario testScenario;
     private final RegistrationCI.RegistrationClass initialRC;
     private final String uri;
+    private final String brokerReflectionURI;
 
-    protected FullClient(String uri, TestScenario ts,
+    protected FullClient(String uri, String brokerReflectionURI,
+                           TestScenario ts,
                            RegistrationCI.RegistrationClass rc) throws Exception {
         super(uri, 1, 1);
         this.testScenario = ts;
         this.initialRC    = rc;
         this.uri=uri;
-        this.regPlugin = new ClientRegistrationPlugin();
+        this.brokerReflectionURI = brokerReflectionURI;
+        this.regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
         this.regPlugin.setPluginURI(uri + "-reg");
 
         this.subPlugin = new ClientSubscriptionPlugin(
@@ -65,7 +73,8 @@ public class FullClient extends AbstractComponent {
         super.execute();
         this.regPlugin.register(this.initialRC);
 
-        if (this.testScenario != null) {
+        if (this.testScenario != null
+            && this.testScenario.entityAppearsIn(this.getReflectionInboundPortURI())) {
             this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI,
                     this.testScenario.getClockURI());
             this.executeTestScenario(this.testScenario);
@@ -102,5 +111,11 @@ public class FullClient extends AbstractComponent {
     }
     public MessageI waitForNextMessage(String channel, Duration d) {
         return this.subPlugin.waitForNextMessage(channel, d);
+    }
+
+    @Override
+    public synchronized void shutdown() throws ComponentShutdownException {
+        PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
+        super.shutdown();
     }
 }

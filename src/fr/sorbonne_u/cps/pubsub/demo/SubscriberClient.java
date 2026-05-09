@@ -12,6 +12,11 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
 import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
+/**
+ * Subscriber-only demo client (registration + subscription plugins).
+ *
+ * @author Bogdan Styn, Setbel Mélissa
+ */
 public class SubscriberClient extends AbstractComponent {
 
     // -------------------------------------------------------------------------
@@ -23,14 +28,17 @@ public class SubscriberClient extends AbstractComponent {
     private final TestScenario testScenario;
     private final RegistrationCI.RegistrationClass initialRC;
     private final String uri;
+    private final String brokerReflectionURI;
 
-    protected SubscriberClient(String uri, TestScenario ts,
+    protected SubscriberClient(String uri, String brokerReflectionURI,
+                            TestScenario ts,
                             RegistrationCI.RegistrationClass rc) throws Exception {
         super(uri, 1, 1); // 1 schedulable thread for executeTestScenario
         this.testScenario = ts;
         this.initialRC    = rc;
         this.uri=uri;
-        this.regPlugin = new ClientRegistrationPlugin();
+        this.brokerReflectionURI = brokerReflectionURI;
+        this.regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
         this.regPlugin.setPluginURI(uri + "-reg");
 
         this.subPlugin = new ClientSubscriptionPlugin(
@@ -43,9 +51,9 @@ public class SubscriberClient extends AbstractComponent {
         this.getTracer().setTitle(uri);
     }
     // Constructeur sans scénario pour le déploiement réparti
-    protected SubscriberClient(String uri,
+    protected SubscriberClient(String uri, String brokerReflectionURI,
                                RegistrationCI.RegistrationClass rc) throws Exception {
-        this(uri, null, rc);
+        this(uri, brokerReflectionURI, null, rc);
     }
 
     public void onReceive(String channel, MessageI message) {
@@ -73,7 +81,8 @@ public class SubscriberClient extends AbstractComponent {
         super.execute();
         this.regPlugin.register(this.initialRC);
         this.traceMessage("registered ✓\n");
-        if (this.testScenario != null) {
+        if (this.testScenario != null
+            && this.testScenario.entityAppearsIn(this.getReflectionInboundPortURI())) {
             this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI,
                     this.testScenario.getClockURI());
             this.traceMessage("clock initialized ✓\n");
@@ -93,5 +102,11 @@ public class SubscriberClient extends AbstractComponent {
     }
     public void modifyServiceClass(RegistrationCI.RegistrationClass rc) throws Exception {
         this.regPlugin.modifyServiceClass(rc);
+    }
+
+    @Override
+    public synchronized void shutdown() throws ComponentShutdownException {
+        PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
+        super.shutdown();
     }
 }

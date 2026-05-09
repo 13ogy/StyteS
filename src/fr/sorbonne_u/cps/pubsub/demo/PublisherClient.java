@@ -13,6 +13,11 @@ import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
 import java.util.ArrayList;
 
+/**
+ * Publisher-only demo client (registration + publication plugins).
+ *
+ * @author Bogdan Styn, Setbel Mélissa
+ */
 public class PublisherClient extends AbstractComponent {
 
     // -------------------------------------------------------------------------
@@ -23,14 +28,17 @@ public class PublisherClient extends AbstractComponent {
     private final ClientPublicationPlugin pubPlugin;
     private final TestScenario testScenario;
     private final RegistrationCI.RegistrationClass initialRC;
+    private final String brokerReflectionURI;
 
-    protected PublisherClient(String uri, TestScenario ts,
+    protected PublisherClient(String uri, String brokerReflectionURI,
+                           TestScenario ts,
                            RegistrationCI.RegistrationClass rc) throws Exception {
         super(uri, 1, 1);
         this.testScenario = ts;
         this.initialRC    = rc;
+        this.brokerReflectionURI = brokerReflectionURI;
 
-        this.regPlugin = new ClientRegistrationPlugin();
+        this.regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
         this.regPlugin.setPluginURI(uri + "-reg");
 
         this.pubPlugin = new ClientPublicationPlugin(regPlugin);
@@ -56,7 +64,8 @@ public class PublisherClient extends AbstractComponent {
         super.execute();
         this.regPlugin.register(this.initialRC);
         this.traceMessage("registered ✓\n");
-        if (this.testScenario != null) {
+        if (this.testScenario != null
+            && this.testScenario.entityAppearsIn(this.getReflectionInboundPortURI())) {
             this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI,
                     this.testScenario.getClockURI());
             this.traceMessage("clock initialized ✓\n");
@@ -77,5 +86,11 @@ public class PublisherClient extends AbstractComponent {
     }
     public void modifyServiceClass(RegistrationCI.RegistrationClass rc) throws Exception {
         this.regPlugin.modifyServiceClass(rc);
+    }
+
+    @Override
+    public synchronized void shutdown() throws ComponentShutdownException {
+        PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
+        super.shutdown();
     }
 }
