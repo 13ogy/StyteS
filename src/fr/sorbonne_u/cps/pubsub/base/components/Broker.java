@@ -37,6 +37,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
+import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllMessageFilter;
 
 import fr.sorbonne_u.components.annotations.OfferedInterfaces;
 import fr.sorbonne_u.components.annotations.RequiredInterfaces;
@@ -102,6 +103,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// PublishingCI async (added in latest interface)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Async publish with optional notification (CDC §3.4 + Audit 2).
+	 *
+	 * @throws IllegalArgumentException if any string parameter is null/empty,
+	 *         or {@code message} is null. ({@code notificationInbounhdPortURI}
+	 *         may be null = no notification.)
+	 */
 	public void asyncPublishAndNotify(
 		String publisherReceptionPortURI,
 		String channel,
@@ -109,10 +117,21 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		String notificationInbounhdPortURI
 		) throws Exception
 	{
+		requireClient(publisherReceptionPortURI);
+		requireChannel(channel);
+		if (message == null) {
+			throw new IllegalArgumentException("message cannot be null.");
+		}
 		// Audit 2: asynchronous submission.
 		this.submitPublish(publisherReceptionPortURI, channel, message, notificationInbounhdPortURI);
 	}
 
+	/**
+	 * Bulk async publish with optional notification.
+	 *
+	 * @throws IllegalArgumentException if any string parameter is null/empty,
+	 *         or {@code messages} is null/empty.
+	 */
 	public void asyncPublishAndNotify(
 		String publisherReceptionPortURI,
 		String channel,
@@ -120,6 +139,11 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		String notificationInbounhdPortURI
 		) throws Exception
 	{
+		requireClient(publisherReceptionPortURI);
+		requireChannel(channel);
+		if (messages == null || messages.isEmpty()) {
+			throw new IllegalArgumentException("messages cannot be null or empty.");
+		}
 		for (MessageI m : messages) {
 			this.submitPublish(publisherReceptionPortURI, channel, m, notificationInbounhdPortURI);
 		}
@@ -942,8 +966,52 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Channel/subscriptions (RegistrationCI)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Pre-check used by every channel-guarded method: rejects {@code null} or
+	 * empty {@code channel} arguments before any lock is taken (Phase C.2).
+	 *
+	 * @throws IllegalArgumentException if {@code channel} is {@code null}
+	 *                                  or empty.
+	 */
+	private static void requireChannel(String channel) {
+		if (channel == null || channel.isEmpty()) {
+			throw new IllegalArgumentException("channel cannot be null or empty.");
+		}
+	}
+
+	/**
+	 * Pre-check used by every method that identifies a client by its
+	 * reception port URI (Phase C.2). Rejects {@code null}/empty before any
+	 * lock is taken.
+	 *
+	 * @throws IllegalArgumentException if {@code receptionPortURI} is
+	 *                                  {@code null} or empty.
+	 */
+	private static void requireClient(String receptionPortURI) {
+		if (receptionPortURI == null || receptionPortURI.isEmpty()) {
+			throw new IllegalArgumentException(
+					"receptionPortURI cannot be null or empty.");
+		}
+	}
+
+	/**
+	 * Normalise a {@code null} filter to the canonical accept-all
+	 * singleton (Phase C.2). The CDC §3.4 contract allows {@code null}
+	 * to mean "accept every message"; storing the singleton instead of
+	 * {@code null} avoids null checks on the delivery hot path.
+	 */
+	private static MessageFilterI orAcceptAll(MessageFilterI filter) {
+		return filter == null ? AcceptAllMessageFilter.INSTANCE : filter;
+	}
+
+	/**
+	 * Returns true iff the given channel currently exists.
+	 *
+	 * @throws IllegalArgumentException if {@code channel} is null/empty.
+	 */
 	public boolean channelExist(String channel) throws Exception
 	{
+		requireChannel(channel);
 		this.channelsLock.readLock().lock();
 		try {
 			return this.channelExistLocked(channel);
@@ -978,7 +1046,14 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	}
 
+	/**
+	 * @throws IllegalArgumentException     if a parameter is null/empty.
+	 * @throws UnknownClientException       if {@code receptionPortURI} is unknown.
+	 * @throws UnknownChannelException      if {@code channel} does not exist.
+	 */
 	public boolean channelAuthorised(String receptionPortURI, String channel) throws Exception {
+		requireClient(receptionPortURI);
+		requireChannel(channel);
 
 		this.registrationLock.readLock().lock();
 		try {
@@ -993,8 +1068,15 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * @throws IllegalArgumentException     if a parameter is null/empty.
+	 * @throws UnknownClientException       if {@code receptionPortURI} is unknown.
+	 * @throws UnknownChannelException      if {@code channel} does not exist.
+	 */
 	public boolean subscribed(String receptionPortURI, String channel) throws Exception
 	{
+		requireClient(receptionPortURI);
+		requireChannel(channel);
 		this.registrationLock.readLock().lock();
 		try {
 			if (!this.registeredLocked(receptionPortURI)) {
@@ -1020,12 +1102,24 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Subscribe {@code receptionPortURI} to {@code channel} with {@code filter}.
+	 *
+	 * <p>A {@code null} filter is interpreted as "accept every message" per
+	 * CDC §3.4 and is stored internally as {@link AcceptAllMessageFilter#INSTANCE}
+	 * so the delivery hot path never has to null-check (Phase C.2).</p>
+	 *
+	 * @throws IllegalArgumentException     if a string parameter is null/empty.
+	 * @throws UnknownClientException       if the client is not registered.
+	 * @throws UnknownChannelException      if the channel does not exist.
+	 * @throws UnauthorisedClientException  if the client lacks permission on
+	 *                                      a privileged channel.
+	 */
 	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter) throws Exception
 	{
-
-		if (filter == null) {
-			throw new IllegalArgumentException("filter cannot be null.");
-		}
+		requireClient(receptionPortURI);
+		requireChannel(channel);
+		final MessageFilterI effective = orAcceptAll(filter);
 
 		// Validation sous deux verrous lecture, puis souscription en écriture
 		// (ordre canonique respecté).
@@ -1044,7 +1138,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 						// vérification ci-dessus et la prise du verrou.
 						throw new UnknownChannelException(channel);
 					}
-					subs.put(receptionPortURI, filter);
+					subs.put(receptionPortURI, effective);
 				} finally {
 					this.subscriptionsLock.writeLock().unlock();
 				}
@@ -1057,8 +1151,16 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * @throws IllegalArgumentException        if a parameter is null/empty.
+	 * @throws UnknownClientException          if the client is not registered.
+	 * @throws UnknownChannelException         if the channel does not exist.
+	 * @throws NotSubscribedChannelException   if the client is not subscribed.
+	 */
 	public void unsubscribe(String receptionPortURI, String channel) throws Exception
 	{
+		requireClient(receptionPortURI);
+		requireChannel(channel);
 		this.registrationLock.readLock().lock();
 		try {
 			if (!this.registeredLocked(receptionPortURI)) {
@@ -1088,12 +1190,23 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Modify the subscription filter of {@code receptionPortURI} on
+	 * {@code channel}. A {@code null} filter is treated as "accept every
+	 * message" and stored as {@link AcceptAllMessageFilter#INSTANCE}
+	 * (Phase C.2).
+	 *
+	 * @throws IllegalArgumentException        if a string parameter is null/empty.
+	 * @throws UnknownClientException          if the client is not registered.
+	 * @throws UnknownChannelException         if the channel does not exist.
+	 * @throws NotSubscribedChannelException   if the client is not subscribed.
+	 */
 	public boolean modifyFilter(String receptionPortURI, String channel, MessageFilterI filter) throws Exception
 	{
+		requireClient(receptionPortURI);
+		requireChannel(channel);
+		final MessageFilterI effective = orAcceptAll(filter);
 
-		if (filter == null) {
-			throw new IllegalArgumentException("filter cannot be null.");
-		}
 		this.registrationLock.readLock().lock();
 		try {
 			if (!this.registeredLocked(receptionPortURI)) {
@@ -1111,7 +1224,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 						throw new NotSubscribedChannelException(
 								"Client " + receptionPortURI + " not subscribed to " + channel);
 					}
-					subs.put(receptionPortURI, filter);
+					subs.put(receptionPortURI, effective);
 					return true;
 				} finally {
 					this.subscriptionsLock.writeLock().unlock();
@@ -1128,14 +1241,40 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Publishing (PublishingCI)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Asynchronous publish (CDC §3.4 / Audit 2). Runs the reception stage on
+	 * the broker's dedicated reception executor; the call is fire-and-forget.
+	 *
+	 * <p>Pre-checks are surface only ({@code IllegalArgumentException} if any
+	 * argument is null/empty). The business exceptions
+	 * ({@link UnknownClientException}, {@link UnknownChannelException},
+	 * {@link UnauthorisedClientException}) are raised inside the reception
+	 * stage and surfaced via the broker logger (Phase E.5 will route them
+	 * through {@code AbnormalTerminationNotificationCI}).</p>
+	 *
+	 * @throws IllegalArgumentException if any argument is null/empty.
+	 */
 	public void publish(String publisherReceptionPortURI, String channel, MessageI message) throws Exception
 	{
+		requireClient(publisherReceptionPortURI);
+		requireChannel(channel);
+		if (message == null) {
+			throw new IllegalArgumentException("message cannot be null.");
+		}
 		// Audit 2: publish must be asynchronous (fire-and-forget submission).
 		this.submitPublish(publisherReceptionPortURI, channel, message, null);
 	}
 
+	/**
+	 * Bulk publish: like {@link #publish(String, String, MessageI)} but for
+	 * a non-empty list of messages. (Phase C.5 optimises the dispatch.)
+	 *
+	 * @throws IllegalArgumentException if any argument is null/empty.
+	 */
 	public void publish(String publisherReceptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception
 	{
+		requireClient(publisherReceptionPortURI);
+		requireChannel(channel);
 		if (messages == null || messages.isEmpty()) {
 			throw new IllegalArgumentException("messages cannot be null or empty.");
 		}
@@ -1152,8 +1291,15 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Privileged channels management (PrivilegedClientCI)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * @throws IllegalArgumentException     if a parameter is null/empty.
+	 * @throws UnknownClientException       if the client is not registered.
+	 * @throws UnknownChannelException      if the channel does not exist.
+	 */
 	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws Exception
 	{
+		requireClient(receptionPortURI);
+		requireChannel(channel);
 		this.registrationLock.readLock().lock();
 		try {
 			if (!this.registeredLocked(receptionPortURI)) {
@@ -1175,9 +1321,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	}
 
+	/**
+	 * @throws IllegalArgumentException if {@code receptionPortURI} is null/empty.
+	 * @throws UnknownClientException   if the client is not registered.
+	 */
 	public boolean channelQuotaReached(String receptionPortURI) throws Exception
 	{
-
+		requireClient(receptionPortURI);
 		this.registrationLock.readLock().lock();
 		try {
 			return this.channelQuotaReachedLocked(receptionPortURI);
@@ -1208,11 +1358,24 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Create a privileged channel owned by {@code receptionPortURI}, with
+	 * an optional {@code autorisedUsers} regex (matched against subscribing
+	 * clients' reception port URIs).
+	 *
+	 * @throws IllegalArgumentException        if a string parameter is null/empty.
+	 * @throws UnknownClientException          if the client is not registered.
+	 * @throws UnauthorisedClientException     if the client is FREE
+	 *                                         (only STANDARD/PREMIUM may
+	 *                                         create privileged channels).
+	 * @throws ChannelQuotaExceededException   if the client already owns
+	 *                                         their quota of channels.
+	 * @throws AlreadyExistingChannelException if {@code channel} already exists.
+	 */
 	public void createChannel(String receptionPortURI, String channel, String autorisedUsers) throws Exception
 	{
-		if (channel == null || channel.isEmpty()) {
-			throw new IllegalArgumentException("channel cannot be null or empty.");
-		}
+		requireClient(receptionPortURI);
+		requireChannel(channel);
 		// Compilation regex hors verrou : section critique courte.
 		Pattern p = null;
 		if (autorisedUsers != null && !autorisedUsers.isEmpty()) {
@@ -1278,9 +1441,22 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
 	}
 
+	/**
+	 * Replace the {@code authorisedUsers} regex of the privileged channel
+	 * {@code channel} owned by {@code receptionPortURI}. The new regex is
+	 * compiled before any lock is taken so an invalid pattern does not
+	 * disturb broker state.
+	 *
+	 * @throws IllegalArgumentException     if a parameter is null/empty.
+	 * @throws UnknownClientException       if the client is not registered.
+	 * @throws UnknownChannelException      if the channel does not exist.
+	 * @throws UnauthorisedClientException  if the client does not own
+	 *                                      this privileged channel.
+	 */
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers) throws Exception
 	{
-
+		requireClient(receptionPortURI);
+		requireChannel(channel);
 		if (autorisedUsers == null || autorisedUsers.isEmpty()) {
 			throw new IllegalArgumentException("autorisedUsers cannot be null/empty for modifyAuthorisedUsers.");
 		}
@@ -1331,8 +1507,21 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	}
 
+	/**
+	 * Asynchronous channel destruction (CDC §3.4): hides the channel
+	 * immediately so no new publish accepts it, then schedules the
+	 * subscriptions / quotas cleanup for after every in-flight delivery
+	 * has drained.
+	 *
+	 * @throws IllegalArgumentException     if a parameter is null/empty.
+	 * @throws UnknownClientException       if the client is not registered.
+	 * @throws UnknownChannelException      if the channel does not exist.
+	 * @throws UnauthorisedClientException  if the client does not own this channel.
+	 */
 	public void destroyChannel(String receptionPortURI, String channel) throws Exception
 	{
+		requireClient(receptionPortURI);
+		requireChannel(channel);
 		// Vérification d'autorisation sous verrous lecture, puis attente
 		// active sur le compteur in-flight (hors verrous lourds).
 		this.registrationLock.readLock().lock();
@@ -1422,7 +1611,19 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Synchronous channel destruction (CDC §3.4): all state for the channel
+	 * is wiped under the broker's locks, regardless of in-flight messages.
+	 *
+	 * @param propagate if true, broadcast a destroy gossip to neighbours.
+	 * @throws IllegalArgumentException     if a parameter is null/empty.
+	 * @throws UnknownClientException       if the client is not registered.
+	 * @throws UnknownChannelException      if the channel does not exist.
+	 * @throws UnauthorisedClientException  if the client does not own this channel.
+	 */
 	public void destroyChannelNow(String receptionPortURI, String channel, boolean propagate) throws Exception {
+		requireClient(receptionPortURI);
+		requireChannel(channel);
 		this.registrationLock.writeLock().lock();
 		try {
 			if (!this.registeredLocked(receptionPortURI)) {
