@@ -947,18 +947,42 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc) throws Exception
 	{
-		if (!this.registered(receptionPortURI)) {
-			throw new UnknownClientException(receptionPortURI);
-		}
 		if (rc == null) {
 			throw new IllegalArgumentException("rc cannot be null.");
 		}
+		requireClient(receptionPortURI);
+
+		// C.8-find-5: collapse the registration-state transition into a
+		// SINGLE writeLock acquisition. The previous version called
+		// registered() (which takes/releases readLock), then acquired
+		// writeLock to flip the class, then released and re-acquired
+		// later for the FREE-downgrade quota mutation — leaving a TOCTOU
+		// window where a concurrent unregister + re-register could leak
+		// state. Now: validate + flip class + (FREE: snapshot owned
+		// channels, STANDARD/PREMIUM: install quota entry) atomically.
+		// No public method is called while the writeLock is held — so
+		// destroyChannelNow runs only afterwards.
+		List<String> ownedChannels = new ArrayList<>();
 		this.registrationLock.writeLock().lock();
 		try {
 			if (!this.registeredLocked(receptionPortURI)) {
 				throw new UnknownClientException(receptionPortURI);
 			}
 			this.registeredClients.put(receptionPortURI, rc);
+			if (rc == RegistrationClass.FREE) {
+				this.channelsLock.readLock().lock();
+				try {
+					for (Map.Entry<String, PrivilegedChannelInfo> e : this.privilegedChannels.entrySet()) {
+						if (e.getValue().ownerReceptionPortURI.equals(receptionPortURI)) {
+							ownedChannels.add(e.getKey());
+						}
+					}
+				} finally {
+					this.channelsLock.readLock().unlock();
+				}
+			} else {
+				this.createdPrivilegedChannelsCount.putIfAbsent(receptionPortURI, 0);
+			}
 		} finally {
 			this.registrationLock.writeLock().unlock();
 		}
@@ -966,20 +990,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 		// Allowing service class upgrade/downgrade
 		if (rc == RegistrationClass.FREE) {
-			// Destroy channels created by user
-			List<String> ownedChannels = new ArrayList<>();
 			List<GossipMessageI> gossipMessages = new ArrayList<>();
-			this.channelsLock.readLock().lock();
-			try {
-				for (Map.Entry<String, PrivilegedChannelInfo> e : privilegedChannels.entrySet()) {
-					if (e.getValue().ownerReceptionPortURI.equals(receptionPortURI)) {
-						ownedChannels.add(e.getKey());
-					}
-				}
-			} finally {
-				this.channelsLock.readLock().unlock();
-			}
-
 			// destroyChannelNow hors lock — elle prend ses propres locks
 			for (String ch : ownedChannels) {
 				this.destroyChannelNow(receptionPortURI, ch, false); //ne pas repropager
@@ -998,10 +1009,15 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					rc);
 			gossipMessages.add(modificationGossip);
 
-
+			// Final quota cleanup, with re-validation: a concurrent
+			// unregister between the two writeLock sections must NOT
+			// allow this remove() to clobber a fresh re-registration.
 			this.registrationLock.writeLock().lock();
 			try {
-				this.createdPrivilegedChannelsCount.remove(receptionPortURI);
+				if (this.registeredLocked(receptionPortURI)
+						&& this.registeredClients.get(receptionPortURI) == RegistrationClass.FREE) {
+					this.createdPrivilegedChannelsCount.remove(receptionPortURI);
+				}
 			} finally {
 				this.registrationLock.writeLock().unlock();
 			}
@@ -1009,12 +1025,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			return publishingPortIN.getPortURI();
 
 		} else {
-			this.registrationLock.writeLock().lock();
-			try {
-				this.createdPrivilegedChannelsCount.putIfAbsent(receptionPortURI, 0);
-			} finally {
-				this.registrationLock.writeLock().unlock();
-			}
 			return privilegedPortIN.getPortURI();
 		}
 	}
