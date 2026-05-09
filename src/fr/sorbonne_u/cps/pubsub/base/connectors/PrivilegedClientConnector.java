@@ -1,10 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.base.connectors;
 
-import fr.sorbonne_u.components.connectors.AbstractConnector;
-import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
-
-import java.util.ArrayList;
 
 /**
  * Connector from a client privileged outbound port to the broker privileged
@@ -12,7 +8,10 @@ import java.util.ArrayList;
  *
  * <p>
  * The connector forwards calls to the offering component through
- * {@link #offering}.
+ * {@link #offering}. Publishing operations are inherited from
+ * {@link PublishingConnector} (Phase D.2): {@link PrivilegedClientCI} extends
+ * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, so the privileged
+ * connector is-a publishing connector.
  * </p>
  *
  * @author Bogdan Styn

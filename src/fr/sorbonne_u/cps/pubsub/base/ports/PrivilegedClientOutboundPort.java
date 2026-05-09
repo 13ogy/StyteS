@@ -1,14 +1,11 @@
 package fr.sorbonne_u.cps.pubsub.base.ports;
 
 import fr.sorbonne_u.components.ComponentI;
-import fr.sorbonne_u.components.ports.AbstractOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
-import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
 
 import java.rmi.RemoteException;
-import java.util.ArrayList;
 
 /**
  * Outbound port used by clients to call privileged channel-management operations
@@ -16,8 +13,11 @@ import java.util.ArrayList;
  *
  * <p>
  * Methods forward calls to the connected connector using {@link #getConnector()}.
+ * Publishing operations ({@code publish}, {@code asyncPublishAndNotify}) are
+ * inherited from {@link PublishingOutboundPort} since {@link PrivilegedClientCI}
+ * specialises {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}; this
+ * mirrors the CI specialisation in the OO port hierarchy (Phase D.2).
  * </p>
- 
  *
  * @author Bogdan Styn
  */
@@ -92,62 +92,8 @@ public class PrivilegedClientOutboundPort extends PublishingOutboundPort impleme
 	}
 
 	// -------------------------------------------------------------------------
-	// PublishingCI (inherited by PrivilegedClientCI)
+	// PublishingCI publish/asyncPublishAndNotify are inherited from
+	// PublishingOutboundPort (Phase D.2): PrivilegedClientCI extends PublishingCI
+	// so the privileged outbound port is-a publishing outbound port.
 	// -------------------------------------------------------------------------
-
-	@Override
-	public void publish(String receptionPortURI, String channel, MessageI message) throws RemoteException
-	{
-		try {
-			((PrivilegedClientCI) this.getConnector()).publish(receptionPortURI, channel, message);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	@Override
-	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages) throws RemoteException
-	{
-		try {
-			((PrivilegedClientCI) this.getConnector()).publish(receptionPortURI, channel, messages);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// PublishingCI async (added in latest interface)
-	// -------------------------------------------------------------------------
-
-	@Override
-	public void asyncPublishAndNotify(
-		String receptionPortURI,
-		String channel,
-		MessageI message,
-		String notificationInbounhdPortURI
-		) throws RemoteException
-	{
-		try {
-			((PrivilegedClientCI) this.getConnector()).asyncPublishAndNotify(
-				receptionPortURI, channel, message, notificationInbounhdPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
-
-	@Override
-	public void asyncPublishAndNotify(
-		String receptionPortURI,
-		String channel,
-		ArrayList<MessageI> messages,
-		String notificationInbounhdPortURI
-		) throws RemoteException
-	{
-		try {
-			((PrivilegedClientCI) this.getConnector()).asyncPublishAndNotify(
-				receptionPortURI, channel, messages, notificationInbounhdPortURI);
-		} catch (Exception e) {
-			throw new RemoteException(e.getMessage(), e);
-		}
-	}
 }
