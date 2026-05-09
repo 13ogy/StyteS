@@ -1814,8 +1814,15 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				}
 				this.privilegedChannels.remove(channel);
 				this.inFlightPerChannel.remove(channel);
+				// C.8-find-1: clamp to zero (same as destroyChannelNow) so
+				// stray gossip / re-entry cannot drive the quota negative
+				// after the owner already downgraded to FREE (entry absent
+				// = merge would otherwise re-create a -1 entry).
 				this.createdPrivilegedChannelsCount.merge(
-						receptionPortURI, -1, Integer::sum);
+						receptionPortURI, -1, (a, b) -> {
+							int next = a + b;
+							return next < 0 ? 0 : next;
+						});
 				// Post-mutation invariants: cleanup wiped everything and
 				// the quota counter cannot go negative.
 				assert !this.subscriptions.containsKey(channel)
