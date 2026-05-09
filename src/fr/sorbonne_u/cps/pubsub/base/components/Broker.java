@@ -2138,15 +2138,27 @@ public class Broker extends AbstractComponent implements GossipImplementationI
                 ModifyAuthorisedUsersGossipMessage mauMsg =
                         (ModifyAuthorisedUsersGossipMessage) msg;
                 Pattern newPattern = Pattern.compile(mauMsg.getAuthorisedUsers());
-                this.channelsLock.writeLock().lock();
+                // C.8-find-4: align with local modifyAuthorisedUsers, which
+                // takes registrationLock.readLock() then channelsLock.writeLock().
+                // The gossip handler previously took only channelsLock.writeLock(),
+                // creating an inconsistent lock order versus other paths
+                // (e.g. unregister) that hold registrationLock.writeLock()
+                // and then need channelsLock — under contention this could
+                // deadlock. Acquire in the same order, release in reverse.
+                this.registrationLock.readLock().lock();
                 try {
-                    PrivilegedChannelInfo info =
-                            this.privilegedChannels.get(mauMsg.getChannel());
-                    if (info != null) {
-                        info.authorisedUsersPattern = newPattern;
+                    this.channelsLock.writeLock().lock();
+                    try {
+                        PrivilegedChannelInfo info =
+                                this.privilegedChannels.get(mauMsg.getChannel());
+                        if (info != null) {
+                            info.authorisedUsersPattern = newPattern;
+                        }
+                    } finally {
+                        this.channelsLock.writeLock().unlock();
                     }
                 } finally {
-                    this.channelsLock.writeLock().unlock();
+                    this.registrationLock.readLock().unlock();
                 }
             }
 
