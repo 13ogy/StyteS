@@ -44,7 +44,7 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p><strong>Description</strong></p>
  *
  * <p>
- * Levée par {@link fr.sorbonne_u.cps.pubsub.messages.Message#getProperty(String)}
+ * Levée par {@link fr.sorbonne_u.cps.pubsub.messages.Message#getPropertyValue(String)}
  * lorsque le nom de propriété demandé n'a pas été défini par
  * {@code putProperty(...)} sur le message courant (CDC §3.5 — contrat des
  * messages).
