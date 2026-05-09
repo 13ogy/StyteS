@@ -143,5 +143,29 @@ extends		PluginI
 	 * @throws UnknownClientException	when the component is not registered yet.
 	 */
 	public void			unregister() throws UnknownClientException;
+
+	/**
+	 * Hook invoked when the client detects that its connection to the broker
+	 * has been lost (e.g. broker JVM crash, network partition, abnormal
+	 * termination from the other side). The default implementation is a
+	 * no-op so existing subclasses are unaffected; new subclasses may
+	 * override it to release per-session state, schedule a reconnection
+	 * attempt, or notify the application.
+	 *
+	 * <p>
+	 * <strong>Phase E.5</strong>: this is purely a Java-side hook on the
+	 * plugin interface; it does not appear on any BCM
+	 * {@code ComponentInterface} ({@code RegistrationCI},
+	 * {@code ReceivingCI}). The actual broker→client disconnect detection
+	 * is out of scope for this phase — only the API surface is added.
+	 * </p>
+	 *
+	 * @param reason	human-readable explanation of the disconnect cause,
+	 *					or {@code null} if unknown.
+	 */
+	public default void	onBrokerDisconnect(String reason)
+	{
+		// no-op default
+	}
 }
 // -----------------------------------------------------------------------------
