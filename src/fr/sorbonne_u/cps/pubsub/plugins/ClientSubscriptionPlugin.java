@@ -10,12 +10,11 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingI;
 
 import java.time.Duration;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -36,8 +35,16 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 	// Advanced reception (CDC §3.5.3) state
 	// ---------------------------------------------------------------------
 
-	/** Per-channel FIFO of received messages not yet consumed by advanced calls. */
-	protected final Map<String, Deque<MessageI>> pendingMessages = new HashMap<>();
+	/**
+	 * Per-channel FIFO of received messages not yet consumed by advanced calls.
+	 * Backed by {@link LinkedBlockingQueue} (Phase E.4) so that
+	 * {@link #waitForNextMessage(String)} and
+	 * {@link #waitForNextMessage(String, Duration)} provide fair, blocking
+	 * FIFO semantics when multiple consumers race on the same channel; this
+	 * supersedes the previous {@code ArrayDeque} + {@code wait/notifyAll}
+	 * combination, which mixed FIFO insertion with non-FIFO wakeup.
+	 */
+	protected final Map<String, LinkedBlockingQueue<MessageI>> pendingMessages = new HashMap<>();
 	/** Per-channel next-message future to complete when a message arrives. */
 	protected final Map<String, CompletableFuture<MessageI>> nextMessageFutures = new HashMap<>();
 
@@ -151,15 +158,23 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 
 		System.out.println("[CLientSubscribtionPlugin] received message : " + message.getPayload());
 		// First, satisfy advanced reception consumers (if any).
+		LinkedBlockingQueue<MessageI> queue;
 		synchronized (this) {
-			CompletableFuture<MessageI> f = this.nextMessageFutures.get(channel);
+			CompletableFuture<MessageI> f = this.nextMessageFutures.remove(channel);
 			if (f != null && !f.isDone()) {
 				f.complete(message);
+				if (this.handler != null) {
+					this.handler.onReceive(channel, message);
+				}
 				return;
 			}
-			this.pendingMessages.computeIfAbsent(channel, c -> new ArrayDeque<>()).addLast(message);
-			this.notifyAll();
+			queue = this.pendingMessages.computeIfAbsent(
+				channel, c -> new LinkedBlockingQueue<>());
 		}
+		// Enqueue outside the monitor: LinkedBlockingQueue is itself
+		// thread-safe and provides the FIFO + blocking semantics needed by
+		// waitForNextMessage().
+		queue.add(message);
 		if (this.handler != null) {
 
 			this.handler.onReceive(channel, message);
@@ -190,18 +205,19 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		if (channel == null || channel.isEmpty()) {
 			throw new IllegalArgumentException("channel cannot be null/empty");
 		}
+		LinkedBlockingQueue<MessageI> q;
 		synchronized (this) {
-			Deque<MessageI> q = this.pendingMessages.get(channel);
-			while (q == null || q.isEmpty()) {
-				try {
-					this.wait();
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					return null;
-				}
-				q = this.pendingMessages.get(channel);
-			}
-			return q.removeFirst();
+			q = this.pendingMessages.computeIfAbsent(
+				channel, c -> new LinkedBlockingQueue<>());
+		}
+		try {
+			// take() blocks fairly (FIFO) until a message is enqueued by
+			// receive(); concurrent waiters on the same channel are served
+			// in arrival order by LinkedBlockingQueue's internal lock.
+			return q.take();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return null;
 		}
 	}
 
@@ -214,26 +230,16 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		if (d == null) {
 			throw new IllegalArgumentException("duration cannot be null");
 		}
-		long remainingNanos = d.toNanos();
-		long deadline = System.nanoTime() + remainingNanos;
+		LinkedBlockingQueue<MessageI> q;
 		synchronized (this) {
-			Deque<MessageI> q = this.pendingMessages.get(channel);
-			while (q == null || q.isEmpty()) {
-				if (remainingNanos <= 0) {
-					return null;
-				}
-				try {
-					long ms = TimeUnit.NANOSECONDS.toMillis(remainingNanos);
-					int ns = (int) (remainingNanos - TimeUnit.MILLISECONDS.toNanos(ms));
-					this.wait(ms, ns);
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					return null;
-				}
-				remainingNanos = deadline - System.nanoTime();
-				q = this.pendingMessages.get(channel);
-			}
-			return q.removeFirst();
+			q = this.pendingMessages.computeIfAbsent(
+				channel, c -> new LinkedBlockingQueue<>());
+		}
+		try {
+			return q.poll(d.toNanos(), TimeUnit.NANOSECONDS);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return null;
 		}
 	}
 
@@ -244,9 +250,12 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 			throw new IllegalArgumentException("channel cannot be null/empty");
 		}
 		synchronized (this) {
-			Deque<MessageI> q = this.pendingMessages.get(channel);
-			if (q != null && !q.isEmpty()) {
-				return CompletableFuture.completedFuture(q.removeFirst());
+			LinkedBlockingQueue<MessageI> q = this.pendingMessages.get(channel);
+			if (q != null) {
+				MessageI head = q.poll();
+				if (head != null) {
+					return CompletableFuture.completedFuture(head);
+				}
 			}
 			CompletableFuture<MessageI> f = this.nextMessageFutures.get(channel);
 			if (f == null || f.isDone()) {
