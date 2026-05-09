@@ -18,8 +18,54 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Client-side plugin implementing subscription operations (CDC §3.5).
- * 
+ * Plugin client implémentant les opérations de souscription (CDC §3.5),
+ * y compris l'API de réception avancée (CDC §3.5.3).
+ *
+ * <p><strong>Description</strong></p>
+ *
+ * <p>
+ * Comme {@link ClientPublicationPlugin}, ce plugin <em>ne possède pas
+ * de port en propre</em> : les opérations
+ * {@code subscribe} / {@code unsubscribe} / {@code modifyFilter} sont
+ * relayées au broker via le port outbound {@code RegistrationCI} possédé
+ * par {@link ClientRegistrationPlugin}. Les méthodes {@link #receive}
+ * sont quant à elles appelées par le {@code ClientRegistrationPlugin}
+ * lorsqu'un message arrive sur son port {@code ReceivingCI} (le plugin
+ * de registration agit comme dispatcher).
+ * </p>
+ *
+ * <p><strong>Réception avancée (CDC §3.5.3)</strong></p>
+ * <p>
+ * En plus de la livraison passive via le {@link ReceivingI handler}
+ * fourni au constructeur, ce plugin offre deux modes pull :
+ * </p>
+ * <ul>
+ *   <li>{@link #waitForNextMessage(String)} et
+ *       {@link #waitForNextMessage(String, Duration)} : prélèvement
+ *       bloquant, équitable (FIFO) et thread-safe sur le canal donné.</li>
+ *   <li>{@link #getNextMessage(String)} : retourne un
+ *       {@link CompletableFuture} résolu lorsque le prochain message
+ *       arrive (ou immédiatement si la file contient déjà un message).</li>
+ * </ul>
+ *
+ * <p>
+ * Les files par canal sont des {@link LinkedBlockingQueue} (Phase E.4).
+ * Cette structure :
+ * </p>
+ * <ul>
+ *   <li>est intrinsèquement thread-safe : aucune synchronisation
+ *       supplémentaire n'est nécessaire pour {@code add} / {@code take}
+ *       / {@code poll} ;</li>
+ *   <li>fournit une garantie d'équité FIFO entre consommateurs
+ *       concurrents, contrairement à l'ancien
+ *       {@code ArrayDeque + wait/notifyAll} qui mêlait insertion FIFO
+ *       et réveil non FIFO.</li>
+ * </ul>
+ *
+ * <p>L'URI du plugin suit la convention
+ * {@code <reflectionURI>-subscription-plugin}.</p>
+ *
+ * <p>Created on : 2026-02-04</p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
@@ -67,6 +113,11 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		this.handler = handler;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>Délègue au port {@code RegistrationCI} du plugin de registration.</p>
+	 */
 	@Override
 	public boolean channelExist(String channel)
 	{
@@ -77,6 +128,12 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @throws UnknownClientException	si le client n'est pas enregistré.
+	 * @throws UnknownChannelException	si {@code channel} n'existe pas.
+	 */
 	@Override
 	public boolean channelAuthorised(String channel) throws UnknownClientException, UnknownChannelException
 	{
@@ -91,6 +148,12 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @throws UnknownClientException	si le client n'est pas enregistré.
+	 * @throws UnknownChannelException	si {@code channel} n'existe pas.
+	 */
 	@Override
 	public boolean subscribed(String channel) throws UnknownClientException, UnknownChannelException
 	{
@@ -105,6 +168,19 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		}
 	}
 
+	/**
+	 * Souscrit ce client à {@code channel} avec le filtre {@code filter}.
+	 * Délègue au port {@code RegistrationCI} en passant l'URI de réception
+	 * comme identité.
+	 *
+	 * @param channel	canal cible.
+	 * @param filter	filtre de messages ; peut être {@code null} pour
+	 *					souscrire sans filtre.
+	 * @throws UnknownClientException		si le client n'est pas enregistré.
+	 * @throws UnknownChannelException		si {@code channel} n'existe pas.
+	 * @throws UnauthorisedClientException	si le client n'est pas autorisé
+	 *										à souscrire à {@code channel}.
+	 */
 	@Override
 	public void subscribe(String channel, MessageFilterI filter)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
@@ -121,6 +197,17 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		}
 	}
 
+	/**
+	 * Retire la souscription de ce client à {@code channel}.
+	 *
+	 * @param channel	canal cible.
+	 * @throws UnknownClientException			si le client n'est pas enregistré.
+	 * @throws UnknownChannelException			si {@code channel} n'existe pas.
+	 * @throws UnauthorisedClientException		si le client n'est pas autorisé
+	 *											à utiliser {@code channel}.
+	 * @throws NotSubscribedChannelException	si le client n'est pas
+	 *											souscrit à {@code channel}.
+	 */
 	@Override
 	public void unsubscribe(String channel)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException, NotSubscribedChannelException
@@ -136,6 +223,19 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		}
 	}
 
+	/**
+	 * Remplace le filtre associé à la souscription courante de ce client
+	 * sur {@code channel}.
+	 *
+	 * @param channel	canal cible.
+	 * @param filter	nouveau filtre de messages.
+	 * @throws UnknownClientException			si le client n'est pas enregistré.
+	 * @throws UnknownChannelException			si {@code channel} n'existe pas.
+	 * @throws UnauthorisedClientException		si le client n'est pas autorisé
+	 *											à utiliser {@code channel}.
+	 * @throws NotSubscribedChannelException	si le client n'est pas
+	 *											souscrit à {@code channel}.
+	 */
 	@Override
 	public void modifyFilter(String channel, MessageFilterI filter)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException, NotSubscribedChannelException
@@ -152,6 +252,32 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		}
 	}
 
+	/**
+	 * Point d'entrée appelé par le {@link ClientRegistrationPlugin}
+	 * (qui possède le port {@code ReceivingCI}) lorsqu'un message arrive.
+	 *
+	 * <p>Logique de routage :</p>
+	 * <ol>
+	 *   <li>si un {@link CompletableFuture} non terminé est en attente
+	 *       sur ce canal (mode {@link #getNextMessage}), il est complété
+	 *       avec le message et retiré du registre ; le handler passif
+	 *       est ensuite notifié et la méthode retourne ;</li>
+	 *   <li>sinon, le message est ajouté à la {@link LinkedBlockingQueue}
+	 *       du canal (créée à la demande) ; cet ajout débloque tout
+	 *       consommateur en attente sur
+	 *       {@link #waitForNextMessage(String)} dans l'ordre FIFO ;</li>
+	 *   <li>le handler passif {@link ReceivingI} est ensuite notifié
+	 *       (s'il est non {@code null}).</li>
+	 * </ol>
+	 *
+	 * <p>L'enqueue est volontairement réalisé hors du moniteur : la
+	 * {@link LinkedBlockingQueue} est elle-même thread-safe et garantit
+	 * la sémantique FIFO + bloquante requise par
+	 * {@code waitForNextMessage}.</p>
+	 *
+	 * @param channel	canal de provenance.
+	 * @param message	message reçu.
+	 */
 	@Override
 	public void receive(String channel, MessageI message)
 	{
@@ -181,6 +307,16 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		}
 	}
 
+	/**
+	 * Variante batch de {@link #receive(String, MessageI)} : itère sur le
+	 * tableau et appelle {@code receive(channel, m)} pour chaque message
+	 * non {@code null}.
+	 *
+	 * @param channel	canal de provenance.
+	 * @param messages	messages reçus (peut être {@code null}, auquel cas
+	 *					seul le handler passif est notifié avec un tableau
+	 *					{@code null}).
+	 */
 	@Override
 	public void receive(String channel, MessageI[] messages)
 	{
@@ -199,6 +335,23 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 	// Pas de CDC §3.5.3
 	// ---------------------------------------------------------------------
 
+	/**
+	 * Bloque le thread appelant jusqu'à l'arrivée du prochain message
+	 * sur {@code channel}.
+	 *
+	 * <p>
+	 * <strong>Équité FIFO :</strong> implémenté via
+	 * {@link LinkedBlockingQueue#take()} ; lorsque plusieurs threads
+	 * appellent simultanément cette méthode pour le même canal, ils sont
+	 * servis dans l'ordre d'arrivée des messages, sans risque de famine.
+	 * </p>
+	 *
+	 * @param channel	canal cible (non {@code null}, non vide).
+	 * @return			le prochain message reçu, ou {@code null} si le
+	 *					thread appelant a été interrompu pendant l'attente.
+	 * @throws IllegalArgumentException	si {@code channel} est {@code null}
+	 *									ou vide.
+	 */
 	@Override
 	public MessageI waitForNextMessage(String channel)
 	{
@@ -221,6 +374,17 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		}
 	}
 
+	/**
+	 * Variante avec délai maximal : bloque jusqu'à l'arrivée du prochain
+	 * message sur {@code channel} ou expiration de {@code d}.
+	 *
+	 * @param channel	canal cible (non {@code null}, non vide).
+	 * @param d			délai maximal d'attente (non {@code null}).
+	 * @return			le prochain message reçu, ou {@code null} si le
+	 *					délai expire ou si le thread est interrompu.
+	 * @throws IllegalArgumentException	si {@code channel} ou {@code d} sont
+	 *									invalides.
+	 */
 	@Override
 	public MessageI waitForNextMessage(String channel, Duration d)
 	{
@@ -243,6 +407,35 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 		}
 	}
 
+	/**
+	 * Retourne un {@link Future} (concrètement un
+	 * {@link CompletableFuture}) résolu au prochain message disponible
+	 * sur {@code channel}.
+	 *
+	 * <p><strong>Sémantique</strong></p>
+	 * <ul>
+	 *   <li>si la file du canal contient déjà un message, il est consommé
+	 *       et le future retourné est <em>déjà complété</em>
+	 *       ({@code CompletableFuture.completedFuture(head)}) ;</li>
+	 *   <li>sinon, un future en attente est mémorisé pour ce canal et
+	 *       partagé entre appelants successifs tant qu'il n'est pas
+	 *       complété ; le prochain {@link #receive} sur ce canal le
+	 *       complète puis l'efface du registre.</li>
+	 * </ul>
+	 *
+	 * <p>
+	 * <strong>Note d'équité :</strong> contrairement à
+	 * {@link #waitForNextMessage(String)} (FIFO via
+	 * {@link LinkedBlockingQueue}), plusieurs appels simultanés à
+	 * {@code getNextMessage} sur le même canal partagent le même future ;
+	 * ils sont donc tous résolus avec le même message lorsqu'il arrive.
+	 * </p>
+	 *
+	 * @param channel	canal cible (non {@code null}, non vide).
+	 * @return			future résolu avec le prochain message reçu.
+	 * @throws IllegalArgumentException	si {@code channel} est {@code null}
+	 *									ou vide.
+	 */
 	@Override
 	public Future<MessageI> getNextMessage(String channel)
 	{

@@ -15,10 +15,66 @@ import fr.sorbonne_u.cps.pubsub.interfaces.*;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
 /**
- * Client-side plugin implementing registration operations (CDC §3.5).
- * It owns the ports needed to register to the broker and connect the publication
- * and privileged management ports.
- 
+ * Plugin client implémentant les opérations d'enregistrement (CDC §3.5).
+ *
+ * <p><strong>Description</strong></p>
+ *
+ * <p>
+ * Ce plugin est le pivot de l'architecture cliente : il possède
+ * <em>tous</em> les ports nécessaires au dialogue avec le broker, et les
+ * autres plugins ({@link ClientPublicationPlugin},
+ * {@link ClientSubscriptionPlugin}, {@link ClientPrivilegedPlugin}) y
+ * accèdent au lieu de publier leurs propres ports. Cela évite de
+ * multiplier les ports inbound côté client et garantit une identité unique
+ * (l'URI du port {@code ReceivingCI}) pour ce client vis-à-vis du broker.
+ * </p>
+ *
+ * <p>Ports possédés :</p>
+ * <ul>
+ *   <li>{@link ReceivingInboundPort} — port inbound offrant
+ *       {@code ReceivingCI}, utilisé par le broker pour livrer les
+ *       messages ; son URI sert d'identité du client ;</li>
+ *   <li>{@link RegistrationOutboundPort} — port outbound vers
+ *       {@code RegistrationCI} (register / unregister / subscribe / …) ;</li>
+ *   <li>{@link PublishingOutboundPort} — port outbound vers
+ *       {@code PublishingCI}, connecté au moment de {@link #register} ;</li>
+ *   <li>{@link PrivilegedClientOutboundPort} — port outbound vers
+ *       {@code PrivilegedClientCI}, connecté en plus pour les classes
+ *       STANDARD et PREMIUM (DUAL-CONNECT, voir {@link #register}).</li>
+ * </ul>
+ *
+ * <p>Cycle de vie BCM (cf. {@link AbstractPlugin}) :</p>
+ * <ul>
+ *   <li>{@link #installOn} — déclare les interfaces offertes/requises sur
+ *       le composant propriétaire si elles ne sont pas déjà présentes
+ *       (idempotent : une déclaration via {@code @OfferedInterfaces} ou
+ *       {@code @RequiredInterfaces} sur le composant est respectée) ;</li>
+ *   <li>{@link #initialise} — publie les quatre ports et connecte le port
+ *       de registration au broker (URI dérivée de
+ *       {@link Broker#registrationPortURIFor(String)}) ;</li>
+ *   <li>{@link #finalise} — déconnecte les ports outbound encore
+ *       connectés ;</li>
+ *   <li>{@link #uninstall} — re-déconnecte défensivement, dépublie et
+ *       détruit tous les ports puis retire les interfaces déclarées par
+ *       {@code installOn}. {@code uninstall()} peut être appelé directement
+ *       depuis {@code shutdown()} sans passer par {@code finalise()}, d'où
+ *       les gardes {@code connected()} / {@code isPublished()}.</li>
+ * </ul>
+ *
+ * <p><strong>Invariants &amp; contrats</strong></p>
+ * <ul>
+ *   <li>{@link #installOn} et {@link #uninstall} sont idempotents : ils ne
+ *       lèvent pas si une interface est déjà (resp. n'est plus) présente ;</li>
+ *   <li>après {@link #register} avec {@link RegistrationClass#STANDARD} ou
+ *       {@link RegistrationClass#PREMIUM}, les ports
+ *       {@code publishingPortOUT} <em>et</em> {@code privilegedPortOUT}
+ *       sont tous deux connectés (DUAL-CONNECT) ;</li>
+ *   <li>l'URI du plugin suit la convention
+ *       {@code <reflectionURI>-registration-plugin} fixée par
+ *       {@code PluginClient}.</li>
+ * </ul>
+ *
+ * <p>Created on : 2026-02-04</p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
@@ -26,14 +82,21 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 {
 	private static final long serialVersionUID = 1L;
 
+	/** Port inbound {@code ReceivingCI} ; son URI sert d'identité du client. */
 	protected ReceivingInboundPort receptionPortIN;
+	/** Port outbound vers {@code RegistrationCI} du broker. */
 	protected RegistrationOutboundPort registrationPortOUT;
+	/** Port outbound vers {@code PublishingCI} (connecté lors du {@link #register}). */
 	protected PublishingOutboundPort publishingPortOUT;
+	/** Port outbound vers {@code PrivilegedClientCI} (connecté pour STANDARD/PREMIUM). */
 	protected PrivilegedClientOutboundPort privilegedPortOUT;
 
+	/** Plugin de souscription destinataire des messages reçus (peut être {@code null}). */
 	private ClientSubscriptionPlugin subscriptionPlugin;
 
+	/** Classe de service courante (FREE / STANDARD / PREMIUM). */
 	protected RegistrationClass currentRC;
+	/** {@code true} ssi le client est actuellement enregistré auprès du broker. */
 	protected boolean registered;
 
 	/** Reflection inbound port URI of the broker this client wants to talk
@@ -66,10 +129,35 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		this.registered = false;
 	}
 
+	/**
+	 * Enregistre le plugin de souscription auquel les messages reçus sur le
+	 * port {@code ReceivingCI} doivent être routés (cf. {@link #receive}).
+	 *
+	 * @param plugin	plugin de souscription destinataire ; peut être
+	 *					{@code null} pour détacher la livraison.
+	 */
 	public void setSubscriptionPlugin(ClientSubscriptionPlugin plugin){
 		this.subscriptionPlugin = plugin;
 	}
 
+	/**
+	 * Déclare sur le composant propriétaire les interfaces offertes
+	 * ({@code ReceivingCI}) et requises ({@code RegistrationCI},
+	 * {@code PublishingCI}, {@code PrivilegedClientCI}) nécessaires au
+	 * dialogue avec le broker.
+	 *
+	 * <p>
+	 * <strong>Idempotence :</strong> chaque {@code addOfferedInterface} /
+	 * {@code addRequiredInterface} est gardé par un test
+	 * {@code isOfferedInterface} / {@code isRequiredInterface}. Cela permet
+	 * au composant propriétaire de déclarer ces interfaces statiquement via
+	 * {@code @OfferedInterfaces} / {@code @RequiredInterfaces} sans
+	 * déclencher la précondition de BCM (re-déclaration interdite).
+	 * </p>
+	 *
+	 * @param owner		composant sur lequel installer le plugin.
+	 * @throws Exception	si l'installation BCM échoue.
+	 */
 	@Override
 	public void installOn(fr.sorbonne_u.components.ComponentI owner) throws Exception
 	{
@@ -90,6 +178,16 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 			this.addRequiredInterface(PrivilegedClientCI.class);
 		}
 	}
+	/**
+	 * Publie les quatre ports du plugin et connecte le port outbound
+	 * {@code RegistrationCI} au broker. L'URI du port {@code RegistrationCI}
+	 * du broker est dérivée de l'URI de réflexion du broker (Phase C.3) via
+	 * {@link Broker#registrationPortURIFor(String)}.
+	 *
+	 * @throws Exception	si l'URI de réflexion du broker n'a pas été
+	 *						fourni au constructeur, ou si la publication ou
+	 *						la connexion d'un port échoue.
+	 */
 	@Override
 	public void initialise() throws Exception {
 		super.initialise();
@@ -118,6 +216,13 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 				Broker.registrationPortURIFor(this.brokerReflectionURI),
 				RegistrationConnector.class.getCanonicalName());
 	}
+	/**
+	 * Déconnecte les ports outbound encore connectés. Les ports sont
+	 * détruits par {@link #uninstall} ; {@code finalise()} se contente
+	 * d'assurer un état déconnecté propre.
+	 *
+	 * @throws Exception	si une déconnexion BCM échoue.
+	 */
 	@Override
 	public void finalise() throws Exception {
 		if (this.registrationPortOUT != null && this.registrationPortOUT.connected()) {
@@ -131,6 +236,26 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		}
 		super.finalise();
 	}
+	/**
+	 * Démantèle complètement le plugin : déconnecte (défensivement)
+	 * chacun des ports outbound encore connectés, dépublie puis détruit
+	 * les quatre ports, et retire les interfaces déclarées par
+	 * {@link #installOn}.
+	 *
+	 * <p>
+	 * <strong>Sûreté en cas de {@code shutdown()} :</strong>
+	 * {@code uninstall()} peut être invoqué directement par
+	 * {@code AbstractComponent.shutdown()} sans passer par
+	 * {@link #finalise()}, ou être appelé après que des helpers de
+	 * shutdown défensifs ont déjà dépublié certains ports. C'est pourquoi
+	 * chaque action est gardée par {@code connected()},
+	 * {@code isPublished()} ou {@code isDestroyed()} (les préconditions
+	 * BCM échoueraient sinon sous {@code -ea}).
+	 * </p>
+	 *
+	 * @throws Exception	si une opération BCM (déconnexion, dépublication,
+	 *						destruction de port) échoue.
+	 */
 	@Override
 	public void uninstall() throws Exception
 	{
@@ -188,21 +313,42 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	// Accessors
 	// ---------------------------------------------------------------------
 
+	/**
+	 * @return l'URI publiée du port {@code ReceivingCI} ; cette URI est
+	 *         l'identité unique de ce client telle que vue par le broker
+	 *         (utilisée comme clé d'enregistrement, dans les motifs
+	 *         {@code authorisedUsers} des canaux privilégiés, etc.).
+	 * @throws Exception si le port n'est pas encore publié.
+	 */
 	public String getReceptionPortURI() throws Exception
 	{
 		return this.receptionPortIN.getPortURI();
 	}
 
+	/**
+	 * @return le port outbound {@code RegistrationCI} possédé par ce plugin,
+	 *         partagé avec les autres plugins clients.
+	 */
 	public RegistrationOutboundPort getRegistrationPortOUT()
 	{
 		return this.registrationPortOUT;
 	}
 
+	/**
+	 * @return le port outbound {@code PublishingCI} possédé par ce plugin,
+	 *         connecté au broker dès l'appel à {@link #register}.
+	 */
 	public PublishingOutboundPort getPublishingPortOUT()
 	{
 		return this.publishingPortOUT;
 	}
 
+	/**
+	 * @return le port outbound {@code PrivilegedClientCI} possédé par ce
+	 *         plugin ; n'est connecté que pour les classes
+	 *         {@link RegistrationClass#STANDARD} et
+	 *         {@link RegistrationClass#PREMIUM}.
+	 */
 	public PrivilegedClientOutboundPort getPrivilegedPortOUT()
 	{
 		return this.privilegedPortOUT;
@@ -212,12 +358,26 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	// ClientRegistrationI
 	// ---------------------------------------------------------------------
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return {@code true} ssi {@link #register} a été appelé avec succès
+	 *         et que {@link #unregister} ne l'a pas (encore) annulé.
+	 */
 	@Override
 	public boolean registered()
 	{
 		return this.registered;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param rc	classe de service à comparer.
+	 * @return		{@code true} ssi le client est enregistré et que sa
+	 *				classe courante est égale à {@code rc}.
+	 * @throws UnknownClientException	si le client n'est pas enregistré.
+	 */
 	@Override
 	public boolean registered(RegistrationClass rc) throws UnknownClientException
 	{
@@ -227,6 +387,28 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		return rc != null && rc == this.currentRC;
 	}
 
+	/**
+	 * Enregistre ce client auprès du broker avec la classe de service
+	 * {@code rc} et établit le câblage outbound correspondant.
+	 *
+	 * <p><strong>DUAL-CONNECT (CDC §3.5.1) :</strong></p>
+	 * <ul>
+	 *   <li>{@link RegistrationClass#FREE} : seul {@code publishingPortOUT}
+	 *       est connecté au port {@code PublishingCI} retourné par le
+	 *       broker ;</li>
+	 *   <li>{@link RegistrationClass#STANDARD} et
+	 *       {@link RegistrationClass#PREMIUM} : le broker retourne l'URI
+	 *       d'un port {@code PrivilegedClientCI} (qui hérite de
+	 *       {@code PublishingCI}) ; <em>les deux</em> ports
+	 *       {@code privilegedPortOUT} et {@code publishingPortOUT} sont
+	 *       alors connectés à cette même URI, afin que les appels passant
+	 *       par le plugin de publication continuent de fonctionner pour
+	 *       ces classes de service.</li>
+	 * </ul>
+	 *
+	 * @param rc	classe de service demandée ; non {@code null}.
+	 * @throws AlreadyRegisteredException	si le client est déjà enregistré.
+	 */
 	@Override
 	public void register(RegistrationClass rc) throws AlreadyRegisteredException
 	{
@@ -265,6 +447,17 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 
 	}
 
+	/**
+	 * Modifie la classe de service du client en re-câblant les ports
+	 * outbound (déconnecte ceux liés à l'ancienne classe puis se reconnecte
+	 * au port retourné par le broker pour la nouvelle classe).
+	 *
+	 * @param rc	nouvelle classe de service demandée ; non {@code null}
+	 *				et différente de la classe courante.
+	 * @throws UnknownClientException		si le client n'est pas enregistré.
+	 * @throws AlreadyRegisteredException	si {@code rc} est égale à la
+	 *										classe courante.
+	 */
 	@Override
 	public void modifyServiceClass(RegistrationClass rc) throws UnknownClientException, AlreadyRegisteredException
 	{
@@ -310,6 +503,11 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		}
 	}
 
+	/**
+	 * Désenregistre le client auprès du broker.
+	 *
+	 * @throws UnknownClientException	si le client n'est pas enregistré.
+	 */
 	@Override
 	public void unregister() throws UnknownClientException
 	{
@@ -327,6 +525,17 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	}
 
 
+	/**
+	 * Point d'entrée invoqué par le port {@link ReceivingInboundPort} de ce
+	 * plugin lors de la livraison d'un message par le broker. Re-route
+	 * vers le {@link ClientSubscriptionPlugin} associé (si présent) qui
+	 * applique la livraison passive (callback handler) et notifie les
+	 * consommateurs en attente via {@code waitForNextMessage} /
+	 * {@code getNextMessage}.
+	 *
+	 * @param channel	canal de provenance du message.
+	 * @param message	message reçu.
+	 */
 	public void receive(String channel, MessageI message) {
 		if (this.subscriptionPlugin != null) {
 			this.subscriptionPlugin.receive(channel, message);
