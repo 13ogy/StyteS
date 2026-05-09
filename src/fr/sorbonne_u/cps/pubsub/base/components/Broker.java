@@ -135,8 +135,14 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	private BrokerPrivilegedInboundPort privilegedPortIN;
 	private GossipReceiverInboundPort gossipPortIN;
 
-	// URI statique d'enregistrement
-	public static String REGISTRATION_PORT_URI;
+	// Suffixes used to derive each broker inbound port URI from the
+	// broker's reflection inbound port URI (Phase C.3). The static field
+	// REGISTRATION_PORT_URI was removed because it is per-JVM and was
+	// silently clobbered by a second broker instantiated in the same JVM
+	// (multi-broker scenarios in tests, ScenarioRunner wiring, etc.).
+	public static final String REGISTRATION_PORT_URI_SUFFIX = "-reg-in";
+	public static final String PUBLISHING_PORT_URI_SUFFIX   = "-pub-in";
+	public static final String PRIVILEGED_PORT_URI_SUFFIX   = "-priv-in";
 
 	// -------------------------------------------------------------------------
 	// State
@@ -214,19 +220,28 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 
 	// -------------------------------------------------------------------------
-	// Constructor
+	// Constructors
 	// -------------------------------------------------------------------------
+	//
+	// Phase C.3 refactor: all four overloads now delegate to a single
+	// {@link #init(...)} helper. Two minimal pass-through constructors
+	// remain because {@code super(...)} must be the first call:
+	//   - one with an explicit reflexion port URI (multi-JVM/distributed),
+	//   - one without (centralised CVM, generated reflexion port).
+	// In both cases the broker's port URIs are derived deterministically
+	// from {@link #getReflectionInboundPortURI()}, removing the
+	// last-broker-wins hazard of the previous static field.
 
 	protected Broker(int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
 					 int nbReceptionThreads, int nbPropagationThreads,
-					 int nbDeliveryThreads) throws Exception{
-
-		this(nbThreads,nbSchedulableThreads,nbFreeChannels,
+					 int nbDeliveryThreads) throws Exception {
+		this(nbThreads, nbSchedulableThreads, nbFreeChannels,
 				standardQuota, premiumQuota, nbReceptionThreads,
 				nbPropagationThreads, nbDeliveryThreads,
-				new ArrayList<>()); //pas de voisins
+				new ArrayList<>()); // pas de voisins
 	}
+
 	protected Broker(int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
 					 int nbReceptionThreads, int nbPropagationThreads,
@@ -234,38 +249,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					 List<String> neighborsGossipURIs) throws Exception
 	{
 		super(nbThreads, nbSchedulableThreads);
-
-		// Create explicit thread pools for audit 2.
-		this.esReceptionIndex = this.createNewExecutorService(ES_RECEPTION_URI, nbReceptionThreads, false);
-		this.esPropagationIndex = this.createNewExecutorService(ES_PROPAGATION_URI, nbPropagationThreads, false);
-		this.esDeliveryIndex = this.createNewExecutorService(ES_DELIVERY_URI, nbDeliveryThreads, false);
-
-		this.esGossipIndex = this.createNewExecutorService(ES_GOSSIP_URI, 4, false);
-
-		this.nbFreeChannels=nbFreeChannels;
-		for (int i = 0; i < nbFreeChannels; i++) {
-			String c = "channel" + i;
-			this.channels.add(c);
-			this.subscriptions.put(c, new HashMap<>());
-			this.inFlightPerChannel.put(c, 0);
-		}
-		this.standardQuota = standardQuota;
-		this.premiumQuota = premiumQuota;
-
-		registrationPortIN = new BrokerRegistrationInboundPort(this);
-		registrationPortIN.publishPort();
-		REGISTRATION_PORT_URI = registrationPortIN.getPortURI();
-
-		publishingPortIN = new BrokerPublishingInboundPort(this);
-		publishingPortIN.publishPort();
-
-		privilegedPortIN = new BrokerPrivilegedInboundPort(this);
-		privilegedPortIN.publishPort();
-
-		gossipPortIN = new GossipReceiverInboundPort(this);
-		gossipPortIN.publishPort();
-
-		this.gossipURIs = neighborsGossipURIs;
+		this.init(nbFreeChannels, standardQuota, premiumQuota,
+				nbReceptionThreads, nbPropagationThreads, nbDeliveryThreads,
+				neighborsGossipURIs);
 	}
 
 	// broker avec port de reflexion pour la répartition
@@ -273,14 +259,14 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					 int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
 					 int nbReceptionThreads, int nbPropagationThreads,
-					 int nbDeliveryThreads) throws Exception{
-
+					 int nbDeliveryThreads) throws Exception {
 		this(reflexionPort,
-				nbThreads,nbSchedulableThreads,nbFreeChannels,
+				nbThreads, nbSchedulableThreads, nbFreeChannels,
 				standardQuota, premiumQuota, nbReceptionThreads,
 				nbPropagationThreads, nbDeliveryThreads,
-				new ArrayList<>()); //pas de voisins
+				new ArrayList<>()); // pas de voisins
 	}
+
 	protected Broker(String reflexionPort,
 					 int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
@@ -289,15 +275,33 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					 List<String> neighborsGossipURIs) throws Exception
 	{
 		super(reflexionPort, nbThreads, nbSchedulableThreads);
+		this.init(nbFreeChannels, standardQuota, premiumQuota,
+				nbReceptionThreads, nbPropagationThreads, nbDeliveryThreads,
+				neighborsGossipURIs);
+	}
 
-		// Create explicit thread pools for audit 2.
-		this.esReceptionIndex = this.createNewExecutorService(ES_RECEPTION_URI, nbReceptionThreads, false);
+	/**
+	 * Common initialisation shared by every constructor (Phase C.3):
+	 * creates the executor services, the FREE channels, and publishes the
+	 * four broker inbound ports under URIs deterministically derived from
+	 * {@link #getReflectionInboundPortURI()}.
+	 *
+	 * <p>Must be called immediately after {@code super(...)} so that
+	 * {@code getReflectionInboundPortURI()} returns the correct value
+	 * (whether a URI was provided to the super constructor or generated
+	 * by it).</p>
+	 */
+	private void init(int nbFreeChannels, int standardQuota, int premiumQuota,
+					  int nbReceptionThreads, int nbPropagationThreads,
+					  int nbDeliveryThreads,
+					  List<String> neighborsGossipURIs) throws Exception
+	{
+		this.esReceptionIndex   = this.createNewExecutorService(ES_RECEPTION_URI,   nbReceptionThreads,   false);
 		this.esPropagationIndex = this.createNewExecutorService(ES_PROPAGATION_URI, nbPropagationThreads, false);
-		this.esDeliveryIndex = this.createNewExecutorService(ES_DELIVERY_URI, nbDeliveryThreads, false);
+		this.esDeliveryIndex    = this.createNewExecutorService(ES_DELIVERY_URI,    nbDeliveryThreads,    false);
+		this.esGossipIndex      = this.createNewExecutorService(ES_GOSSIP_URI,      4,                    false);
 
-		this.esGossipIndex = this.createNewExecutorService(ES_GOSSIP_URI, 4, false);
-
-		this.nbFreeChannels=nbFreeChannels;
+		this.nbFreeChannels = nbFreeChannels;
 		for (int i = 0; i < nbFreeChannels; i++) {
 			String c = "channel" + i;
 			this.channels.add(c);
@@ -305,22 +309,25 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			this.inFlightPerChannel.put(c, 0);
 		}
 		this.standardQuota = standardQuota;
-		this.premiumQuota = premiumQuota;
+		this.premiumQuota  = premiumQuota;
 
-		registrationPortIN = new BrokerRegistrationInboundPort(this);
-		registrationPortIN.publishPort();
-		REGISTRATION_PORT_URI = registrationPortIN.getPortURI();
+		final String rip = this.getReflectionInboundPortURI();
 
-		publishingPortIN = new BrokerPublishingInboundPort(this);
-		publishingPortIN.publishPort();
+		this.registrationPortIN =
+				new BrokerRegistrationInboundPort(registrationPortURIFor(rip), this);
+		this.registrationPortIN.publishPort();
 
-		privilegedPortIN = new BrokerPrivilegedInboundPort(this);
-		privilegedPortIN.publishPort();
+		this.publishingPortIN =
+				new BrokerPublishingInboundPort(publishingPortURIFor(rip), this);
+		this.publishingPortIN.publishPort();
 
-		gossipPortIN = new GossipReceiverInboundPort(
-				reflectionInboundPortURI + GOSSIP_INBOUND_PORT_URI_SUFFIX , // "broker-2-gossip-in"
-				this);
-		gossipPortIN.publishPort();
+		this.privilegedPortIN =
+				new BrokerPrivilegedInboundPort(privilegedPortURIFor(rip), this);
+		this.privilegedPortIN.publishPort();
+
+		this.gossipPortIN =
+				new GossipReceiverInboundPort(gossipPortURIFor(rip), this);
+		this.gossipPortIN.publishPort();
 
 		this.gossipURIs = neighborsGossipURIs;
 	}
@@ -618,19 +625,36 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Helpers
 	// -------------------------------------------------------------------------
 
-	public static String registrationPortURI() throws Exception
+	/**
+	 * Deterministic registration inbound port URI for the broker whose
+	 * reflection inbound port URI is {@code brokerReflectionURI}
+	 * (Phase C.3). Replaces the per-JVM static {@code REGISTRATION_PORT_URI}.
+	 */
+	public static String registrationPortURIFor(String brokerReflectionURI)
 	{
-		return REGISTRATION_PORT_URI;
+		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
+		return brokerReflectionURI + REGISTRATION_PORT_URI_SUFFIX;
 	}
 
-	private String publishingPortURI() throws Exception
+	/** Deterministic publishing inbound port URI for the given broker. */
+	public static String publishingPortURIFor(String brokerReflectionURI)
 	{
-		return publishingPortIN.getPortURI();
+		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
+		return brokerReflectionURI + PUBLISHING_PORT_URI_SUFFIX;
 	}
 
-	private String privilegedPortURI() throws Exception
+	/** Deterministic privileged inbound port URI for the given broker. */
+	public static String privilegedPortURIFor(String brokerReflectionURI)
 	{
-		return privilegedPortIN.getPortURI();
+		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
+		return brokerReflectionURI + PRIVILEGED_PORT_URI_SUFFIX;
+	}
+
+	/** Deterministic gossip inbound port URI for the given broker. */
+	public static String gossipPortURIFor(String brokerReflectionURI)
+	{
+		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
+		return brokerReflectionURI + GOSSIP_INBOUND_PORT_URI_SUFFIX;
 	}
 
 	// -------------------------------------------------------------------------

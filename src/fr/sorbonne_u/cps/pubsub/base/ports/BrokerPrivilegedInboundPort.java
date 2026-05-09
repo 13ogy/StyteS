@@ -24,6 +24,15 @@ public class BrokerPrivilegedInboundPort extends BrokerPublishingInboundPort imp
 		super(PrivilegedClientCI.class, owner);
 	}
 
+	/**
+	 * Explicit-URI constructor (Phase C.3): the broker derives this URI
+	 * deterministically from its reflection inbound port URI.
+	 */
+	public BrokerPrivilegedInboundPort(String uri, ComponentI owner) throws Exception
+	{
+		super(uri, PrivilegedClientCI.class, owner);
+	}
+
 	@Override
 	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws Exception
 	{

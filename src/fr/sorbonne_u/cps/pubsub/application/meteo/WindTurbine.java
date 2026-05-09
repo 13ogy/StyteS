@@ -90,6 +90,21 @@ public class WindTurbine extends AbstractComponent
 		long recentWindowMillis,
 		MeteoAlertI.Level threshold) throws Exception
 	{
+		this(reflectionInboundPortURI, testScenario, turbineId, position,
+				maxDistance, recentWindowMillis, threshold, null);
+	}
+
+	/** Phase C.3: identifie le courtier cible via son URI de réflexion. */
+	protected WindTurbine(
+		String reflectionInboundPortURI,
+		TestScenario testScenario,
+		String turbineId,
+		PositionI position,
+		double maxDistance,
+		long recentWindowMillis,
+		MeteoAlertI.Level threshold,
+		String brokerReflectionURI) throws Exception
+	{
 		super(reflectionInboundPortURI, 1, 1);
 		if (turbineId == null || turbineId.isEmpty()) {
 			throw new IllegalArgumentException("turbineId cannot be null/empty");
@@ -109,7 +124,7 @@ public class WindTurbine extends AbstractComponent
 		this.safetyMode = false;
 		this.testScenario = testScenario;
 
-		regPlugin = new ClientRegistrationPlugin();
+		regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
 		regPlugin.setPluginURI(reflectionInboundPortURI + "-reg");
 
 		subPlugin = new ClientSubscriptionPlugin(regPlugin, this::onReceive);

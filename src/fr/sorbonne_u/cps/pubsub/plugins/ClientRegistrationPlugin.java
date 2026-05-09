@@ -36,9 +36,33 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	protected RegistrationClass currentRC;
 	protected boolean registered;
 
+	/** Reflection inbound port URI of the broker this client wants to talk
+	 *  to. {@code null} only when the deprecated no-arg constructor was
+	 *  used; in that case {@link #initialise()} will fail with a clear
+	 *  message. (Phase C.3) */
+	private final String brokerReflectionURI;
+
+	/**
+	 * @deprecated use {@link #ClientRegistrationPlugin(String)} so that
+	 *             this client knows which broker to connect to in a
+	 *             multi-broker environment (Phase C.3).
+	 */
+	@Deprecated
 	public ClientRegistrationPlugin()
 	{
+		this(null);
+	}
+
+	/**
+	 * Preferred constructor (Phase C.3): the plugin knows which broker
+	 * it must contact, identified by its reflection inbound port URI.
+	 * The plugin uses {@link Broker#registrationPortURIFor(String)} to
+	 * derive the broker's registration port URI deterministically.
+	 */
+	public ClientRegistrationPlugin(String brokerReflectionURI)
+	{
 		super();
+		this.brokerReflectionURI = brokerReflectionURI;
 		this.registered = false;
 	}
 
@@ -59,6 +83,12 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	@Override
 	public void initialise() throws Exception {
 		super.initialise();
+		if (this.brokerReflectionURI == null || this.brokerReflectionURI.isEmpty()) {
+			throw new IllegalStateException(
+				"ClientRegistrationPlugin requires a broker reflection inbound "
+				+ "port URI; use ClientRegistrationPlugin(String) instead of "
+				+ "the deprecated no-arg variant (Phase C.3).");
+		}
 		// Publish ports
 		this.receptionPortIN = new ClientInboundPort(this.getOwner(), this.getPluginURI());
 		this.receptionPortIN.publishPort();
@@ -75,7 +105,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		// Connect ports
 		this.getOwner().doPortConnection(
 				this.registrationPortOUT.getPortURI(),
-				Broker.registrationPortURI(),
+				Broker.registrationPortURIFor(this.brokerReflectionURI),
 				ClientBrokerRegistrationConnector.class.getCanonicalName());
 	}
 	@Override

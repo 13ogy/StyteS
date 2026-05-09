@@ -25,13 +25,28 @@ public class ScenarioPluginClient extends PluginClient
 {
 	protected final TestScenario scenario;
 
+	/**
+	 * @deprecated use the 5-arg variant taking a broker reflection URI
+	 *             (Phase C.3).
+	 */
+	@Deprecated
 	protected ScenarioPluginClient(
 			String reflectionInboundPortURI,
 			TestScenario scenario,
 			int nbThreads,
 			int nbSchedulableThreads) throws Exception
 	{
-		super(reflectionInboundPortURI, nbThreads, nbSchedulableThreads);
+		this(reflectionInboundPortURI, scenario, nbThreads, nbSchedulableThreads, null);
+	}
+
+	protected ScenarioPluginClient(
+			String reflectionInboundPortURI,
+			TestScenario scenario,
+			int nbThreads,
+			int nbSchedulableThreads,
+			String brokerReflectionURI) throws Exception
+	{
+		super(reflectionInboundPortURI, nbThreads, nbSchedulableThreads, brokerReflectionURI);
 		this.scenario = scenario;
 	}
 

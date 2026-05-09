@@ -33,10 +33,16 @@ public class WeatherOffice extends AbstractComponent
 	private final String officeId;
 
 	protected WeatherOffice(String reflectionInboundPortURI, String officeId) throws Exception {
+		this(reflectionInboundPortURI, officeId, null);
+	}
+
+	/** Phase C.3: identifie le courtier cible via son URI de réflexion. */
+	protected WeatherOffice(String reflectionInboundPortURI, String officeId,
+							String brokerReflectionURI) throws Exception {
 		super(reflectionInboundPortURI, 1, 0);
 		this.officeId = officeId;
 
-		regPlugin = new ClientRegistrationPlugin();
+		regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
 		regPlugin.setPluginURI(reflectionInboundPortURI + "-reg");
 
 		privPlugin = new ClientPrivilegedPlugin(regPlugin);

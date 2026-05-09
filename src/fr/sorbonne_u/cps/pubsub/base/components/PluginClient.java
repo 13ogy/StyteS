@@ -41,14 +41,34 @@ public class PluginClient extends AbstractComponent
 	protected final ClientPublicationPlugin publicationPlugin;
 	protected final ClientPrivilegedPlugin privilegedPlugin;
 
+	/**
+	 * @deprecated use {@link #PluginClient(String, int, int, String)} so
+	 *             that this client knows which broker to connect to in
+	 *             a multi-broker environment (Phase C.3).
+	 */
+	@Deprecated
 	protected PluginClient(
 		String reflectionInboundPortURI,
 		int nbThreads,
 		int nbSchedulableThreads) throws Exception
 	{
+		this(reflectionInboundPortURI, nbThreads, nbSchedulableThreads, null);
+	}
+
+	/**
+	 * Preferred constructor (Phase C.3): also takes the
+	 * {@code brokerReflectionURI} so the registration plugin knows
+	 * which broker to contact.
+	 */
+	protected PluginClient(
+		String reflectionInboundPortURI,
+		int nbThreads,
+		int nbSchedulableThreads,
+		String brokerReflectionURI) throws Exception
+	{
 		super(reflectionInboundPortURI, nbThreads, nbSchedulableThreads);
 
-		this.registrationPlugin = new ClientRegistrationPlugin();
+		this.registrationPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
 		this.registrationPlugin.setPluginURI(reflectionInboundPortURI + "-registration-plugin");
 		this.installPlugin(this.registrationPlugin);
 

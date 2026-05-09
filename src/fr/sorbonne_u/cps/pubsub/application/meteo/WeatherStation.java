@@ -40,11 +40,21 @@ public class WeatherStation extends AbstractComponent
 
 	protected WeatherStation(String stationId, PositionI position) throws Exception
 	{
-		this(stationId, stationId, position);
+		this(stationId, stationId, position, null);
 	}
 
 	/** Constructeur avec URI du port de réflexion (obligatoire pour BCM4Java). */
 	protected WeatherStation(String reflectionInboundPortURI, String stationId, PositionI position) throws Exception
+	{
+		this(reflectionInboundPortURI, stationId, position, null);
+	}
+
+	/**
+	 * Préféré (Phase C.3) : prend en plus l'URI de réflexion du courtier
+	 * cible afin que le greffon d'enregistrement sache à qui se connecter.
+	 */
+	protected WeatherStation(String reflectionInboundPortURI, String stationId,
+							 PositionI position, String brokerReflectionURI) throws Exception
 	{
 		super(reflectionInboundPortURI, 1, 0);
 		if (stationId == null || stationId.isEmpty()) {
@@ -56,7 +66,7 @@ public class WeatherStation extends AbstractComponent
 		this.stationId = stationId;
 		this.position = position;
 
-		regPlugin = new ClientRegistrationPlugin();
+		regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
 		regPlugin.setPluginURI(reflectionInboundPortURI + "-reg");
 
 		pubPlugin = new ClientPublicationPlugin(regPlugin);

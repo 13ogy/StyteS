@@ -64,33 +64,62 @@ public class Client extends AbstractComponent {
 	private RegistrationClass rcCurrent;
 
 	private boolean registered;
-	
+
+	/** Reflection inbound port URI of the broker this client connects to.
+	 *  May be {@code null} if the legacy no-arg constructor was used; in
+	 *  that case {@link #start()} will fail with a clear message. */
+	private final String brokerReflectionURI;
+
+	/**
+	 * @deprecated use {@link #Client(int, int, String)} instead.
+	 *             Without an explicit broker reflection URI the client
+	 *             cannot derive the broker registration port URI in a
+	 *             multi-broker environment (Phase C.3).
+	 */
+	@Deprecated
 	public Client(int nbThreads, int nbSchedulableThreads )throws Exception {
+		this(nbThreads, nbSchedulableThreads, null);
+	}
+
+	/**
+	 * Preferred constructor (Phase C.3): the client knows which broker
+	 * it must contact, identified by that broker's reflection inbound
+	 * port URI. The client will derive the registration port URI itself.
+	 */
+	public Client(int nbThreads, int nbSchedulableThreads,
+				  String brokerReflectionURI) throws Exception {
 		super(nbThreads, nbSchedulableThreads);
+		this.brokerReflectionURI = brokerReflectionURI;
 		this.registered = false;
 		this.receptionPortIN = new ClientInboundPort(this);
 		this.receptionPortIN.publishPort();
-		
+
 		this.publishingPortOUT = new ClientPublishingOutboundPort(this);
 		this.publishingPortOUT.publishPort();
-		
+
 		this.registrationPortOUT = new ClientRegistrationOutboundPort(this);
 		this.registrationPortOUT.publishPort();
 
 		this.privilegedPortOUT = new ClientPrivilegedOutboundPort(this);
 		this.privilegedPortOUT.publishPort();
-		
+
 	}
 	// Component life cycle
 	@Override
 	public void start() throws ComponentStartException {
 		super.start();
+		if (this.brokerReflectionURI == null || this.brokerReflectionURI.isEmpty()) {
+			throw new ComponentStartException(
+				"Client requires a broker reflection inbound port URI; "
+				+ "use Client(int,int,String) instead of the deprecated "
+				+ "no-arg variant (Phase C.3).");
+		}
 		try {
 			this.doPortConnection(
 					this.registrationPortOUT.getPortURI(),
-					Broker.registrationPortURI(),
+					Broker.registrationPortURIFor(this.brokerReflectionURI),
 					ClientBrokerRegistrationConnector.class.getCanonicalName());
-		}catch (Exception e) { throw new ComponentStartException();}
+		}catch (Exception e) { throw new ComponentStartException(e);}
 	}
 	@Override
 	public void execute() throws Exception {

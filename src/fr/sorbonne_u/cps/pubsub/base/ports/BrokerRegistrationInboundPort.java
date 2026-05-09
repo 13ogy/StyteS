@@ -21,6 +21,16 @@ public class BrokerRegistrationInboundPort extends AbstractInboundPort implement
 
 	}
 
+	/**
+	 * Create the inbound port with an explicit, deterministic URI
+	 * (Phase C.3). This lets the broker derive its registration port
+	 * URI from its reflection inbound port URI, removing the need for
+	 * a global static.
+	 */
+	public BrokerRegistrationInboundPort(String uri, ComponentI owner) throws Exception {
+		super(uri, RegistrationCI.class, owner);
+	}
+
 	@Override
 	public boolean registered(String receptionPortURI) throws Exception
 	{

@@ -24,6 +24,23 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 		super (c, owner);
 	}
 
+	/**
+	 * Explicit-URI constructor (Phase C.3): lets the broker pick a
+	 * deterministic URI derived from its reflection inbound port URI.
+	 */
+	public BrokerPublishingInboundPort(String uri, ComponentI owner) throws Exception {
+		super(uri, PublishingCI.class, owner);
+	}
+
+	/**
+	 * Explicit-URI + interface constructor (Phase C.3) used by subclasses
+	 * (e.g. {@link BrokerPrivilegedInboundPort}) that want a deterministic
+	 * URI while still declaring a more specific implemented interface.
+	 */
+	public BrokerPublishingInboundPort(String uri, Class c, ComponentI owner) throws Exception {
+		super(uri, c, owner);
+	}
+
 	@Override
 	public void publish(String receptionPortURI, String channel, MessageI message)
 		throws Exception
