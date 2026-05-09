@@ -3,7 +3,7 @@ package fr.sorbonne_u.cps.pubsub.base.ports;
 
 import java.rmi.RemoteException;
 
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.RegistrationConnector;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.NotSubscribedChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;

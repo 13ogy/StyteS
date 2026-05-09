@@ -16,7 +16,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  *
  * @author Bogdan Styn
  */
-public class ClientBrokerRegistrationConnector extends AbstractConnector implements RegistrationCI {
+public class RegistrationConnector extends AbstractConnector implements RegistrationCI {
 
 	@Override
 	public boolean registered(String receptionPortURI) throws Exception {

@@ -12,7 +12,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
  *
  * @author Bogdan Styn
  */
-public class BrokerClientReceivingConnector extends AbstractConnector implements ReceivingCI {
+public class ReceivingConnector extends AbstractConnector implements ReceivingCI {
 
 	@Override
 	public void receive(String channel, MessageI message) throws Exception {

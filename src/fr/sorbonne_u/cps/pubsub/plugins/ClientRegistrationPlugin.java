@@ -2,9 +2,9 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 
 import fr.sorbonne_u.components.AbstractPlugin;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.PrivilegedClientConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.PublishingConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.RegistrationConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.PublishingOutboundPort;
@@ -106,7 +106,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 		this.getOwner().doPortConnection(
 				this.registrationPortOUT.getPortURI(),
 				Broker.registrationPortURIFor(this.brokerReflectionURI),
-				ClientBrokerRegistrationConnector.class.getCanonicalName());
+				RegistrationConnector.class.getCanonicalName());
 	}
 	@Override
 	public void finalise() throws Exception {
@@ -207,13 +207,13 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 				this.getOwner().doPortConnection(
 						this.publishingPortOUT.getPortURI(),
 						brokerPortURI,
-						ClientBrokerPublishingConnector.class.getCanonicalName());
+						PublishingConnector.class.getCanonicalName());
 			} else {
 				// STANDARD/PREMIUM get privileged (which also covers publishing)
 				this.getOwner().doPortConnection(
 						this.privilegedPortOUT.getPortURI(),
 						brokerPortURI,
-						ClientBrokerPrivilegedConnector.class.getCanonicalName());
+						PrivilegedClientConnector.class.getCanonicalName());
 			}
 			this.currentRC = rc;
 			this.registered=true;
@@ -245,12 +245,12 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 				this.getOwner().doPortConnection(
 						this.publishingPortOUT.getPortURI(),
 						brokerPortURI,
-						ClientBrokerPublishingConnector.class.getCanonicalName());
+						PublishingConnector.class.getCanonicalName());
 			} else {
 				this.getOwner().doPortConnection(
 						this.privilegedPortOUT.getPortURI(),
 						brokerPortURI,
-						ClientBrokerPrivilegedConnector.class.getCanonicalName());
+						PrivilegedClientConnector.class.getCanonicalName());
 			}
 
 			this.currentRC = rc;

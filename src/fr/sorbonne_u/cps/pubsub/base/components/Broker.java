@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.cps.pubsub.base.connectors.BrokerClientReceivingConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.ReceivingConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.PublishingInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingOutboundPort;
@@ -835,7 +835,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			this.doPortConnection(
 			out.getPortURI(),
 			receptionPortURI,
-			BrokerClientReceivingConnector.class.getCanonicalName());
+			ReceivingConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			// Rollback : on retire la réservation pour ne pas laisser un
 			// client "enregistré" mais sans port de livraison.

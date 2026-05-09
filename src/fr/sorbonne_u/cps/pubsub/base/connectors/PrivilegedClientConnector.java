@@ -17,7 +17,7 @@ import java.util.ArrayList;
  *
  * @author Bogdan Styn
  */
-public class ClientBrokerPrivilegedConnector extends ClientBrokerPublishingConnector
+public class PrivilegedClientConnector extends PublishingConnector
 	implements PrivilegedClientCI {
 	@Override
 	public boolean hasCreatedChannel(String receptionPortURI, String channel)

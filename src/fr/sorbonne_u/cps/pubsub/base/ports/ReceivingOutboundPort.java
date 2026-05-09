@@ -2,7 +2,7 @@ package fr.sorbonne_u.cps.pubsub.base.ports;
 
 import java.rmi.RemoteException;
 
-import fr.sorbonne_u.cps.pubsub.base.connectors.BrokerClientReceivingConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.ReceivingConnector;
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.components.interfaces.RequiredCI;
 import fr.sorbonne_u.components.ports.AbstractOutboundPort;

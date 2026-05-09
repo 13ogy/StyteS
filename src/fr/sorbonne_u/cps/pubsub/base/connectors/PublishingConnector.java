@@ -14,7 +14,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  *
  * @author Bogdan Styn
  */
-public class ClientBrokerPublishingConnector extends AbstractConnector implements PublishingCI {
+public class PublishingConnector extends AbstractConnector implements PublishingCI {
 
 	@Override
 	public void publish(String receptionPortURI, String channel, MessageI message) throws Exception {

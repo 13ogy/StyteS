@@ -3,7 +3,7 @@ package fr.sorbonne_u.cps.pubsub.base.ports;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.PublishingConnector;
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.components.ports.AbstractOutboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;

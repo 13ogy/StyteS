@@ -4,10 +4,10 @@ import java.rmi.RemoteException;
 
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.PublishingConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.RegistrationConnector;
 
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.PrivilegedClientConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.PublishingOutboundPort;
@@ -118,7 +118,7 @@ public class Client extends AbstractComponent {
 			this.doPortConnection(
 					this.registrationPortOUT.getPortURI(),
 					Broker.registrationPortURIFor(this.brokerReflectionURI),
-					ClientBrokerRegistrationConnector.class.getCanonicalName());
+					RegistrationConnector.class.getCanonicalName());
 		}catch (Exception e) { throw new ComponentStartException(e);}
 	}
 	@Override
@@ -166,13 +166,13 @@ public class Client extends AbstractComponent {
 			this.doPortConnection(
 					this.publishingPortOUT.getPortURI(),
 					portINURI,
-					ClientBrokerPublishingConnector.class.getCanonicalName());
+					PublishingConnector.class.getCanonicalName());
 		} else {
 			// STANDARD/PREMIUM get privileged (which also covers publishing)
 			this.doPortConnection(
 					this.privilegedPortOUT.getPortURI(),
 					portINURI,
-					ClientBrokerPrivilegedConnector.class.getCanonicalName());
+					PrivilegedClientConnector.class.getCanonicalName());
 		}
 		this.rcCurrent = rc;
 
@@ -201,12 +201,12 @@ public class Client extends AbstractComponent {
 			this.doPortConnection(
 					this.publishingPortOUT.getPortURI(),
 					portINURI,
-					ClientBrokerPublishingConnector.class.getCanonicalName());
+					PublishingConnector.class.getCanonicalName());
 		} else {
 			this.doPortConnection(
 					this.privilegedPortOUT.getPortURI(),
 					portINURI,
-					ClientBrokerPrivilegedConnector.class.getCanonicalName());
+					PrivilegedClientConnector.class.getCanonicalName());
 		}
 		this.rcCurrent = rc;
 		this.logMessage("Client service class modified (audit1 minimal).");
