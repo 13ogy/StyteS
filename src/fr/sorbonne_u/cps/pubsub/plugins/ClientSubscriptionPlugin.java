@@ -7,6 +7,7 @@ import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingI;
 
 import java.time.Duration;
 import java.util.ArrayDeque;
@@ -29,7 +30,7 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 	private static final long serialVersionUID = 1L;
 
 	protected final ClientRegistrationPlugin registrationPlugin;
-	protected final MessageDeliveryHandler handler;
+	protected final ReceivingI handler;
 
 	// ---------------------------------------------------------------------
 	// Advanced reception (CDC §3.5.3) state
@@ -40,22 +41,19 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 	/** Per-channel next-message future to complete when a message arrives. */
 	protected final Map<String, CompletableFuture<MessageI>> nextMessageFutures = new HashMap<>();
 
-	/** Owner-side callback for received messages. */
+	/**
+	 * Owner-side callback for received messages. Kept as a named sub-interface
+	 * of {@link ReceivingI} for source/binary compatibility with existing call
+	 * sites that reference the type by name; new code may use {@link ReceivingI}
+	 * directly. Both expose the same single abstract method
+	 * {@code onReceive(String, MessageI)}.
+	 */
 	@FunctionalInterface
-	public interface MessageDeliveryHandler
+	public interface MessageDeliveryHandler extends ReceivingI
 	{
-		void onReceive(String channel, MessageI message);
-		default void onReceive(String channel, MessageI[] messages)
-		{
-			if (messages != null) {
-				for (MessageI m : messages) {
-					onReceive(channel, m);
-				}
-			}
-		}
 	}
 
-	public ClientSubscriptionPlugin(ClientRegistrationPlugin registrationPlugin, MessageDeliveryHandler handler)
+	public ClientSubscriptionPlugin(ClientRegistrationPlugin registrationPlugin, ReceivingI handler)
 	{
 		super();
 		this.registrationPlugin = registrationPlugin;
