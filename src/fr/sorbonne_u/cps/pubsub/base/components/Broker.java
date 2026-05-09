@@ -129,6 +129,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/**
 	 * Bulk async publish with optional notification.
 	 *
+	 * <p>Phase C.5: shares the single-snapshot bulk path with
+	 * {@link #publish(String, String, ArrayList)}.</p>
+	 *
 	 * @throws IllegalArgumentException if any string parameter is null/empty,
 	 *         or {@code messages} is null/empty.
 	 */
@@ -144,9 +147,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		if (messages == null || messages.isEmpty()) {
 			throw new IllegalArgumentException("messages cannot be null or empty.");
 		}
-		for (MessageI m : messages) {
-			this.submitPublish(publisherReceptionPortURI, channel, m, notificationInbounhdPortURI);
-		}
+		this.bulkSubmit(publisherReceptionPortURI, channel, messages, notificationInbounhdPortURI);
 	}
 
 
@@ -478,6 +479,20 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	protected void propagationStage(String channel, MessageI message) throws Exception
 	{
+		List<DeliveryTarget> targets = this.snapshotTargets(channel);
+		this.deliverToTargets(channel, message, targets);
+	}
+
+	/**
+	 * Build a snapshot of the current subscriber set for {@code channel}.
+	 * Throws {@link UnknownChannelException} if the channel was destroyed
+	 * between the publisher check and propagation.
+	 *
+	 * <p>Phase C.5: factored out so bulk publish can reuse a single
+	 * snapshot for many messages.</p>
+	 */
+	protected List<DeliveryTarget> snapshotTargets(String channel) throws Exception
+	{
 		List<DeliveryTarget> targets = new ArrayList<>();
 		this.registrationLock.readLock().lock();
 		try {
@@ -494,14 +509,26 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					if (out != null) {
 						targets.add(new DeliveryTarget(subscriberURI, out, filter));
 					}
-			}
+				}
 			} finally {
 				this.subscriptionsLock.readLock().unlock();
 			}
 		} finally {
 			this.registrationLock.readLock().unlock();
-
 		}
+		return targets;
+	}
+
+	/**
+	 * Submit one delivery task per pre-built target, decrementing the
+	 * channel's in-flight counter when the last delivery completes.
+	 */
+	protected void deliverToTargets(
+		String channel,
+		MessageI message,
+		List<DeliveryTarget> targets
+		)
+	{
 		final int expected = targets.size();
 		if (expected == 0) {
 			this.finishInFlight(channel);
@@ -523,6 +550,37 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					}
 				}
 			});
+		}
+	}
+
+	/**
+	 * Verify that {@code publisherReceptionPortURI} is registered, that
+	 * {@code channel} exists, and that the publisher is authorised to
+	 * publish on it. Throws the appropriate business exception otherwise.
+	 *
+	 * <p>Phase C.5: extracted from {@link #receptionStage} so bulk publish
+	 * can re-check per message and honour mid-batch revocations.</p>
+	 */
+	protected void validatePublisherAuthz(String publisherReceptionPortURI, String channel) throws Exception
+	{
+		this.registrationLock.readLock().lock();
+		try {
+			if (!this.registeredClients.containsKey(publisherReceptionPortURI)) {
+				throw new UnknownClientException(publisherReceptionPortURI);
+			}
+			this.channelsLock.readLock().lock();
+			try {
+				if (!this.channels.contains(channel)) {
+					throw new UnknownChannelException(channel);
+				}
+				if (!this.channelAuthorisedLocked(publisherReceptionPortURI, channel)) {
+					throw new UnauthorisedClientException();
+				}
+			} finally {
+				this.channelsLock.readLock().unlock();
+			}
+		} finally {
+			this.registrationLock.readLock().unlock();
 		}
 	}
 
@@ -1267,7 +1325,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	/**
 	 * Bulk publish: like {@link #publish(String, String, MessageI)} but for
-	 * a non-empty list of messages. (Phase C.5 optimises the dispatch.)
+	 * a non-empty list of messages.
+	 *
+	 * <p>Phase C.5: builds the subscriber snapshot ONCE before iterating
+	 * the messages, so the cost of subscription scanning is paid one
+	 * time per bulk call. Per-message we still re-validate the publisher
+	 * (registered? channel exists? authorised?) so that mid-batch
+	 * revocations take effect.</p>
 	 *
 	 * @throws IllegalArgumentException if any argument is null/empty.
 	 */
@@ -1278,12 +1342,64 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		if (messages == null || messages.isEmpty()) {
 			throw new IllegalArgumentException("messages cannot be null or empty.");
 		}
+		this.bulkSubmit(publisherReceptionPortURI, channel, messages, null);
+	}
+
+	/**
+	 * Bulk reception path used by {@link #publish(String, String, ArrayList)}
+	 * and the bulk overload of {@link #asyncPublishAndNotify}. Snapshots
+	 * subscribers once, validates the publisher per message and dispatches
+	 * each message through the propagation/delivery executor services.
+	 */
+	protected void bulkSubmit(
+		String publisherReceptionPortURI,
+		String channel,
+		ArrayList<MessageI> messages,
+		String notificationInboundPortURI
+		)
+	{
+		final Broker self = this;
+		final ArrayList<MessageI> snapshotMessages = new ArrayList<>(messages);
 		this.runTask(this.esReceptionIndex, o -> {
+			Broker broker = (Broker) o;
+			List<DeliveryTarget> targets;
 			try {
-				for (MessageI m : messages) {
-					((Broker) o).receptionStage(publisherReceptionPortURI, channel, m, null);
+				broker.validatePublisherAuthz(publisherReceptionPortURI, channel);
+				targets = broker.snapshotTargets(channel);
+			} catch (Exception e) {
+				self.logMessage("[Broker] bulk publish setup failed: " + e + "\n");
+				return;
+			}
+			for (MessageI m : snapshotMessages) {
+				if (m == null) continue;
+				broker.beginInFlight(channel);
+				try {
+					broker.validatePublisherAuthz(publisherReceptionPortURI, channel);
+				} catch (Exception e) {
+					broker.finishInFlight(channel);
+					self.logMessage(
+							"[Broker] bulk publish skipped message after revocation: "
+							+ e + "\n");
+					continue;
 				}
-			} catch (Exception e) { e.printStackTrace(); }
+				PublishGossipMessage gossip = new PublishGossipMessage(
+						java.util.UUID.randomUUID().toString(),
+						Instant.now(),
+						broker.getReflectionInboundPortURI(),
+						m,
+						channel,
+						publisherReceptionPortURI);
+				broker.gossipToNeighbours(new GossipMessageI[]{ gossip });
+				final MessageI msg = m;
+				broker.runTask(broker.esPropagationIndex, p -> {
+					try {
+						((Broker) p).deliverToTargets(channel, msg, targets);
+					} catch (Exception e) {
+						self.logMessage("[Broker] bulk delivery exception: " + e + "\n");
+						((Broker) p).finishInFlight(channel);
+					}
+				});
+			}
 		});
 	}
 
