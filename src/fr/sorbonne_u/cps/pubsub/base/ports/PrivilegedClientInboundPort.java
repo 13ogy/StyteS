@@ -17,9 +17,9 @@ import fr.sorbonne_u.cps.pubsub.base.components.Broker;
  *
  * @author Bogdan Styn
  */
-public class BrokerPrivilegedInboundPort extends BrokerPublishingInboundPort implements PrivilegedClientCI
+public class PrivilegedClientInboundPort extends PublishingInboundPort implements PrivilegedClientCI
 {
-	public BrokerPrivilegedInboundPort(ComponentI owner) throws Exception
+	public PrivilegedClientInboundPort(ComponentI owner) throws Exception
 	{
 		super(PrivilegedClientCI.class, owner);
 	}
@@ -28,7 +28,7 @@ public class BrokerPrivilegedInboundPort extends BrokerPublishingInboundPort imp
 	 * Explicit-URI constructor (Phase C.3): the broker derives this URI
 	 * deterministically from its reflection inbound port URI.
 	 */
-	public BrokerPrivilegedInboundPort(String uri, ComponentI owner) throws Exception
+	public PrivilegedClientInboundPort(String uri, ComponentI owner) throws Exception
 	{
 		super(uri, PrivilegedClientCI.class, owner);
 	}

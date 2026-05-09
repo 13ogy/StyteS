@@ -5,7 +5,7 @@ import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientInboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
@@ -26,7 +26,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 {
 	private static final long serialVersionUID = 1L;
 
-	protected ClientInboundPort receptionPortIN;
+	protected ReceivingInboundPort receptionPortIN;
 	protected ClientRegistrationOutboundPort registrationPortOUT;
 	protected ClientPublishingOutboundPort publishingPortOUT;
 	protected ClientPrivilegedOutboundPort privilegedPortOUT;
@@ -90,7 +90,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 				+ "the deprecated no-arg variant (Phase C.3).");
 		}
 		// Publish ports
-		this.receptionPortIN = new ClientInboundPort(this.getOwner(), this.getPluginURI());
+		this.receptionPortIN = new ReceivingInboundPort(this.getOwner(), this.getPluginURI());
 		this.receptionPortIN.publishPort();
 
 		this.registrationPortOUT = new ClientRegistrationOutboundPort(this.getOwner());

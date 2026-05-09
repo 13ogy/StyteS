@@ -17,14 +17,14 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
  *
  * @author Bogdan Styn
  */
-public class ClientInboundPort extends AbstractInboundPort implements ReceivingCI {
+public class ReceivingInboundPort extends AbstractInboundPort implements ReceivingCI {
 
-	public ClientInboundPort(ComponentI owner) throws Exception {
+	public ReceivingInboundPort(ComponentI owner) throws Exception {
 		super(ReceivingCI.class, owner);
         this.pluginUri = null;
     }
 	// With Plugin
-	public ClientInboundPort(ComponentI owner, String pluginURI) throws Exception {
+	public ReceivingInboundPort(ComponentI owner, String pluginURI) throws Exception {
 		super(pluginURI, ReceivingCI.class, owner);
 		this.pluginUri =pluginURI;
 	}
@@ -45,13 +45,13 @@ public class ClientInboundPort extends AbstractInboundPort implements ReceivingC
 							}
 						}
 				);
-				System.out.println("[ClientInboundPort] handleRequest returned");
+				System.out.println("[ReceivingInboundPort] handleRequest returned");
 			} catch (Exception e) {
-				System.out.println("[ClientInboundPort] handleRequest EXCEPTION: " + e);
+				System.out.println("[ReceivingInboundPort] handleRequest EXCEPTION: " + e);
 				e.printStackTrace();
 			}
 		} else {
-			System.out.println("[ClientInboundPort] no pluginURI — legacy path");
+			System.out.println("[ReceivingInboundPort] no pluginURI — legacy path");
 			this.getOwner().handleRequest(
 					o -> { ((Client) o).receive(channel, message); return null; }
 			);

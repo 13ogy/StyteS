@@ -8,7 +8,7 @@ import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
 
 import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
-import fr.sorbonne_u.cps.pubsub.base.ports.ClientInboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
@@ -43,7 +43,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
  */
 public class Client extends AbstractComponent {
 
-	private ClientInboundPort receptionPortIN;
+	private ReceivingInboundPort receptionPortIN;
 
 	/**
 	 * Return the URI of this client's inbound port offering ReceivingCI.
@@ -91,7 +91,7 @@ public class Client extends AbstractComponent {
 		super(nbThreads, nbSchedulableThreads);
 		this.brokerReflectionURI = brokerReflectionURI;
 		this.registered = false;
-		this.receptionPortIN = new ClientInboundPort(this);
+		this.receptionPortIN = new ReceivingInboundPort(this);
 		this.receptionPortIN.publishPort();
 
 		this.publishingPortOUT = new ClientPublishingOutboundPort(this);

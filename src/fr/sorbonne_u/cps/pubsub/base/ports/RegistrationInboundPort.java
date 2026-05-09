@@ -14,9 +14,9 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  *
  * @author Bogdan Styn
  */
-public class BrokerRegistrationInboundPort extends AbstractInboundPort implements RegistrationCI{
+public class RegistrationInboundPort extends AbstractInboundPort implements RegistrationCI{
 
-	public BrokerRegistrationInboundPort( ComponentI owner) throws Exception {
+	public RegistrationInboundPort( ComponentI owner) throws Exception {
 		super(RegistrationCI.class, owner);
 
 	}
@@ -27,7 +27,7 @@ public class BrokerRegistrationInboundPort extends AbstractInboundPort implement
 	 * URI from its reflection inbound port URI, removing the need for
 	 * a global static.
 	 */
-	public BrokerRegistrationInboundPort(String uri, ComponentI owner) throws Exception {
+	public RegistrationInboundPort(String uri, ComponentI owner) throws Exception {
 		super(uri, RegistrationCI.class, owner);
 	}
 

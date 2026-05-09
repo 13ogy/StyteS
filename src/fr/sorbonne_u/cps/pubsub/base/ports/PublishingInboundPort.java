@@ -14,13 +14,13 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  *
  * @author Bogdan Styn
  */
-public class BrokerPublishingInboundPort extends AbstractInboundPort implements PublishingCI {
+public class PublishingInboundPort extends AbstractInboundPort implements PublishingCI {
 
-	public BrokerPublishingInboundPort(ComponentI owner) throws Exception {
+	public PublishingInboundPort(ComponentI owner) throws Exception {
 		super(PublishingCI.class, owner);
 
 	}
-	public BrokerPublishingInboundPort(Class c, ComponentI owner) throws Exception{
+	public PublishingInboundPort(Class c, ComponentI owner) throws Exception{
 		super (c, owner);
 	}
 
@@ -28,16 +28,16 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 	 * Explicit-URI constructor (Phase C.3): lets the broker pick a
 	 * deterministic URI derived from its reflection inbound port URI.
 	 */
-	public BrokerPublishingInboundPort(String uri, ComponentI owner) throws Exception {
+	public PublishingInboundPort(String uri, ComponentI owner) throws Exception {
 		super(uri, PublishingCI.class, owner);
 	}
 
 	/**
 	 * Explicit-URI + interface constructor (Phase C.3) used by subclasses
-	 * (e.g. {@link BrokerPrivilegedInboundPort}) that want a deterministic
+	 * (e.g. {@link PrivilegedClientInboundPort}) that want a deterministic
 	 * URI while still declaring a more specific implemented interface.
 	 */
-	public BrokerPublishingInboundPort(String uri, Class c, ComponentI owner) throws Exception {
+	public PublishingInboundPort(String uri, Class c, ComponentI owner) throws Exception {
 		super(uri, c, owner);
 	}
 

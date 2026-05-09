@@ -10,10 +10,10 @@ import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.cps.pubsub.base.connectors.BrokerClientReceivingConnector;
-import fr.sorbonne_u.cps.pubsub.base.ports.BrokerPrivilegedInboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.BrokerPublishingInboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientInboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.PublishingInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.BrokerReceptionOutboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.BrokerRegistrationInboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.RegistrationInboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
@@ -155,9 +155,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Ports
 	// -------------------------------------------------------------------------
 
-	private BrokerRegistrationInboundPort registrationPortIN;
-	private BrokerPublishingInboundPort publishingPortIN;
-	private BrokerPrivilegedInboundPort privilegedPortIN;
+	private RegistrationInboundPort registrationPortIN;
+	private PublishingInboundPort publishingPortIN;
+	private PrivilegedClientInboundPort privilegedPortIN;
 	private GossipReceiverInboundPort gossipPortIN;
 
 	// Suffixes used to derive each broker inbound port URI from the
@@ -344,15 +344,15 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		final String rip = this.getReflectionInboundPortURI();
 
 		this.registrationPortIN =
-				new BrokerRegistrationInboundPort(registrationPortURIFor(rip), this);
+				new RegistrationInboundPort(registrationPortURIFor(rip), this);
 		this.registrationPortIN.publishPort();
 
 		this.publishingPortIN =
-				new BrokerPublishingInboundPort(publishingPortURIFor(rip), this);
+				new PublishingInboundPort(publishingPortURIFor(rip), this);
 		this.publishingPortIN.publishPort();
 
 		this.privilegedPortIN =
-				new BrokerPrivilegedInboundPort(privilegedPortURIFor(rip), this);
+				new PrivilegedClientInboundPort(privilegedPortURIFor(rip), this);
 		this.privilegedPortIN.publishPort();
 
 		this.gossipPortIN =
