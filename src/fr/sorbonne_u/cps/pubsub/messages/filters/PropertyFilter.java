@@ -49,12 +49,7 @@ public class PropertyFilter implements PropertyFilterI
 	@Override
 	public boolean match(PropertyI property)
 	{
-		if (property == null) {
-			return false;
-		}
-		if (!this.name.equals(property.getName())) {
-			return false;
-		}
-		return this.valueFilter.match(property.getValue());
+		return property != null && this.name.equals(property.getName()) &&
+				this.valueFilter.match(property.getValue());
 	}
 }

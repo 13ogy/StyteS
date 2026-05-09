@@ -1,0 +1,27 @@
+<deployment>
+    <hosts>
+        <host name="localhost"
+              dir="\Users\melse\IdeaProjects\StyteS\out\production\StyteS"/>
+    </hosts>
+
+    <cyclicBarrier  hostname="localhost" port="55253"/>
+    <globalRegistry hostname="localhost" port="55252"/>
+    <rmiRegistryPort no="55999"/>
+
+    <jvms2hostnames>
+        <jvm2hostname jvmuri="broker1-jvm"
+                      rmiRegistryCreator="true"
+                      hostname="localhost"
+                      mainclass="fr.sorbonne_u.cps.pubsub.demo.Demo3JVMs"/>
+
+        <jvm2hostname jvmuri="broker2-jvm"
+                      rmiRegistryCreator="false"
+                      hostname="localhost"
+                      mainclass="fr.sorbonne_u.cps.pubsub.demo.Demo3JVMs"/>
+
+        <jvm2hostname jvmuri="broker3-jvm"
+                      rmiRegistryCreator="false"
+                      hostname="localhost"
+                      mainclass="fr.sorbonne_u.cps.pubsub.demo.Demo3JVMs"/>
+    </jvms2hostnames>
+</deployment>

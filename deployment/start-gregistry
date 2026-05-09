@@ -1,4 +1,4 @@
 #!/bin/bash
 java -ea -Xms2m -cp 'jars/*' -Djava.security.manager \
      -Djava.security.policy=config/dcvm.policy \
-     fr.sorbonne_u.components.registry.GlobalRegistry config/config.xml
+     fr.sorbonne_u.components.registry.GlobalRegistry config/config3.xml

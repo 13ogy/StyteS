@@ -82,6 +82,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	protected int esPropagationIndex;
 	protected int esDeliveryIndex;
 
+	public static final String ES_GOSSIP_URI = "broker-gossip-es";
+	protected int esGossipIndex;
+
 	// -------------------------------------------------------------------------
 	// Concurrency control (audit 2)
 	// -------------------------------------------------------------------------
@@ -214,6 +217,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		this.esPropagationIndex = this.createNewExecutorService(ES_PROPAGATION_URI, nbPropagationThreads, false);
 		this.esDeliveryIndex = this.createNewExecutorService(ES_DELIVERY_URI, nbDeliveryThreads, false);
 
+		this.esGossipIndex = this.createNewExecutorService(ES_GOSSIP_URI, 4, false);
+
 		this.nbFreeChannels=nbFreeChannels;
 		for (int i = 0; i < nbFreeChannels; i++) {
 			String c = "channel" + i;
@@ -266,6 +271,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		this.esReceptionIndex = this.createNewExecutorService(ES_RECEPTION_URI, nbReceptionThreads, false);
 		this.esPropagationIndex = this.createNewExecutorService(ES_PROPAGATION_URI, nbPropagationThreads, false);
 		this.esDeliveryIndex = this.createNewExecutorService(ES_DELIVERY_URI, nbDeliveryThreads, false);
+
+		this.esGossipIndex = this.createNewExecutorService(ES_GOSSIP_URI, 4, false);
 
 		this.nbFreeChannels=nbFreeChannels;
 		for (int i = 0; i < nbFreeChannels; i++) {
@@ -1206,7 +1213,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				receptionPortURI,
 				autorisedUsers,
 				rc);
-
+		System.out.println("gossiping channel creation\n");
 		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
 	}
 
@@ -1573,6 +1580,21 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					this.registrationLock.writeLock().unlock();
 				}
 			}
+            if (msg instanceof ModifyAuthorisedUsersGossipMessage) {
+                ModifyAuthorisedUsersGossipMessage mauMsg =
+                        (ModifyAuthorisedUsersGossipMessage) msg;
+                Pattern newPattern = Pattern.compile(mauMsg.getAuthorisedUsers());
+                this.channelsLock.writeLock().lock();
+                try {
+                    PrivilegedChannelInfo info =
+                            this.privilegedChannels.get(mauMsg.getChannel());
+                    if (info != null) {
+                        info.authorisedUsersPattern = newPattern;
+                    }
+                } finally {
+                    this.channelsLock.writeLock().unlock();
+                }
+            }
 
 			if (msg instanceof UnregisterGossipMessage){
 				System.out.print("received unregister gossip from "+ ((UnregisterGossipMessage) msg).getEmitterURI() +"\n");
@@ -1607,11 +1629,11 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			GossipMessageI forwarded = msg.copyWithNewEmitterURI(this.getReflectionInboundPortURI());
 			try {
 				for (GossipSenderOutboundPort sender : this.gossipSenders) {
-					this.runTask(this.esReceptionIndex, o -> {
+					this.runTask(this.esGossipIndex, o -> {
 						try {
 							sender.send(new GossipMessageI[]{forwarded});
 						} catch (Exception e) {
-							throw new RuntimeException(e);
+							((Broker) o).logMessage("[Broker] gossip forward failed: " + e + "\n");
 						}
 					});
 				}
@@ -1629,13 +1651,21 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		});
 	}
 
-	public void gossipToNeighbours(GossipMessageI[] messages){
+	public void gossipToNeighbours(GossipMessageI[] messages) {
+		System.out.println("[GOSSIP] " + this.getReflectionInboundPortURI()
+				+ " gossipSenders.size()=" + this.gossipSenders.size()
+				+ " msg=" + messages[0].getClass().getSimpleName());
+
 		for (GossipSenderOutboundPort sender : this.gossipSenders) {
-			this.runTask(this.esReceptionIndex, o -> {
+			this.runTask(this.esGossipIndex, o -> {
+				System.out.println("[GOSSIP TASK] executing send from "
+						+ ((Broker)o).getReflectionInboundPortURI());
 				try {
 					sender.send(messages);
+					System.out.println("[GOSSIP TASK] send SUCCESS");
 				} catch (Exception e) {
-					((Broker) o).logMessage("[Broker] gossip send failed: " + e + "\n");
+					System.out.println("[GOSSIP TASK] send FAILED: " + e);
+					e.printStackTrace();
 				}
 			});
 		}

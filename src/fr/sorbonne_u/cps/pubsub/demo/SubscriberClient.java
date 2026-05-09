@@ -71,10 +71,11 @@ public class SubscriberClient extends AbstractComponent {
     public void execute() throws Exception {
         super.execute();
         this.regPlugin.register(this.initialRC);
-
+        this.traceMessage("registered ✓\n");
         if (this.testScenario != null) {
             this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI,
                     this.testScenario.getClockURI());
+            this.traceMessage("clock initialized ✓\n");
             this.executeTestScenario(this.testScenario);
         }
     }

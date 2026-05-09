@@ -7,7 +7,7 @@ grant {
   permission java.lang.RuntimePermission "getClassLoader" ;
   permission java.util.PropertyPermission "javax.xml.validation.SchemaFactory:http://relaxng.org/ns/structure/1.0", "read,write";
   permission java.io.FilePermission "./config/deployment.rnc", "read";
-  permission java.io.FilePermission "./config/config.xml", "read";
+  permission java.io.FilePermission "./config/config3.xml", "read";
   permission java.io.FilePermission "./*", "write";
   permission java.io.FilePermission "<<ALL FILES>>", "execute";
   permission java.util.PropertyPermission "user.dir", "read";
