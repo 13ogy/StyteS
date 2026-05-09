@@ -11,32 +11,38 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
 import java.rmi.RemoteException;
 
 /**
- * Outbound port used by clients to call privileged channel-management operations
- * offered by the broker through {@link PrivilegedClientCI}.
+ * Port outbound utilisé par un composant client pour appeler les opérations
+ * de gestion de canaux privilégiés du broker via {@link PrivilegedClientCI}.
+ *
+ * <p><strong>Propriétaire</strong> : composant client (porteur du
+ * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientPrivilegedPlugin}).</p>
  *
  * <p>
- * Methods forward calls to the connected connector using {@link #getConnector()}.
- * Publishing operations ({@code publish}, {@code asyncPublishAndNotify}) are
- * inherited from {@link PublishingOutboundPort} since {@link PrivilegedClientCI}
- * specialises {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}; this
- * mirrors the CI specialisation in the OO port hierarchy (Phase D.2).
+ * Les méthodes délèguent au connecteur via {@link #getConnector()}.
+ * Les opérations de publication ({@code publish}, {@code asyncPublishAndNotify})
+ * sont héritées de {@link PublishingOutboundPort} (Phase D.2) :
+ * {@link PrivilegedClientCI} étend
+ * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, donc le port
+ * outbound privilégié est-un port outbound de publication.
  * </p>
  *
  * <p>
- * Phase D.5: business exceptions declared on the CI propagate verbatim;
- * every other technical {@link Exception} is wrapped in a
- * {@link RemoteException}.
+ * Phase D.5 : les exceptions métier déclarées sur la CI sont propagées
+ * telles quelles ; toute autre {@link Exception} technique est encapsulée
+ * dans une {@link RemoteException}.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class PrivilegedClientOutboundPort extends PublishingOutboundPort implements PrivilegedClientCI
 {
+	/** Constructeur utilisé par les composants clients. */
 	public PrivilegedClientOutboundPort(ComponentI owner) throws Exception
 	{
 		super(PrivilegedClientCI.class, owner);
 	}
 
+	/** @see PrivilegedClientCI#hasCreatedChannel(String, String) */
 	@Override
 	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws RemoteException
 	{
@@ -47,6 +53,7 @@ public class PrivilegedClientOutboundPort extends PublishingOutboundPort impleme
 		}
 	}
 
+	/** @see PrivilegedClientCI#channelQuotaReached(String) */
 	@Override
 	public boolean channelQuotaReached(String receptionPortURI) throws RemoteException
 	{
@@ -57,6 +64,7 @@ public class PrivilegedClientOutboundPort extends PublishingOutboundPort impleme
 		}
 	}
 
+	/** @see PrivilegedClientCI#createChannel(String, String, String) */
 	@Override
 	public void createChannel(String receptionPortURI, String channel, String autorisedUsers)
 		throws RemoteException, AlreadyExistingChannelException, ChannelQuotaExceededException
@@ -70,6 +78,7 @@ public class PrivilegedClientOutboundPort extends PublishingOutboundPort impleme
 		}
 	}
 
+	/** @see PrivilegedClientCI#modifyAuthorisedUsers(String, String, String) */
 	@Override
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers) throws RemoteException
 	{
@@ -80,6 +89,7 @@ public class PrivilegedClientOutboundPort extends PublishingOutboundPort impleme
 		}
 	}
 
+	/** @see PrivilegedClientCI#destroyChannel(String, String) */
 	@Override
 	public void destroyChannel(String receptionPortURI, String channel) throws RemoteException
 	{
@@ -90,6 +100,7 @@ public class PrivilegedClientOutboundPort extends PublishingOutboundPort impleme
 		}
 	}
 
+	/** @see PrivilegedClientCI#destroyChannelNow(String, String) */
 	@Override
 	public void destroyChannelNow(String receptionPortURI, String channel) throws RemoteException
 	{

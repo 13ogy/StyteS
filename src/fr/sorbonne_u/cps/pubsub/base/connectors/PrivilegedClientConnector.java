@@ -10,27 +10,27 @@ import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
 
 /**
- * Connector from a client privileged outbound port to the broker privileged
- * inbound port.
+ * Connecteur reliant un port outbound client {@link PrivilegedClientCI} au
+ * port inbound {@link PrivilegedClientCI} du broker.
+ *
+ * <p><strong>Sens du raccordement</strong> : la référence {@link #offering}
+ * pointe vers le port inbound du broker qui offre {@link PrivilegedClientCI}.
+ * Les opérations de publication sont héritées de {@link PublishingConnector}
+ * (Phase D.2) : {@link PrivilegedClientCI} étend
+ * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, donc le
+ * connecteur privilégié est-un connecteur de publication.</p>
  *
  * <p>
- * The connector forwards calls to the offering component through
- * {@link #offering}. Publishing operations are inherited from
- * {@link PublishingConnector} (Phase D.2): {@link PrivilegedClientCI} extends
- * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, so the privileged
- * connector is-a publishing connector.
- * </p>
- *
- * <p>
- * Phase D.5: business exceptions declared on the CI propagate verbatim;
- * every other technical {@link Exception} is wrapped in a
- * {@link RemoteException}.
+ * Phase D.5 : les exceptions métier déclarées sur la CI sont propagées
+ * telles quelles ; toute autre {@link Exception} technique est encapsulée
+ * dans une {@link RemoteException}.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class PrivilegedClientConnector extends PublishingConnector
 	implements PrivilegedClientCI {
+	/** @see PrivilegedClientCI#hasCreatedChannel(String, String) */
 	@Override
 	public boolean hasCreatedChannel(String receptionPortURI, String channel)
 			throws Exception {
@@ -43,6 +43,7 @@ public class PrivilegedClientConnector extends PublishingConnector
 		}
 	}
 
+	/** @see PrivilegedClientCI#channelQuotaReached(String) */
 	@Override
 	public boolean channelQuotaReached(String receptionPortURI) throws Exception {
 		try {
@@ -54,6 +55,7 @@ public class PrivilegedClientConnector extends PublishingConnector
 		}
 	}
 
+	/** @see PrivilegedClientCI#createChannel(String, String, String) */
 	@Override
 	public void createChannel(String receptionPortURI, String channel, String autorisedUsers)
 			throws Exception {
@@ -67,6 +69,7 @@ public class PrivilegedClientConnector extends PublishingConnector
 		}
 	}
 
+	/** @see PrivilegedClientCI#modifyAuthorisedUsers(String, String, String) */
 	@Override
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers)
 			throws Exception {
@@ -77,6 +80,7 @@ public class PrivilegedClientConnector extends PublishingConnector
 		}
 	}
 
+	/** @see PrivilegedClientCI#destroyChannel(String, String) */
 	@Override
 	public void destroyChannel(String receptionPortURI, String channel) throws Exception {
 		try {
@@ -86,6 +90,7 @@ public class PrivilegedClientConnector extends PublishingConnector
 		}
 	}
 
+	/** @see PrivilegedClientCI#destroyChannelNow(String, String) */
 	@Override
 	public void destroyChannelNow(String receptionPortURI, String channel) throws Exception {
 		try {

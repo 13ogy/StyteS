@@ -45,21 +45,136 @@ import fr.sorbonne_u.components.annotations.RequiredInterfaces;
 import java.util.regex.Pattern;
 
 /**
- * Broker component implementing a publication/subscription system.
+ * Composant {@code Broker} — cœur du système de publication/souscription
+ * conforme au CDC (chapitres 3 et 4).
  *
  * <p>
- * Functionalities:
+ * Le broker centralise l'enregistrement des clients, la gestion des canaux
+ * (libres et privilégiés), la souscription filtrée et la publication
+ * asynchrone. En mode fédéré, il propage également chaque mutation
+ * d'état (register, publish, createChannel, …) à ses voisins via le
+ * protocole gossip dont il implémente {@link GossipImplementationI}.
+ * </p>
+ *
+ * <h2>Interfaces composantes (CIs)</h2>
+ * <ul>
+ *   <li>Offertes : {@link RegistrationCI}, {@link PublishingCI},
+ *       {@link PrivilegedClientCI}, {@link GossipReceiverCI}.</li>
+ *   <li>Requises : {@link ReceivingCI} (vers les clients abonnés),
+ *       {@link GossipSenderCI} (vers les voisins fédérés).</li>
+ * </ul>
+ *
+ * <h2>Fonctionnalités</h2>
+ * <ul>
+ *   <li><strong>Enregistrement</strong> : classes de service
+ *       {@code FREE}, {@code STANDARD}, {@code PREMIUM}.</li>
+ *   <li><strong>Canaux libres</strong> : pré-créés {@code channel0..channelN}.</li>
+ *   <li><strong>Souscriptions filtrées</strong> via
+ *       {@link MessageFilterI} ; un filtre {@code null} est normalisé en
+ *       {@link AcceptAllMessageFilter#INSTANCE}.</li>
+ *   <li><strong>Publication asynchrone</strong> (CDC §3.4 / §4.2) :
+ *       réception, propagation et livraison sont découplées par trois
+ *       executor services dédiés.</li>
+ *   <li><strong>Canaux privilégiés</strong> : créés par les clients
+ *       STANDARD/PREMIUM, gardés par une regex {@code authorisedUsers}
+ *       contrôlant l'accès en publication et en souscription.</li>
+ *   <li><strong>Quotas</strong> : limites de canaux privilégiés par classe
+ *       (paramètres {@code standardQuota}, {@code premiumQuota}).</li>
+ *   <li><strong>Gossip</strong> : déduplication atomique
+ *       ({@link #processedGossipURIs}), filtrage de l'émetteur immédiat
+ *       (cf. soutenance §6.2) et nettoyage périodique.</li>
+ * </ul>
+ *
+ * <h2>Concurrence — verrous</h2>
+ * <p>
+ * Trois {@link ReentrantReadWriteLock} équitables protègent les états
+ * partagés (cf. {@code docs/MUTEX.md}) :
  * </p>
  * <ul>
- *   <li><strong>Registration</strong>: clients register with a service class
- *       (FREE, STANDARD, PREMIUM).</li>
- *   <li><strong>FREE channels</strong>: pre-created channels {@code channel0..channelN} available to all registered clients.</li>
- *   <li><strong>Subscriptions</strong>: per-channel subscriptions associated with {@link fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI}
- *       to enable filtered delivery.</li>
- *   <li><strong>Publishing</strong>: publication on a channel delivers messages to subscribed clients whose filters match.</li>
- *   <li><strong>Privileged channels (step 2)</strong>: STANDARD/PREMIUM clients can create/destroy channels and define
- *       an {@code authorisedUsers} regular expression. Access control is enforced on both subscribe and publish.</li>
- *   <li><strong>Quotas</strong>: STANDARD and PREMIUM privileged channel creation is limited by quotas.</li>
+ *   <li>{@link #registrationLock} — protège
+ *       {@code registeredClients}, {@code receptionPortsOUT} et
+ *       {@code createdPrivilegedChannelsCount} ;</li>
+ *   <li>{@link #channelsLock} — protège {@code channels} et
+ *       {@code privilegedChannels} ;</li>
+ *   <li>{@link #subscriptionsLock} — protège la table imbriquée
+ *       {@code subscriptions}.</li>
+ * </ul>
+ * <p>
+ * <strong>Ordre canonique d'acquisition</strong> :
+ * {@code registrationLock → channelsLock → subscriptionsLock}.
+ * Toute acquisition dans un autre ordre constitue un risque d'inter-blocage
+ * et est interdite (cf. {@code docs/MUTEX.md} §3).
+ * </p>
+ * <p>
+ * <strong>Règle « pas d'appel distant sous verrou »</strong> :
+ * aucun {@code doPortConnection}, {@code doPortDisconnection} ni
+ * {@code receive(...)} ne doit s'exécuter alors qu'un de ces verrous est
+ * détenu. Voir {@link #register} pour le motif rollback typique.
+ * </p>
+ * <p>
+ * Quelques compteurs sont gérés sans verrou via des
+ * {@link ConcurrentHashMap} et opérations atomiques :
+ * {@link #createdPrivilegedChannelsCount} ({@code merge}),
+ * {@link #inFlightPerChannel} ({@code compute}),
+ * {@link #processedGossipURIs} ({@code putIfAbsent}). La carte
+ * {@link #inFlightWaiters} fournit un objet par canal sur lequel
+ * {@link #destroyChannel} peut bloquer en {@code wait/notify} pendant que
+ * {@link #finishInFlight} le réveille (Phase C.8 — élimine le busy-poll).
+ * </p>
+ *
+ * <h2>Pipeline asynchrone — quatre executor services</h2>
+ * <p>
+ * Voir {@code docs/PIPELINE.md}. Quatre exécuteurs nommés sont créés au
+ * démarrage par {@link #init} :
+ * </p>
+ * <ul>
+ *   <li>{@link #ES_RECEPTION_URI} — désérialise les requêtes RMI hors
+ *       de la thread de dispatch ;</li>
+ *   <li>{@link #ES_PROPAGATION_URI} — construit le {@code snapshot} des
+ *       abonnés et planifie une livraison par cible ;</li>
+ *   <li>{@link #ES_DELIVERY_URI} — évalue le filtre puis appelle
+ *       {@code out.receive(channel, message)} pour un seul abonné ;</li>
+ *   <li>{@link #ES_GOSSIP_URI} — émet et reçoit les messages gossip
+ *       sans bloquer les autres pipelines.</li>
+ * </ul>
+ * Les indices retournés par {@link #createNewExecutorService} sont exposés
+ * via {@link #getReceptionExecutorIndex()},
+ * {@link #getPropagationExecutorIndex()},
+ * {@link #getDeliveryExecutorIndex()} et
+ * {@link #getGossipExecutorIndex()} pour que les ports inbound puissent
+ * dispatcher avec {@code runTask(esIndex, lambda)}.
+ *
+ * <h2>URIs déterministes des ports inbound</h2>
+ * <p>
+ * Phase C.3 : les quatre ports inbound du broker sont publiés sous des URIs
+ * dérivées du {@link #getReflectionInboundPortURI()} en y concaténant
+ * un suffixe constant, ce qui supprime le risque
+ * « last-broker-wins » des champs statiques globaux :
+ * </p>
+ * <ul>
+ *   <li>{@link #REGISTRATION_PORT_URI_SUFFIX} → {@code "<rip>-reg-in"} ;</li>
+ *   <li>{@link #PUBLISHING_PORT_URI_SUFFIX}   → {@code "<rip>-pub-in"} ;</li>
+ *   <li>{@link #PRIVILEGED_PORT_URI_SUFFIX}   → {@code "<rip>-priv-in"} ;</li>
+ *   <li>{@link #GOSSIP_INBOUND_PORT_URI_SUFFIX} → {@code "<rip>-gossip-in"}.</li>
+ * </ul>
+ * Les helpers {@link #registrationPortURIFor(String)},
+ * {@link #publishingPortURIFor(String)},
+ * {@link #privilegedPortURIFor(String)} et
+ * {@link #gossipPortURIFor(String)} factorisent ce calcul côté client.
+ *
+ * <h2>Invariants principaux</h2>
+ * <ul>
+ *   <li>Un client est dit enregistré ssi il apparaît à la fois dans
+ *       {@code registeredClients} et {@code receptionPortsOUT}.</li>
+ *   <li>{@code createdPrivilegedChannelsCount[uri]} reste toujours
+ *       dans {@code [0, quota(rc)]}.</li>
+ *   <li>Pour tout canal présent dans {@code channels}, il existe une
+ *       entrée dans {@code subscriptions} ; la réciproque tient après le
+ *       nettoyage post-destruction.</li>
+ *   <li>Un canal privilégié figure obligatoirement dans
+ *       {@code privilegedChannels} ET {@code channels}.</li>
+ *   <li>Aucun appel distant n'est effectué tant qu'un des trois RRWL
+ *       est détenu.</li>
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
@@ -279,6 +394,20 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// from {@link #getReflectionInboundPortURI()}, removing the
 	// last-broker-wins hazard of the previous static field.
 
+	/**
+	 * Constructeur sans voisins gossip (broker isolé) ni URI de réflexion
+	 * explicite — pratique pour les démos centralisées d'un seul broker.
+	 *
+	 * @param nbThreads             nombre de threads ordinaires alloués au composant.
+	 * @param nbSchedulableThreads  nombre de threads ordonnançables.
+	 * @param nbFreeChannels        nombre de canaux libres pré-créés.
+	 * @param standardQuota         quota de canaux privilégiés pour STANDARD.
+	 * @param premiumQuota          quota de canaux privilégiés pour PREMIUM.
+	 * @param nbReceptionThreads    threads alloués à l'executor de réception.
+	 * @param nbPropagationThreads  threads alloués à l'executor de propagation.
+	 * @param nbDeliveryThreads     threads alloués à l'executor de livraison.
+	 * @throws Exception            erreur de publication des ports.
+	 */
 	protected Broker(int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
 					 int nbReceptionThreads, int nbPropagationThreads,
@@ -289,6 +418,12 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				new ArrayList<>()); // pas de voisins
 	}
 
+	/**
+	 * Constructeur avec voisins gossip mais sans URI de réflexion explicite.
+	 *
+	 * @param neighborsGossipURIs liste des URIs des ports gossip inbound des
+	 *                            voisins fédérés (peut être vide).
+	 */
 	protected Broker(int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
 					 int nbReceptionThreads, int nbPropagationThreads,
@@ -301,7 +436,12 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				neighborsGossipURIs);
 	}
 
-	// broker avec port de reflexion pour la répartition
+	/**
+	 * Constructeur avec URI de réflexion explicite (cas distribué multi-JVM)
+	 * et sans voisins gossip.
+	 *
+	 * @param reflexionPort URI du port inbound de réflexion à publier.
+	 */
 	protected Broker(String reflexionPort,
 					 int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
@@ -314,6 +454,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				new ArrayList<>()); // pas de voisins
 	}
 
+	/**
+	 * Constructeur complet (URI de réflexion explicite + voisins gossip).
+	 * C'est la forme utilisée en mode fédéré distribué.
+	 *
+	 * @param reflexionPort       URI du port inbound de réflexion.
+	 * @param neighborsGossipURIs URIs gossip inbound des brokers voisins.
+	 */
 	protected Broker(String reflexionPort,
 					 int nbThreads, int nbSchedulableThreads,
 					 int nbFreeChannels, int standardQuota, int premiumQuota,
@@ -385,12 +532,15 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Internal asynchronous pipeline (audit 2)
 	// -------------------------------------------------------------------------
 
+	/** Quota de canaux privilégiés autorisé pour un client {@code STANDARD}. */
 	public int getStandardQuota(){
 		return standardQuota;
 	}
+	/** Quota de canaux privilégiés autorisé pour un client {@code PREMIUM}. */
 	public int getPremiumQuota(){
 		return premiumQuota;
 	}
+	/** Nombre de canaux libres pré-créés à l'initialisation du broker. */
 	public int getNbFreeChannels(){
 		return nbFreeChannels;
 	}
@@ -416,6 +566,12 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/** Index of the dedicated gossip executor service ({@value #ES_GOSSIP_URI}). */
 	public int getGossipExecutorIndex()      { return this.esGossipIndex; }
 
+	/**
+	 * Cible de livraison pré-calculée par {@link #snapshotTargets} : associe
+	 * l'URI d'un abonné, son port outbound de livraison et son filtre courant.
+	 * Permet d'évaluer le filtre puis d'appeler {@code receive} sans toucher
+	 * aux structures partagées (cf. soutenance §4.3).
+	 */
 	protected static class DeliveryTarget
 	{
 		final String subscriberURI;
@@ -430,6 +586,17 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Soumet la première étape (réception) du pipeline asynchrone sur
+	 * l'executor {@link #esReceptionIndex}. Fire-and-forget : aucun résultat
+	 * n'est renvoyé à l'appelant ; les exceptions sont logguées.
+	 *
+	 * @param publisherReceptionPortURI URI du publieur (clef d'identification).
+	 * @param channel                   canal cible.
+	 * @param message                   message à publier.
+	 * @param notificationInboundPortURI URI du port à notifier en fin de
+	 *                                   livraison (peut être {@code null}).
+	 */
 	protected void submitPublish(
 		String publisherReceptionPortURI,
 		String channel,
@@ -448,6 +615,21 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		});
 	}
 
+	/**
+	 * Étape de réception du pipeline (cf. {@code docs/PIPELINE.md} §3) :
+	 * incrémente d'abord le compteur {@code in-flight} pour que
+	 * {@link #destroyChannel} puisse observer le message en cours, puis
+	 * vérifie sous verrous {@code registrationLock.read} +
+	 * {@code channelsLock.read} l'autorisation de publier, propage le
+	 * message gossip aux voisins, et enfin soumet l'étape de propagation.
+	 *
+	 * <p><strong>Préconditions de verrou</strong> : aucune (la méthode acquiert
+	 * et relâche elle-même les verrous nécessaires dans l'ordre canonique).</p>
+	 *
+	 * @throws UnknownClientException      si le publieur n'est pas enregistré.
+	 * @throws UnknownChannelException     si le canal n'existe pas (ou plus).
+	 * @throws UnauthorisedClientException si le publieur n'est pas autorisé.
+	 */
 	protected void receptionStage(
 		String publisherReceptionPortURI,
 		String channel,
@@ -505,12 +687,22 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			}
 		});
 	}
+	/**
+	 * Incrémente atomiquement le compteur de messages en cours de livraison
+	 * pour {@code channel}. Aucun verrou requis ({@link ConcurrentHashMap}).
+	 */
 	protected void beginInFlight(String channel)
 	{
 		// CHM.compute is atomic for a given key: no extra lock needed.
 		this.inFlightPerChannel.compute(channel, (k, v) -> v == null ? 1 : v + 1);
 	}
 
+	/**
+	 * Décrémente atomiquement le compteur {@code in-flight}. Si le compteur
+	 * passe de {@code > 0} à {@code 0}, réveille toute thread bloquée dans
+	 * {@link #destroyChannel} via le {@link #inFlightWaiters waiter} associé
+	 * (Phase C.8 — remplace le précédent busy-poll {@code Thread.sleep}).
+	 */
 	protected void finishInFlight(String channel)
 	{
 		// C.8-find-3: capture whether this call drove the count from
@@ -535,6 +727,12 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Étape de propagation (cf. {@code docs/PIPELINE.md} §3) : construit un
+	 * snapshot des cibles puis enchaîne sur l'étape de livraison. Soumis sur
+	 * l'executor {@link #esPropagationIndex} ; ne tient aucun verrou
+	 * pendant l'appel récursif à {@link #deliverToTargets}.
+	 */
 	protected void propagationStage(String channel, MessageI message) throws Exception
 	{
 		List<DeliveryTarget> targets = this.snapshotTargets(channel);
@@ -646,6 +844,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Component life cycle
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Démarrage du composant : crée et connecte un
+	 * {@link GossipSenderOutboundPort} vers chaque voisin gossip configuré
+	 * dans le constructeur. Les ports sont indexés dans
+	 * {@link #sendersByNeighbour} par l'URI de réflexion du voisin afin de
+	 * pouvoir filtrer l'émetteur immédiat dans {@link #update} (soutenance §6.2).
+	 */
 	@Override
 	public void start() throws ComponentStartException {
 		super.start();
@@ -687,6 +892,11 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		return gossipInboundURI;
 	}
 
+	/**
+	 * Boucle d'exécution du composant : planifie un nettoyage périodique de
+	 * la mémoire gossip toutes les 2 minutes (si un thread ordonnançable
+	 * est disponible). Sinon, le nettoyage devient opportuniste.
+	 */
 	@Override
 	public void execute() throws Exception {
 		super.execute();
@@ -703,6 +913,11 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Finalisation : déconnecte tous les ports outbound de livraison vers
+	 * les clients ainsi que les ports gossip vers les voisins. Pas de
+	 * destruction ici (laissée à {@link #shutdown()}).
+	 */
 	@Override
 	public void finalise() throws Exception {
 
@@ -720,6 +935,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		super.finalise();
 	}
 
+	/**
+	 * Arrêt du composant : dépublie et détruit tous les ports inbound et
+	 * outbound. Synchronisé pour éviter une double-libération.
+	 */
 	@Override
 	public synchronized void shutdown() throws ComponentShutdownException {
 		try {
@@ -817,6 +1036,14 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		return this.channels.contains(channel);
 	}
 
+	/**
+	 * Vérifie sans bloquer le pipeline si le client identifié par
+	 * {@code receptionPortURI} est actuellement enregistré.
+	 *
+	 * @param receptionPortURI URI du port de réception du client.
+	 * @return {@code true} ssi le client figure dans {@code registeredClients}.
+	 * @throws Exception en cas d'erreur d'acquisition de verrou.
+	 */
 	public boolean registered(String receptionPortURI) throws Exception
 	{
 
@@ -864,6 +1091,27 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	}
 
+	/**
+	 * Enregistre un nouveau client avec sa classe de service initiale.
+	 *
+	 * <p>Algorithme (Phase C.8) :</p>
+	 * <ol>
+	 *   <li>Réservation atomique de l'entrée sous {@code registrationLock.write}
+	 *       (rejette les doublons concurrents).</li>
+	 *   <li>Connexion distante <em>hors verrou</em> (règle « no remote call
+	 *       under lock »). Échec ⇒ rollback de l'étape 1.</li>
+	 *   <li>Mémorisation du port outbound de livraison sous
+	 *       {@code registrationLock.write}.</li>
+	 *   <li>Propagation gossip d'un {@link RegisterGossipMessage}.</li>
+	 * </ol>
+	 *
+	 * @param receptionPortURI URI du port de réception du nouveau client.
+	 * @param rc               classe de service initiale.
+	 * @return URI du port inbound broker à utiliser pour publier
+	 *         (publishing pour FREE, privileged sinon).
+	 * @throws AlreadyRegisteredException si l'URI est déjà enregistrée.
+	 * @throws IllegalArgumentException   si un paramètre est null/vide.
+	 */
 	public String register(String receptionPortURI, RegistrationClass rc) throws Exception
 	{
 		if (receptionPortURI == null || receptionPortURI.isEmpty()) {
@@ -945,6 +1193,21 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Modifie la classe de service d'un client déjà enregistré (upgrade
+	 * STANDARD/PREMIUM ou downgrade vers FREE). Lors d'un downgrade vers
+	 * FREE, tous les canaux privilégiés possédés sont détruits et leur
+	 * suppression propagée par gossip.
+	 *
+	 * <p>Phase C.8-find-5 : la transition d'état tient en une seule prise de
+	 * {@code registrationLock.write} pour éliminer un TOCTOU avec un
+	 * {@code unregister} concurrent. Aucun appel public n'est effectué sous
+	 * le verrou.</p>
+	 *
+	 * @return URI du port inbound broker correspondant à la nouvelle classe.
+	 * @throws UnknownClientException si le client n'est pas enregistré.
+	 * @throws IllegalArgumentException si {@code rc} est {@code null}.
+	 */
 	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc) throws Exception
 	{
 		if (rc == null) {
@@ -1029,6 +1292,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Désenregistre un client : détruit tous ses canaux privilégiés, retire
+	 * ses souscriptions, son entrée registre et son port outbound de
+	 * livraison, puis propage la suppression via gossip.
+	 *
+	 * @throws UnknownClientException si le client n'est pas enregistré.
+	 */
 	public void unregister(String receptionPortURI) throws Exception {
 		// vérifier d'abord
 		this.registrationLock.readLock().lock();
@@ -1552,6 +1822,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * @throws IllegalArgumentException if {@code receptionPortURI} is null/empty.
 	 * @throws UnknownClientException   if the client is not registered.
 	 */
+	/**
+	 * Indique si l'opération {@link #createChannel} doit être autorisée pour
+	 * {@code receptionPortURI} compte tenu de sa classe et du nombre de
+	 * canaux déjà créés. FREE → toujours {@code true} (interdit de créer).
+	 *
+	 * @throws UnknownClientException si le client n'est pas enregistré.
+	 */
 	public boolean channelQuotaReached(String receptionPortURI) throws Exception
 	{
 		requireClient(receptionPortURI);
@@ -1959,6 +2236,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			this.gossipToNeighbours(new GossipMessageI[]{gossip});
 		}
 	}
+	/**
+	 * Surcharge appelée par défaut depuis l'API publique :
+	 * {@code destroyChannelNow(uri, channel)} équivaut à
+	 * {@code destroyChannelNow(uri, channel, true)} (propagation gossip
+	 * activée). La surcharge à 3 paramètres est exposée pour permettre aux
+	 * gestionnaires gossip locaux d'éviter une re-propagation infinie.
+	 */
 	public void destroyChannelNow(String receptionPortURI, String channel)
 			throws Exception
 	{
@@ -1971,6 +2255,22 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Gossip methodes
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Réception d'un lot de messages gossip d'un voisin
+	 * (cf. {@code docs/GOSSIP.md}).
+	 *
+	 * <p>Pour chaque message :</p>
+	 * <ol>
+	 *   <li>Déduplication atomique via
+	 *       {@code processedGossipURIs.putIfAbsent}.</li>
+	 *   <li>Mémorisation de l'émetteur immédiat pour ne pas lui réémettre
+	 *       le message (soutenance §6.2).</li>
+	 *   <li>Application locale (création/destruction de canal, mise à jour
+	 *       de classe, propagation aux abonnés locaux, …).</li>
+	 *   <li>Réémission filtrée vers tous les voisins sauf l'émetteur immédiat
+	 *       avec une URI émetteur réécrite à la nôtre.</li>
+	 * </ol>
+	 */
 	@Override
 	public void update(GossipMessageI[] fromSender) {
 		assert fromSender != null : "gossip array must not be null";
@@ -2225,6 +2525,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Implémentation de {@link GossipReceiverCI#receive} : délègue à
+	 * {@link #update} (point d'entrée RMI vers la logique gossip).
+	 */
 	@Override
 	public void receive(GossipMessageI[] gossipMessages) throws Exception {
 		update(gossipMessages);
@@ -2250,6 +2554,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 	}
 
+	/**
+	 * Nettoyage périodique de la mémoire gossip : supprime les URIs
+	 * mémorisées il y a plus de 120 secondes. Sans verrou (cf. F.5).
+	 */
 	private void cleanupGossipMemory() {
 		Instant threshold = Instant.now().minusSeconds(120);
 		// ConcurrentHashMap : nettoyage sans verrou (cf. F.5).

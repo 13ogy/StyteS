@@ -12,38 +12,55 @@ import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 
 /**
- * Inbound port used by the broker to deliver messages to a client.
- * Works with both the legacy {@link Client} and the plugin-based {@link PluginClient}.
+ * Port inbound utilisé par le broker pour livrer un message à un client.
+ * Compatible avec le {@link Client} historique et le {@link PluginClient}
+ * basé sur les plugins.
+ *
+ * <p><strong>Propriétaire</strong> : composant client (cast vers
+ * {@link Client} dans la version sans plugin, ou délégation au
+ * {@link ClientRegistrationPlugin} dans la version avec plugin).</p>
  *
  * <p>
- * Phase D.3: delivery callbacks are dispatched on the client's default
- * executor through {@link AbstractComponent#runTask(fr.sorbonne_u.components.ComponentI.ComponentTask)
- * runTask}. The RMI dispatch thread (and, transitively, the broker's
- * delivery executor that opened the call) returns immediately, so a
- * slow client cannot back-pressure the broker. Exceptions raised by the
- * client-side callback are logged on the client tracer.
+ * Phase D.3 : les callbacks de livraison sont dispatchés sur l'executor
+ * par défaut du client via
+ * {@link AbstractComponent#runTask(fr.sorbonne_u.components.ComponentI.ComponentTask) runTask}.
+ * La thread RMI (et, transitivement, l'executor de livraison du broker
+ * qui a ouvert l'appel) rend immédiatement la main, de sorte qu'un client
+ * lent ne peut pas exercer de back-pressure sur le broker. Les exceptions
+ * du callback côté client sont logguées sur son tracer.
  * </p>
  *
  * <p>
- * Phase D.5: technical exceptions are wrapped in {@link RemoteException}
- * (the CI declares {@code throws Exception} only).
+ * Phase D.5 : les exceptions techniques sont encapsulées dans
+ * {@link RemoteException} (la CI ne déclare que {@code throws Exception}).
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class ReceivingInboundPort extends AbstractInboundPort implements ReceivingCI {
 
+	/** Constructeur sans plugin (cas {@link Client}). */
 	public ReceivingInboundPort(ComponentI owner) throws Exception {
 		super(ReceivingCI.class, owner);
         this.pluginUri = null;
     }
-	// With Plugin
+	/**
+	 * Constructeur utilisé en mode plugin : l'URI du port est aussi l'URI
+	 * du {@link ClientRegistrationPlugin} qui en est propriétaire logique.
+	 */
 	public ReceivingInboundPort(ComponentI owner, String pluginURI) throws Exception {
 		super(pluginURI, ReceivingCI.class, owner);
 		this.pluginUri =pluginURI;
 	}
 	private final String pluginUri;
 
+	/**
+	 * Réception d'un message unitaire — dispatché en asynchrone sur le
+	 * client (ou son plugin) pour éviter de bloquer la thread RMI / l'executor
+	 * de livraison du broker.
+	 *
+	 * @see ReceivingCI#receive(String, MessageI)
+	 */
 	@Override
 	public void receive(String channel, MessageI message) throws Exception {
 		try {
@@ -76,6 +93,12 @@ public class ReceivingInboundPort extends AbstractInboundPort implements Receivi
 		}
 	}
 
+	/**
+	 * Réception d'un lot de messages — itère et délègue à la version
+	 * unitaire pour bénéficier du dispatch asynchrone par message.
+	 *
+	 * @see ReceivingCI#receive(String, MessageI[])
+	 */
 	@Override
 	public void receive(String channel, MessageI[] messages) throws Exception
 	{

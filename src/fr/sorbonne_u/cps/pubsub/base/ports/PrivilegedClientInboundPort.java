@@ -13,46 +13,53 @@ import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 
 
 /**
- * Inbound port exposing privileged channel-management operations of the broker.
+ * Port inbound exposant les opérations de gestion des canaux privilégiés
+ * du broker via l'interface {@link PrivilegedClientCI}.
+ *
+ * <p><strong>Propriétaire</strong> : {@link Broker}.</p>
  *
  * <p>
- * This port forwards calls to its owner {@code Broker} and implements the
- * component interface {@link PrivilegedClientCI}. It also inherits publishing
- * operations because {@link PrivilegedClientCI} extends {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}.
+ * Comme {@link PrivilegedClientCI} étend
+ * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, ce port hérite
+ * également des opérations {@code publish} / {@code asyncPublishAndNotify}
+ * via {@link PublishingInboundPort} (Phase D.2 — la spécialisation des CIs
+ * est miroitée par la hiérarchie OO des ports).
  * </p>
  *
  * <p>
- * Phase D.5 convention: business exceptions declared on the CI propagate
- * verbatim; every other technical {@link Exception} is wrapped in a
- * {@link RemoteException}. Phase D.3: the truly fire-and-forget void
- * operations ({@link #modifyAuthorisedUsers}, {@link #destroyChannel})
- * are dispatched on the broker's reception executor; their lambda
- * exceptions are logged on the tracer (callers cannot observe them).
- * Operations whose synchronous semantics matter for the caller
- * ({@link #createChannel}: quota / uniqueness reporting,
- * {@link #destroyChannelNow}: callers expect the channel to be gone on
- * return) stay {@link fr.sorbonne_u.components.AbstractComponent#handleRequest
- * handleRequest}-based.
+ * Convention Phase D.5 : les exceptions métier déclarées sur la CI sont
+ * propagées telles quelles ; toute autre {@link Exception} technique est
+ * encapsulée dans une {@link RemoteException}. Phase D.3 : les opérations
+ * void véritablement fire-and-forget ({@link #modifyAuthorisedUsers},
+ * {@link #destroyChannel}) sont dispatchées sur l'executor de réception ;
+ * leurs exceptions sont logguées (l'appelant ne peut pas les observer).
+ * Les opérations dont la sémantique synchrone importe à l'appelant
+ * ({@link #createChannel} : remontée de quota / unicité,
+ * {@link #destroyChannelNow} : disparition garantie au retour) restent
+ * basées sur {@link fr.sorbonne_u.components.AbstractComponent#handleRequest
+ * handleRequest}.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class PrivilegedClientInboundPort extends PublishingInboundPort implements PrivilegedClientCI
 {
+	/** Constructeur sans URI explicite — owner doit être un {@link Broker}. */
 	public PrivilegedClientInboundPort(ComponentI owner) throws Exception
 	{
 		super(PrivilegedClientCI.class, owner);
 	}
 
 	/**
-	 * Explicit-URI constructor (Phase C.3): the broker derives this URI
-	 * deterministically from its reflection inbound port URI.
+	 * Constructeur à URI explicite (Phase C.3) — le broker dérive cette URI
+	 * depuis son URI de réflexion.
 	 */
 	public PrivilegedClientInboundPort(String uri, ComponentI owner) throws Exception
 	{
 		super(uri, PrivilegedClientCI.class, owner);
 	}
 
+	/** @see PrivilegedClientCI#hasCreatedChannel(String, String) */
 	@Override
 	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws Exception
 	{
@@ -67,6 +74,7 @@ public class PrivilegedClientInboundPort extends PublishingInboundPort implement
 		}
 	}
 
+	/** @see PrivilegedClientCI#channelQuotaReached(String) */
 	@Override
 	public boolean channelQuotaReached(String receptionPortURI) throws Exception
 	{
@@ -81,6 +89,11 @@ public class PrivilegedClientInboundPort extends PublishingInboundPort implement
 		}
 	}
 
+	/**
+	 * Création de canal privilégié — synchrone car l'appelant a besoin de la
+	 * réponse métier (quota / unicité) immédiatement.
+	 * @see PrivilegedClientCI#createChannel(String, String, String)
+	 */
 	@Override
 	public void createChannel(String receptionPortURI, String channel, String autorisedUsers)
 			throws Exception
@@ -98,6 +111,10 @@ public class PrivilegedClientInboundPort extends PublishingInboundPort implement
 		}
 	}
 
+	/**
+	 * Modification asynchrone (Phase D.3) de la regex {@code authorisedUsers}.
+	 * @see PrivilegedClientCI#modifyAuthorisedUsers(String, String, String)
+	 */
 	@Override
 	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers)
 			throws Exception
@@ -116,6 +133,11 @@ public class PrivilegedClientInboundPort extends PublishingInboundPort implement
 		}
 	}
 
+	/**
+	 * Destruction asynchrone (Phase D.3) — le canal devient invisible mais
+	 * son nettoyage profond se fait après vidage du compteur in-flight.
+	 * @see PrivilegedClientCI#destroyChannel(String, String)
+	 */
 	@Override
 	public void destroyChannel(String receptionPortURI, String channel)
 			throws Exception
@@ -134,6 +156,11 @@ public class PrivilegedClientInboundPort extends PublishingInboundPort implement
 		}
 	}
 
+	/**
+	 * Destruction synchrone — l'appelant attend la suppression effective
+	 * de tout l'état du canal.
+	 * @see PrivilegedClientCI#destroyChannelNow(String, String)
+	 */
 	@Override
 	public void destroyChannelNow(String receptionPortURI, String channel)
 			throws Exception

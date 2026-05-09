@@ -13,24 +13,31 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 
 /**
- * Outbound port used by clients to access the broker registration service.
+ * Port outbound utilisé par un composant client pour invoquer le service
+ * d'enregistrement du broker via l'interface {@link RegistrationCI}.
+ *
+ * <p><strong>Propriétaire</strong> : le composant client (par exemple
+ * {@link fr.sorbonne_u.cps.pubsub.base.components.Client} ou un porteur du
+ * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin}).</p>
  *
  * <p>
- * Phase D.5: business exceptions declared on the CI propagate verbatim;
- * every other technical {@link Exception} is wrapped in a
- * {@link RemoteException}.
+ * Phase D.5 : les exceptions métier déclarées sur la CI sont propagées
+ * telles quelles ; toute autre {@link Exception} technique est encapsulée
+ * dans une {@link RemoteException}.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class RegistrationOutboundPort extends AbstractOutboundPort implements RegistrationCI{
 
+	/** Constructeur — owner = composant client qui détient ce port. */
 	public RegistrationOutboundPort(ComponentI owner) throws Exception {
 		super(RegistrationCI.class, owner);
 
 	}
 
 
+	/** @see RegistrationCI#registered(String) */
 	@Override
 	public boolean registered(String receptionPortURI) throws Exception {
 		try {
@@ -40,6 +47,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#registered(String, RegistrationClass) */
 	@Override
 	public boolean registered(String receptionPortURI, RegistrationClass rc) throws Exception {
 		try {
@@ -49,6 +57,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#register(String, RegistrationClass) */
 	@Override
 	public String register(String receptionPortURI, RegistrationClass rc) throws Exception {
 		try {
@@ -60,6 +69,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#modifyServiceClass(String, RegistrationClass) */
 	@Override
 	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc) throws Exception, AlreadyRegisteredException {
 		try {
@@ -71,6 +81,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#unregister(String) */
 	@Override
 	public void unregister(String receptionPortURI) throws Exception {
 		try {
@@ -82,6 +93,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#channelExist(String) */
 	@Override
 	public boolean channelExist(String channel) throws Exception {
 		try {
@@ -91,6 +103,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#channelAuthorised(String, String) */
 	@Override
 	public boolean channelAuthorised(String receptionPortURI, String channel) throws Exception {
 		try {
@@ -102,6 +115,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#subscribed(String, String) */
 	@Override
 	public boolean subscribed(String receptionPortURI, String channel) throws Exception{
 		try {
@@ -113,6 +127,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#subscribe(String, String, MessageFilterI) */
 	@Override
 	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter) throws Exception{
 		try {
@@ -124,6 +139,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#unsubscribe(String, String) */
 	@Override
 	public void unsubscribe(String receptionPortURI, String channel) throws Exception {
 		try {
@@ -135,6 +151,7 @@ public class RegistrationOutboundPort extends AbstractOutboundPort implements Re
 		}
 	}
 
+	/** @see RegistrationCI#modifyFilter(String, String, MessageFilterI) */
 	@Override
 	public boolean modifyFilter(String receptionPortURI, String channel, MessageFilterI filter) throws Exception {
 		try {

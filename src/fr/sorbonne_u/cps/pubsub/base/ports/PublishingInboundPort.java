@@ -11,22 +11,26 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
 /**
- * Inbound port exposing the broker publishing service.
+ * Port inbound exposant le service de publication du broker via l'interface
+ * {@link PublishingCI}.
+ *
+ * <p><strong>Propriétaire</strong> : {@link Broker} (cast effectué dans
+ * chaque méthode pour récupérer le composant concret).</p>
  *
  * <p>
- * Phase D.3: every void-returning method routes the actual broker call
- * through {@link Broker#getReceptionExecutorIndex()} via
+ * Phase D.3 : chaque méthode void route l'appel broker effectif via
+ * {@link Broker#getReceptionExecutorIndex()} dans
  * {@link fr.sorbonne_u.components.AbstractComponent#runTask(int, fr.sorbonne_u.components.ComponentI.ComponentTask)},
- * so the RMI dispatch thread returns immediately. Any exception raised
- * inside the lambda (including precondition failures from CDC §C.2) is
- * logged on the broker tracer rather than propagated &mdash; publish is
- * fire-and-forget per CDC §3.5.
+ * de sorte que la thread RMI rend la main immédiatement. Toute exception
+ * levée dans la lambda (y compris les violations de précondition CDC §C.2)
+ * est logguée sur le tracer du broker plutôt que propagée — la publication
+ * est fire-and-forget (CDC §3.5).
  * </p>
  *
  * <p>
- * Phase D.5: the (currently empty) outer try/catch follows the project
- * convention &mdash; business exceptions declared on the CI propagate
- * verbatim, every other technical {@link Exception} is wrapped in a
+ * Phase D.5 : la convention du projet est respectée — les exceptions métier
+ * déclarées sur la CI sont propagées telles quelles ; toute autre
+ * {@link Exception} technique est encapsulée dans une
  * {@link RemoteException}.
  * </p>
  *
@@ -34,31 +38,37 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  */
 public class PublishingInboundPort extends AbstractInboundPort implements PublishingCI {
 
+	/** Constructeur sans URI explicite — owner doit être un {@link Broker}. */
 	public PublishingInboundPort(ComponentI owner) throws Exception {
 		super(PublishingCI.class, owner);
 
 	}
+	/**
+	 * Constructeur exposant une CI plus spécifique (utilisé par les
+	 * sous-classes comme {@link PrivilegedClientInboundPort}).
+	 */
 	public PublishingInboundPort(Class c, ComponentI owner) throws Exception{
 		super (c, owner);
 	}
 
 	/**
-	 * Explicit-URI constructor (Phase C.3): lets the broker pick a
-	 * deterministic URI derived from its reflection inbound port URI.
+	 * Constructeur à URI explicite (Phase C.3) : permet au broker de choisir
+	 * une URI déterministe dérivée de son URI de réflexion.
 	 */
 	public PublishingInboundPort(String uri, ComponentI owner) throws Exception {
 		super(uri, PublishingCI.class, owner);
 	}
 
 	/**
-	 * Explicit-URI + interface constructor (Phase C.3) used by subclasses
-	 * (e.g. {@link PrivilegedClientInboundPort}) that want a deterministic
-	 * URI while still declaring a more specific implemented interface.
+	 * Constructeur à URI explicite + interface (Phase C.3) utilisé par les
+	 * sous-classes (par exemple {@link PrivilegedClientInboundPort}) qui
+	 * souhaitent une URI déterministe tout en déclarant une CI plus spécifique.
 	 */
 	public PublishingInboundPort(String uri, Class c, ComponentI owner) throws Exception {
 		super(uri, c, owner);
 	}
 
+	/** @see PublishingCI#publish(String, String, MessageI) */
 	@Override
 	public void publish(String receptionPortURI, String channel, MessageI message)
 		throws Exception
@@ -77,6 +87,7 @@ public class PublishingInboundPort extends AbstractInboundPort implements Publis
 		}
 	}
 
+	/** @see PublishingCI#publish(String, String, ArrayList) */
 	@Override
 	public void publish(
 		String receptionPortURI,
@@ -102,6 +113,7 @@ public class PublishingInboundPort extends AbstractInboundPort implements Publis
 	// PublishingCI async (added in latest interface)
 	// -------------------------------------------------------------------------
 
+	/** @see PublishingCI#asyncPublishAndNotify(String, String, MessageI, String) */
 	@Override
 	public void asyncPublishAndNotify(
 		String receptionPortURI,
@@ -125,6 +137,7 @@ public class PublishingInboundPort extends AbstractInboundPort implements Publis
 		}
 	}
 
+	/** @see PublishingCI#asyncPublishAndNotify(String, String, ArrayList, String) */
 	@Override
 	public void asyncPublishAndNotify(
 		String receptionPortURI,

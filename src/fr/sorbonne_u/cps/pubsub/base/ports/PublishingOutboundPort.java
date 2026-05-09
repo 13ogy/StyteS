@@ -9,28 +9,39 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
 /**
- * Outbound port used by clients to access the broker publishing service.
+ * Port outbound utilisé par un composant client pour appeler le service de
+ * publication du broker (interface {@link PublishingCI}).
+ *
+ * <p><strong>Propriétaire</strong> : composant client (par exemple
+ * {@link fr.sorbonne_u.cps.pubsub.base.components.Client} ou un porteur du
+ * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin}).</p>
  *
  * <p>
- * Phase D.5: technical exceptions raised by the connector are wrapped in
- * {@link RemoteException}; {@link PublishingCI} declares no business
- * exceptions on its methods so the wrap-all path is sufficient.
+ * Phase D.5 : les exceptions techniques levées par le connecteur sont
+ * encapsulées dans une {@link RemoteException} ; {@link PublishingCI} ne
+ * déclare aucune exception métier sur ses méthodes, le wrap-tout suffit.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class PublishingOutboundPort extends AbstractOutboundPort implements PublishingCI {
 
+	/** Constructeur utilisé par les composants clients. */
 	public PublishingOutboundPort(ComponentI owner)
 			throws Exception {
 		super(PublishingCI.class, owner);
 	}
 
+	/**
+	 * Constructeur exposant une CI plus spécifique (utilisé par les
+	 * sous-classes comme {@link PrivilegedClientOutboundPort}).
+	 */
 	public PublishingOutboundPort(Class c, ComponentI owner) throws Exception{
 		super(c, owner);
 	}
 
 
+	/** @see PublishingCI#publish(String, String, MessageI) */
 	@Override
 	public void publish(String receptionPortURI, String channel, MessageI message) throws Exception {
 		try {
@@ -40,6 +51,7 @@ public class PublishingOutboundPort extends AbstractOutboundPort implements Publ
 		}
 	}
 
+	/** @see PublishingCI#publish(String, String, ArrayList) */
 	@Override
 	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception {
 		try {
@@ -53,6 +65,7 @@ public class PublishingOutboundPort extends AbstractOutboundPort implements Publ
 	// PublishingCI async (added in latest interface)
 	// -------------------------------------------------------------------------
 
+	/** @see PublishingCI#asyncPublishAndNotify(String, String, MessageI, String) */
 	@Override
 	public void asyncPublishAndNotify(
 		String receptionPortURI,
@@ -69,6 +82,7 @@ public class PublishingOutboundPort extends AbstractOutboundPort implements Publ
 		}
 	}
 
+	/** @see PublishingCI#asyncPublishAndNotify(String, String, ArrayList, String) */
 	@Override
 	public void asyncPublishAndNotify(
 		String receptionPortURI,

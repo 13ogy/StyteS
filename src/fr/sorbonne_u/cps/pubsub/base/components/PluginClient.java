@@ -21,10 +21,31 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
 
 /**
- * A plugin-based client component implementing CDC §3.5.1 and §3.5.2
+ * Composant client basé sur les quatre plugins pub/sub (CDC §3.5.1 et §3.5.2).
  *
- * This component coexists with the legacy {@link Client} component so that
- * previous demos remain unchanged.
+ * <p>
+ * Ce composant compose explicitement quatre plugins (cf. paquetage
+ * {@code fr.sorbonne_u.cps.pubsub.plugins}) plutôt que d'agréger
+ * manuellement les ports comme {@link Client} :
+ * </p>
+ * <ul>
+ *   <li>{@link ClientRegistrationPlugin} — porte le port inbound
+ *       {@link ReceivingCI} et le port outbound {@link RegistrationCI} ;
+ *       toutes les autres opérations passent par lui pour récupérer
+ *       l'URI du port de réception (qui sert d'identité du client) ;</li>
+ *   <li>{@link ClientSubscriptionPlugin} — souscriptions, modification
+ *       de filtre et API de réception avancée ;</li>
+ *   <li>{@link ClientPublicationPlugin} — port outbound
+ *       {@link PublishingCI} ;</li>
+ *   <li>{@link ClientPrivilegedPlugin} — port outbound
+ *       {@link PrivilegedClientCI} pour la gestion des canaux privilégiés.</li>
+ * </ul>
+ *
+ * <p>
+ * Coexiste avec le composant historique {@link Client} pour ne pas casser
+ * les démos déjà écrites. Préférer {@link AbstractPluginComponent} pour les
+ * nouveaux composants spécialisés (publisher / subscriber dédiés).
+ * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
@@ -107,21 +128,41 @@ public class PluginClient extends AbstractComponent
 	// Registration API
 	// ---------------------------------------------------------------------
 
+	/** @return {@code true} ssi ce client est actuellement enregistré côté broker. */
 	public boolean registered()
 	{
 		return this.registrationPlugin.registered();
 	}
 
+	/**
+	 * Enregistre ce client auprès du broker dans la classe de service {@code rc}.
+	 *
+	 * @throws AlreadyRegisteredException si le client est déjà enregistré.
+	 */
 	public void register(RegistrationClass rc) throws AlreadyRegisteredException
 	{
 		this.registrationPlugin.register(rc);
 	}
 
+	/**
+	 * Demande au broker un changement de classe de service (upgrade ou
+	 * downgrade vers FREE).
+	 *
+	 * @throws UnknownClientException     si le client n'est pas enregistré.
+	 * @throws AlreadyRegisteredException si la nouvelle classe est identique
+	 *                                    à la classe actuelle.
+	 */
 	public void modifyServiceClass(RegistrationClass rc) throws UnknownClientException, AlreadyRegisteredException
 	{
 		this.registrationPlugin.modifyServiceClass(rc);
 	}
 
+	/**
+	 * Désenregistre ce client (libère ses canaux privilégiés et ses
+	 * souscriptions côté broker).
+	 *
+	 * @throws UnknownClientException si le client n'est pas enregistré.
+	 */
 	public void unregister() throws UnknownClientException
 	{
 		this.registrationPlugin.unregister();
@@ -131,18 +172,24 @@ public class PluginClient extends AbstractComponent
 	// Subscription API
 	// ---------------------------------------------------------------------
 
+	/**
+	 * Souscrit ce client au canal {@code channel} avec le filtre {@code filter}
+	 * (qui peut être {@code null} pour « accepter tout »).
+	 */
 	public void subscribe(String channel, MessageFilterI filter)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
 	{
 		this.subscriptionPlugin.subscribe(channel, filter);
 	}
 
+	/** Désabonne ce client du canal {@code channel}. */
 	public void unsubscribe(String channel)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException, NotSubscribedChannelException
 	{
 		this.subscriptionPlugin.unsubscribe(channel);
 	}
 
+	/** Remplace le filtre actif sur {@code channel} par {@code filter}. */
 	public void modifyFilter(String channel, MessageFilterI filter)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException, NotSubscribedChannelException
 	{
@@ -153,6 +200,7 @@ public class PluginClient extends AbstractComponent
 	// Publication API
 	// ---------------------------------------------------------------------
 
+	/** Publie {@code message} sur {@code channel} (livraison asynchrone). */
 	public void publish(String channel, MessageI message)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
 	{
@@ -163,6 +211,14 @@ public class PluginClient extends AbstractComponent
 	// Privileged channel management
 	// ---------------------------------------------------------------------
 
+	/**
+	 * Crée un canal privilégié appartenant à ce client.
+	 *
+	 * @param channel          nom du canal à créer.
+	 * @param authorisedUsers  regex appliquée aux URIs de port de réception
+	 *                         des clients autorisés (peut être vide pour
+	 *                         « tout client enregistré »).
+	 */
 	public void createChannel(String channel, String authorisedUsers)
 	throws UnknownClientException,
 			fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException,
@@ -171,17 +227,20 @@ public class PluginClient extends AbstractComponent
 		this.privilegedPlugin.createChannel(channel, authorisedUsers);
 	}
 
+	/** @return {@code true} ssi ce client est propriétaire de {@code channel}. */
 	public boolean hasCreatedChannel(String channel)
 	throws UnknownClientException, fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException
 	{
 		return this.privilegedPlugin.hasCreatedChannel(channel);
 	}
 
+	/** @return {@code true} ssi ce client a atteint son quota de canaux privilégiés. */
 	public boolean channelQuotaReached() throws UnknownClientException
 	{
 		return this.privilegedPlugin.channelQuotaReached();
 	}
 
+	/** Modifie la regex {@code authorisedUsers} d'un canal privilégié possédé. */
 	public void modifyAuthorisedUsers(String channel, String authorisedUsers)
 	throws UnknownClientException,
 			fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException,
@@ -190,6 +249,11 @@ public class PluginClient extends AbstractComponent
 		this.privilegedPlugin.modifyAuthorisedUsers(channel, authorisedUsers);
 	}
 
+	/**
+	 * Détruit un canal privilégié possédé. Asynchrone : le retour ne garantit
+	 * pas que la destruction soit visible immédiatement (cf.
+	 * {@link #destroyChannelNow}).
+	 */
 	public void destroyChannel(String channel)
 	throws UnknownClientException,
 			fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException,
@@ -198,6 +262,8 @@ public class PluginClient extends AbstractComponent
 		this.privilegedPlugin.destroyChannel(channel);
 	}
 
+	/** Variante synchrone de {@link #destroyChannel} : la destruction est
+	 *  achevée au retour de la méthode. */
 	public void destroyChannelNow(String channel)
 	throws UnknownClientException,
 			fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException,
@@ -210,6 +276,11 @@ public class PluginClient extends AbstractComponent
 	// Reception hook
 	// ---------------------------------------------------------------------
 
+	/**
+	 * Callback de réception câblé dans le {@link ClientSubscriptionPlugin}.
+	 * Implémentation par défaut : trace + log. Les sous-classes peuvent
+	 * remplacer ce comportement (file d'attente, filtrage applicatif, etc.).
+	 */
 	public void onReceive(String channel, MessageI message)
 	{
 		if (message == null) {

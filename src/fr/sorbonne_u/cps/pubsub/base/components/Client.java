@@ -46,7 +46,8 @@ public class Client extends AbstractComponent {
 	private ReceivingInboundPort receptionPortIN;
 
 	/**
-	 * Return the URI of this client's inbound port offering ReceivingCI.
+	 * URI du port inbound {@link fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI}
+	 * de ce client. Sert d'identité unique côté broker.
 	 */
 	public String getReceptionPortURI()
 	{
@@ -150,6 +151,14 @@ public class Client extends AbstractComponent {
 		super.shutdown();
 	}
 	
+	/**
+	 * Enregistre ce client auprès du broker dans la classe de service
+	 * {@code rc}. Établit aussi la connexion sortante adaptée
+	 * (publishing pour FREE, privileged sinon). Idempotent : un second
+	 * appel renvoie immédiatement.
+	 *
+	 * @throws Exception erreurs de connexion ou métier remontées par le broker.
+	 */
 	public void register(RegistrationClass rc) throws Exception {
 		if (this.registered) {
 			return;
@@ -180,6 +189,13 @@ public class Client extends AbstractComponent {
 		this.registered = true;
 	}
 	
+	/**
+	 * Demande au broker un changement de classe de service. Reconfigure
+	 * localement la paire de ports outbound utilisée pour publier (publishing
+	 * vs privileged) en fonction de la nouvelle classe.
+	 *
+	 * @throws AlreadyRegisteredException si {@code rc} est identique à la classe courante.
+	 */
 	public void modifyServiceClass(RegistrationClass rc) throws Exception {
 		
 		this.logMessage("Modifying registration class");
@@ -213,6 +229,7 @@ public class Client extends AbstractComponent {
 		
 	}
 
+	/** Souscrit à {@code channel} avec le filtre {@code filter}. */
 	public void subscribe(String channel, MessageFilterI filter) throws Exception
 	{
 		this.registrationPortOUT.subscribe(
@@ -221,6 +238,7 @@ public class Client extends AbstractComponent {
 			filter);
 	}
 
+	/** Publie {@code message} sur {@code channel} (livraison asynchrone). */
 	public void publish(String channel, MessageI message) throws Exception
 	{
 		this.publishingPortOUT.publish(
@@ -233,37 +251,48 @@ public class Client extends AbstractComponent {
 	// Privileged channel management API
 	// -------------------------------------------------------------------------
 
+	/** @return {@code true} ssi ce client est propriétaire de {@code channel}. */
 	public boolean hasCreatedChannel(String channel) throws Exception
 	{
 		return this.privilegedPortOUT.hasCreatedChannel(this.receptionPortIN.getPortURI(), channel);
 	}
 
+	/** @return {@code true} ssi le quota de canaux privilégiés est atteint. */
 	public boolean channelQuotaReached() throws Exception
 	{
 		return this.privilegedPortOUT.channelQuotaReached(this.receptionPortIN.getPortURI());
 	}
 
+	/** Crée un canal privilégié possédé par ce client. */
 	public void createChannel(String channel, String authorisedUsersRegex) throws Exception
 	{
 		this.privilegedPortOUT.createChannel(this.receptionPortIN.getPortURI(), channel, authorisedUsersRegex);
 	}
 
+	/** Modifie la regex {@code authorisedUsers} d'un canal privilégié possédé. */
 	public void modifyAuthorisedUsers(String channel, String authorisedUsersRegex) throws Exception
 	{
 		this.privilegedPortOUT.modifyAuthorisedUsers(this.receptionPortIN.getPortURI(), channel, authorisedUsersRegex);
 	}
 
+	/** Destruction asynchrone d'un canal privilégié possédé. */
 	public void destroyChannel(String channel) throws Exception
 	{
 		this.privilegedPortOUT.destroyChannel(this.receptionPortIN.getPortURI(), channel);
 	}
 
+	/** Destruction synchrone d'un canal privilégié possédé. */
 	public void destroyChannelNow(String channel) throws Exception
 	{
 		this.privilegedPortOUT.destroyChannelNow(this.receptionPortIN.getPortURI(), channel);
 	}
 
 
+	/**
+	 * Callback de livraison appelé par {@code ReceivingInboundPort} pour
+	 * chaque message reçu (mode unitaire). Implémentation par défaut :
+	 * trace pour audit.
+	 */
 	public void receive(String channel, MessageI message)
 	{
 		this.traceMessage(
@@ -273,6 +302,10 @@ public class Client extends AbstractComponent {
 				+ " timestamp=" + message.getTimeStamp() + "\n");
 	}
 
+	/**
+	 * Callback de livraison en mode lot : par défaut, délègue à la version
+	 * unitaire pour chaque message non nul.
+	 */
 	public void receive(String channel, MessageI[] messages)
 	{
 		this.traceMessage(

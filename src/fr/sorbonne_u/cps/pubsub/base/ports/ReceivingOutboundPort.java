@@ -8,21 +8,28 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
 
 /**
- * Outbound port used by the broker to deliver messages to a given client.
+ * Port outbound utilisé par le broker pour livrer un message à un client
+ * abonné via l'interface {@link ReceivingCI}.
+ *
+ * <p><strong>Propriétaire</strong> : {@link fr.sorbonne_u.cps.pubsub.base.components.Broker}
+ * (un port outbound par client enregistré, indexé dans
+ * {@code Broker.receptionPortsOUT}).</p>
  *
  * <p>
- * Phase D.5: technical exceptions are wrapped in {@link RemoteException}
- * (the CI declares {@code throws Exception} only).
+ * Phase D.5 : les exceptions techniques sont encapsulées dans
+ * {@link RemoteException} (la CI ne déclare que {@code throws Exception}).
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class ReceivingOutboundPort extends AbstractOutboundPort implements ReceivingCI {
 
+	/** Constructeur — owner = broker qui pousse les messages vers les clients. */
 	public ReceivingOutboundPort(ComponentI owner) throws Exception {
 		super(ReceivingCI.class, owner);
 	}
 
+	/** @see ReceivingCI#receive(String, MessageI) */
 	@Override
 	public void receive(String channel, MessageI message) throws Exception {
 		try {
@@ -32,6 +39,7 @@ public class ReceivingOutboundPort extends AbstractOutboundPort implements Recei
 		}
 	}
 
+	/** @see ReceivingCI#receive(String, MessageI[]) */
 	@Override
 	public void receive(String channel, MessageI[] messages) throws Exception {
 		try {

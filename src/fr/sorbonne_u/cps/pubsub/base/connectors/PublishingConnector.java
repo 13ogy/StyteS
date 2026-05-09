@@ -10,18 +10,24 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
 /**
- * Connector used by clients to call the broker publishing service.
+ * Connecteur reliant un port outbound client {@link PublishingCI} au
+ * port inbound {@link PublishingCI} du broker.
+ *
+ * <p><strong>Sens du raccordement</strong> : la référence {@link #offering}
+ * pointe vers le port inbound du broker qui offre {@link PublishingCI}.</p>
  *
  * <p>
- * Phase D.5: technical exceptions raised on the offering side are wrapped
- * in {@link RemoteException} (the CI declares {@code throws Exception}
- * only and {@link PublishingCI} carries no business exceptions).
+ * Phase D.5 : les exceptions techniques levées côté offering sont
+ * encapsulées dans {@link RemoteException} (la CI ne déclare que
+ * {@code throws Exception} et {@link PublishingCI} ne porte aucune
+ * exception métier).
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class PublishingConnector extends AbstractConnector implements PublishingCI {
 
+	/** @see PublishingCI#publish(String, String, MessageI) */
 	@Override
 	public void publish(String receptionPortURI, String channel, MessageI message) throws Exception {
 		try {
@@ -31,6 +37,7 @@ public class PublishingConnector extends AbstractConnector implements Publishing
 		}
 	}
 
+	/** @see PublishingCI#publish(String, String, ArrayList) */
 	@Override
 	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception {
 		try {
@@ -44,6 +51,7 @@ public class PublishingConnector extends AbstractConnector implements Publishing
 	// PublishingCI async (added in latest interface)
 	// -------------------------------------------------------------------------
 
+	/** @see PublishingCI#asyncPublishAndNotify(String, String, MessageI, String) */
 	@Override
 	public void asyncPublishAndNotify(
 		String receptionPortURI,
@@ -60,6 +68,7 @@ public class PublishingConnector extends AbstractConnector implements Publishing
 		}
 	}
 
+	/** @see PublishingCI#asyncPublishAndNotify(String, String, ArrayList, String) */
 	@Override
 	public void asyncPublishAndNotify(
 		String receptionPortURI,

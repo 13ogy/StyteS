@@ -14,38 +14,51 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 
 /**
- * Inbound port exposing the broker registration/subscription services.
+ * Port inbound exposant le service d'enregistrement et de souscription
+ * du broker via l'interface {@link RegistrationCI}.
+ *
+ * <p><strong>Propriétaire</strong> : {@link Broker} (les méthodes castent
+ * {@code getOwner()} vers ce type concret).</p>
  *
  * <p>
- * Phase D.5 convention: business exceptions declared on the CI propagate
- * verbatim; every other technical {@link Exception} is wrapped in a
- * {@link RemoteException}. Phase D.3: void-returning methods
- * ({@link #unregister(String)}, {@link #subscribe(String,String,MessageFilterI)},
- * {@link #unsubscribe(String,String)}) are dispatched through the broker's
- * dedicated reception executor so the RMI thread returns immediately.
- * Exceptions raised inside the lambda are logged on the broker tracer
- * (the contract is asynchronous; callers cannot observe them).
+ * Convention Phase D.5 : les exceptions métier déclarées sur la CI sont
+ * rejetées telles quelles ; toute autre {@link Exception} technique est
+ * encapsulée dans une {@link RemoteException}. Phase D.3 : les méthodes
+ * void asynchrones ({@link #unregister(String)},
+ * {@link #subscribe(String,String,MessageFilterI)},
+ * {@link #unsubscribe(String,String)}) sont dispatchées sur l'executor
+ * de réception du broker pour libérer immédiatement le thread RMI ;
+ * les exceptions levées dans la lambda sont logguées (le contrat est
+ * asynchrone, l'appelant ne peut pas les observer).
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class RegistrationInboundPort extends AbstractInboundPort implements RegistrationCI{
 
+	/**
+	 * Constructeur sans URI explicite (BCM4Java en génère une).
+	 *
+	 * @param owner composant propriétaire — doit être un {@link Broker}.
+	 */
 	public RegistrationInboundPort( ComponentI owner) throws Exception {
 		super(RegistrationCI.class, owner);
 
 	}
 
 	/**
-	 * Create the inbound port with an explicit, deterministic URI
-	 * (Phase C.3). This lets the broker derive its registration port
-	 * URI from its reflection inbound port URI, removing the need for
-	 * a global static.
+	 * Crée le port inbound avec une URI explicite et déterministe (Phase
+	 * C.3). Permet au broker de dériver l'URI du port d'enregistrement
+	 * depuis son URI de réflexion, supprimant le besoin d'un statique global.
+	 *
+	 * @param uri   URI à publier pour ce port.
+	 * @param owner composant propriétaire — doit être un {@link Broker}.
 	 */
 	public RegistrationInboundPort(String uri, ComponentI owner) throws Exception {
 		super(uri, RegistrationCI.class, owner);
 	}
 
+	/** @see RegistrationCI#registered(String) */
 	@Override
 	public boolean registered(String receptionPortURI) throws Exception
 	{
@@ -58,6 +71,7 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/** @see RegistrationCI#registered(String, RegistrationClass) */
 	@Override
 	public boolean registered(String receptionPortURI, RegistrationClass rc)
 		throws Exception
@@ -71,6 +85,7 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/** @see RegistrationCI#register(String, RegistrationClass) */
 	@Override
 	public String register(String receptionPortURI, RegistrationClass rc)
 		throws Exception
@@ -85,6 +100,7 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/** @see RegistrationCI#modifyServiceClass(String, RegistrationClass) */
 	@Override
 	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc)
 	throws Exception {
@@ -98,6 +114,11 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/**
+	 * Désenregistrement asynchrone : dispatché sur l'executor de réception
+	 * du broker pour libérer immédiatement le thread RMI (Phase D.3).
+	 * @see RegistrationCI#unregister(String)
+	 */
 	@Override
 	public void unregister(String receptionPortURI) throws Exception
 	{
@@ -115,6 +136,7 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/** @see RegistrationCI#channelExist(String) */
 	@Override
 	public boolean channelExist(String channel) throws Exception
 	{
@@ -127,6 +149,7 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/** @see RegistrationCI#channelAuthorised(String, String) */
 	@Override
 	public boolean channelAuthorised(String receptionPortURI, String channel)
 		throws Exception
@@ -141,6 +164,7 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/** @see RegistrationCI#subscribed(String, String) */
 	@Override
 	public boolean subscribed(String receptionPortURI, String channel)
 		throws Exception
@@ -155,6 +179,11 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/**
+	 * Souscription asynchrone : dispatchée sur l'executor de réception
+	 * (Phase D.3). L'appelant ne voit pas les exceptions métier (logguées).
+	 * @see RegistrationCI#subscribe(String, String, MessageFilterI)
+	 */
 	@Override
 	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter)
 		throws Exception
@@ -173,6 +202,10 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/**
+	 * Désabonnement asynchrone (Phase D.3).
+	 * @see RegistrationCI#unsubscribe(String, String)
+	 */
 	@Override
 	public void unsubscribe(String receptionPortURI, String channel)
 		throws Exception
@@ -191,6 +224,7 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 		}
 	}
 
+	/** @see RegistrationCI#modifyFilter(String, String, MessageFilterI) */
 	@Override
 	public boolean modifyFilter(
 		String receptionPortURI,
