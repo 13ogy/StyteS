@@ -38,6 +38,7 @@ public class DemoAudit2SecondVersion extends AbstractCVM
     // Clock configuration
     // -------------------------------------------------------------------------
 
+    public static final String  BROKER_URI          = "broker";
     public static final String  CLOCK_URI           = "audit2-clock";
     public static final String  START_INSTANT_STR   = "2026-02-01T09:00:00.00Z";
     public static final double  ACCELERATION_FACTOR = 1.0; // temps réel sur Windows
@@ -284,6 +285,7 @@ public class DemoAudit2SecondVersion extends AbstractCVM
         AbstractComponent.createComponent(
                 Broker.class.getCanonicalName(),
                 new Object[] {
+                        BROKER_URI,
                         2, 1,    // nbThreads, nbSchedulableThreads
                         3, 2, 5, // nbFreeChannels, standardQuota, premiumQuota
                         2, 4, 8  // nbReceptionThreads, nbPropagationThreads, nbDeliveryThreads
@@ -306,23 +308,23 @@ public class DemoAudit2SecondVersion extends AbstractCVM
         // Create all 5 FullClient components — register in execute()
         AbstractComponent.createComponent(
                 FullClient.class.getCanonicalName(),
-                new Object[] { CLIENT_A_URI, ts, RegistrationClass.FREE });
+                new Object[] { CLIENT_A_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         AbstractComponent.createComponent(
                 FullClient.class.getCanonicalName(),
-                new Object[] { CLIENT_B_URI, ts, RegistrationClass.FREE });
+                new Object[] { CLIENT_B_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         AbstractComponent.createComponent(
                 FullClient.class.getCanonicalName(),
-                new Object[] { CLIENT_C_URI, ts, RegistrationClass.FREE });
+                new Object[] { CLIENT_C_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         AbstractComponent.createComponent(
                 FullClient.class.getCanonicalName(),
-                new Object[] { CLIENT_D_URI, ts, RegistrationClass.FREE });
+                new Object[] { CLIENT_D_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         AbstractComponent.createComponent(
                 FullClient.class.getCanonicalName(),
-                new Object[] { CLIENT_E_URI, ts, RegistrationClass.FREE });
+                new Object[] { CLIENT_E_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         super.deploy();
 

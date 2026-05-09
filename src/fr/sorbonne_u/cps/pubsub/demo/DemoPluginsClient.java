@@ -19,6 +19,7 @@ public class DemoPluginsClient extends AbstractCVM
 		super();
 	}
 
+	public static final String BROKER_URI = "broker";
 	public static final String C1_URI = "plugin-client-1";
 	public static final String C2_URI = "plugin-client-2";
 	public static final String CHANNEL = "channel0";
@@ -26,14 +27,15 @@ public class DemoPluginsClient extends AbstractCVM
 	@Override
 	public void deploy() throws Exception
 	{
-		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0 });
+		AbstractComponent.createComponent(Broker.class.getCanonicalName(),
+			new Object[] { BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8 });
 
 		AbstractComponent.createComponent(
 			PluginClient.class.getCanonicalName(),
-			new Object[] { C1_URI, 1, 0 });
+			new Object[] { C1_URI, 1, 0, BROKER_URI });
 		AbstractComponent.createComponent(
 			PluginClient.class.getCanonicalName(),
-			new Object[] { C2_URI, 1, 0 });
+			new Object[] { C2_URI, 1, 0, BROKER_URI });
 
 		super.deploy();
 

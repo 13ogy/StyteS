@@ -40,11 +40,12 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	// Timed test tool configuration
 	// ---------------------------------------------------------------------
 
+	public static final String BROKER_URI = "broker";
 	public static final String CLOCK_URI = "meteo-test-clock";
 	public static final String START_INSTANT = "2026-01-30T09:00:00.00Z";
 	public static final String END_INSTANT = "2026-01-30T09:05:00.00Z";
 	public static final double ACCELERATION_FACTOR = 60.0; // 1 min virtual = 1 sec real
-	public static final long DELAY_TO_START_MS = 1500L;
+	public static final long DELAY_TO_START_MS = 5_000L;
 	public static final String TURBINE_RIP_URI = "meteo-turbine";
 	public static final String STATION_NEAR_RIP_URI = "meteo-station-near";
 	public static final String STATION_FAR_RIP_URI = "meteo-station-far";
@@ -172,7 +173,8 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 		TestScenario.DEBUG = true;
 
 		// Broker
-		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0 });
+		AbstractComponent.createComponent(Broker.class.getCanonicalName(),
+			new Object[] { BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8 });
 
 		// Create the accelerated clock server required by the TestScenario tool.
 		TestScenario ts = testScenario();
@@ -192,19 +194,19 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 			+ TURBINE_RIP_URI + ", " + STATION_NEAR_RIP_URI + ", " + STATION_FAR_RIP_URI + ", " + OFFICE_RIP_URI + "\n");
 		AbstractComponent.createComponent(
 			WindTurbine.class.getCanonicalName(),
-			new Object[] { TURBINE_RIP_URI, ts, "WT1", turbinePos, 20.0, 5_000L, MeteoAlertI.Level.ORANGE });
+			new Object[] { TURBINE_RIP_URI, ts, "WT1", turbinePos, 20.0, 5_000L, MeteoAlertI.Level.ORANGE, BROKER_URI });
 
 		AbstractComponent.createComponent(
 			WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_NEAR_RIP_URI, "WS1", stationNearPos });
+			new Object[] { STATION_NEAR_RIP_URI, "WS1", stationNearPos, BROKER_URI });
 
 		AbstractComponent.createComponent(
 			WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_FAR_RIP_URI, "WS2", stationFarPos });
+			new Object[] { STATION_FAR_RIP_URI, "WS2", stationFarPos, BROKER_URI });
 
 		AbstractComponent.createComponent(
 			WeatherOffice.class.getCanonicalName(),
-			new Object[] { OFFICE_RIP_URI, "WO1" });
+			new Object[] { OFFICE_RIP_URI, "WO1", BROKER_URI });
 
 		System.out.println("[TimedDemo] scenario contains turbine? " + ts.entityAppearsIn(TURBINE_RIP_URI));
 		System.out.println("[TimedDemo] scenario contains stationNear? " + ts.entityAppearsIn(STATION_NEAR_RIP_URI));
@@ -220,7 +222,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	{
 		try {
 			DemoMeteoTimedTestTool cvm = new DemoMeteoTimedTestTool();
-			cvm.startStandardLifeCycle(8000L);
+			cvm.startStandardLifeCycle(20_000L);
 			System.exit(0);
 		} catch (Exception e) {
 			System.err.println(e.getMessage());

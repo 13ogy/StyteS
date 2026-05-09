@@ -37,6 +37,7 @@ import java.time.Instant;
  */
 public class DemoMeteoAudit1 extends AbstractCVM
 {
+	public static final String BROKER_URI = "broker";
 	public static final String WIND_CHANNEL = "channel0";
 	public static final String ALERT_CHANNEL = "channel1";
 
@@ -48,56 +49,81 @@ public class DemoMeteoAudit1 extends AbstractCVM
 	@Override
 	public void deploy() throws Exception
 	{
-		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0 });
+		AbstractComponent.createComponent(Broker.class.getCanonicalName(),
+			new Object[] { BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8 });
 
 		Position2D turbinePos = new Position2D(0.0, 0.0);
 		Position2D stationNearPos = new Position2D(1.0, 0.0);
 		Position2D stationFarPos = new Position2D(100.0, 0.0);
 
-		String turbineURI = AbstractComponent.createComponent(
+		this.turbineURI = AbstractComponent.createComponent(
 			WindTurbine.class.getCanonicalName(),
-			new Object[] { "WT1", turbinePos, 20.0, 5_000L, MeteoAlertI.Level.ORANGE });
+			new Object[] { "WT1", "WT1", turbinePos, 20.0, 5_000L, MeteoAlertI.Level.ORANGE, BROKER_URI });
 
-		String station1URI = AbstractComponent.createComponent(
+		this.station1URI = AbstractComponent.createComponent(
 			WeatherStation.class.getCanonicalName(),
-			new Object[] { "WS1", stationNearPos });
+			new Object[] { "WS1", "WS1", stationNearPos, BROKER_URI });
 
-		String station2URI = AbstractComponent.createComponent(
+		this.station2URI = AbstractComponent.createComponent(
 			WeatherStation.class.getCanonicalName(),
-			new Object[] { "WS2", stationFarPos });
+			new Object[] { "WS2", "WS2", stationFarPos, BROKER_URI });
 
-		String officeURI = AbstractComponent.createComponent(
+		this.officeURI = AbstractComponent.createComponent(
 			WeatherOffice.class.getCanonicalName(),
-			new Object[] { "WO1" });
+			new Object[] { "WO1", "WO1", BROKER_URI });
+
+		this.turbinePos = turbinePos;
+		this.stationNearPos = stationNearPos;
+		this.stationFarPos = stationFarPos;
 
 		super.deploy();
 
-		WindTurbine turbine = (WindTurbine) this.uri2component.get(turbineURI);
-		WeatherStation station1 = (WeatherStation) this.uri2component.get(station1URI);
-		WeatherStation station2 = (WeatherStation) this.uri2component.get(station2URI);
-		WeatherOffice office = (WeatherOffice) this.uri2component.get(officeURI);
+		this.toggleTracing(this.turbineURI);
+		this.toggleLogging(this.turbineURI);
+		this.toggleTracing(this.station1URI);
+		this.toggleLogging(this.station1URI);
+		this.toggleTracing(this.station2URI);
+		this.toggleLogging(this.station2URI);
+		this.toggleTracing(this.officeURI);
+		this.toggleLogging(this.officeURI);
+	}
 
-		this.toggleTracing(turbineURI);
-		this.toggleLogging(turbineURI);
-		this.toggleTracing(station1URI);
-		this.toggleLogging(station1URI);
-		this.toggleTracing(station2URI);
-		this.toggleLogging(station2URI);
-		this.toggleTracing(officeURI);
-		this.toggleLogging(officeURI);
+	private String turbineURI;
+	private String station1URI;
+	private String station2URI;
+	private String officeURI;
+	private Position2D turbinePos;
+	private Position2D stationNearPos;
+	private Position2D stationFarPos;
+
+	@Override
+	public void start() throws Exception
+	{
+		super.start();
+	}
+
+	@Override
+	public void execute() throws Exception
+	{
+		super.execute();
+
+		WindTurbine turbine = (WindTurbine) this.uri2component.get(this.turbineURI);
+		WeatherStation station1 = (WeatherStation) this.uri2component.get(this.station1URI);
+		WeatherStation station2 = (WeatherStation) this.uri2component.get(this.station2URI);
+		WeatherOffice office = (WeatherOffice) this.uri2component.get(this.officeURI);
 
 		// Subscriptions
 		turbine.subscribeToWindAndAlerts(WIND_CHANNEL, ALERT_CHANNEL);
 		Thread.sleep(200L);
 
 		// Winds
-		station1.publishWind(WIND_CHANNEL, new WindData(stationNearPos, 5.0, 0.0));
-		station2.publishWind(WIND_CHANNEL, new WindData(stationFarPos, 10.0, 0.0));
+		station1.publishWind(WIND_CHANNEL, new WindData(this.stationNearPos, 5.0, 0.0));
+		station2.publishWind(WIND_CHANNEL, new WindData(this.stationFarPos, 10.0, 0.0));
 
 		Thread.sleep(300L);
 
 		// Alerts
-		RegionI concerned = new CircularRegion(turbinePos, 10.0);
+		RegionI concerned = new CircularRegion(this.turbinePos, 10.0);
 		MeteoAlert orange = new MeteoAlert(
 			MeteoAlertI.AlertType.STORM,
 			MeteoAlertI.Level.ORANGE,

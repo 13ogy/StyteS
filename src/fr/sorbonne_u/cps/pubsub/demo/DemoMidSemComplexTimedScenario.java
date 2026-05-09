@@ -24,6 +24,8 @@ import fr.sorbonne_u.cps.pubsub.messages.filters.BetweenTimeFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.ComparableValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.EqualsValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.PropertyFilter;
+import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
+import fr.sorbonne_u.cps.pubsub.meteo.impl.Position2D;
 import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
 import java.time.Instant;
@@ -44,8 +46,9 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 	// Clock configuration
 	// -------------------------------------------------------------------------
 
+	public static final String BROKER_URI = "broker";
 	public static final String TEST_CLOCK_URI = "midsem-test-clock";
-	protected static final long START_DELAY = 3_000L;
+	protected static final long START_DELAY = 15_000L;
 	public static final double ACCELERATION_FACTOR = 1.0;
 	protected static final long SCENARIO_OFFSET_SECONDS = 3L;
 
@@ -289,7 +292,8 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 		TestScenario.VERBOSE = true;
 		TestScenario.DEBUG = true;
 
-		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0, 3, 2, 5 });
+		AbstractComponent.createComponent(Broker.class.getCanonicalName(),
+			new Object[] { BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8 });
 
 		final long nowMs = System.currentTimeMillis();
 		// Start instant in the future relative to deployment.
@@ -303,14 +307,22 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 
 		TestScenario ts = buildScenario(startInstant);
 
-		AbstractComponent.createComponent(WindTurbine.class.getCanonicalName(), new Object[] { TURBINE_NEAR_FREE_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(WindTurbine.class.getCanonicalName(), new Object[] { TURBINE_FAR_FREE_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(WeatherStation.class.getCanonicalName(), new Object[] { STATION_NEAR_FREE_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(WeatherStation.class.getCanonicalName(), new Object[] { STATION_FAR_FREE_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(WeatherOffice.class.getCanonicalName(), new Object[] { OFFICE_STANDARD_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(WeatherOffice.class.getCanonicalName(), new Object[] { OFFICE_PREMIUM_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(), new Object[] { INTRUDER_FREE_URI, ts, 1, 1 });
-		AbstractComponent.createComponent(ScenarioRunner.class.getCanonicalName(), new Object[] { SCENARIO_RUNNER_URI, ts, 1, 1 });
+		AbstractComponent.createComponent(WindTurbine.class.getCanonicalName(),
+			new Object[] { TURBINE_NEAR_FREE_URI, ts, TURBINE_NEAR_FREE_URI, new Position2D(0.0, 0.0), 20.0, 5_000L, MeteoAlertI.Level.ORANGE, BROKER_URI });
+		AbstractComponent.createComponent(WindTurbine.class.getCanonicalName(),
+			new Object[] { TURBINE_FAR_FREE_URI, ts, TURBINE_FAR_FREE_URI, new Position2D(100.0, 0.0), 20.0, 5_000L, MeteoAlertI.Level.ORANGE, BROKER_URI });
+		AbstractComponent.createComponent(WeatherStation.class.getCanonicalName(),
+			new Object[] { STATION_NEAR_FREE_URI, STATION_NEAR_FREE_URI, new Position2D(1.0, 0.0), BROKER_URI });
+		AbstractComponent.createComponent(WeatherStation.class.getCanonicalName(),
+			new Object[] { STATION_FAR_FREE_URI, STATION_FAR_FREE_URI, new Position2D(101.0, 0.0), BROKER_URI });
+		AbstractComponent.createComponent(WeatherOffice.class.getCanonicalName(),
+			new Object[] { OFFICE_STANDARD_URI, OFFICE_STANDARD_URI, BROKER_URI });
+		AbstractComponent.createComponent(WeatherOffice.class.getCanonicalName(),
+			new Object[] { OFFICE_PREMIUM_URI, OFFICE_PREMIUM_URI, BROKER_URI });
+		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(),
+			new Object[] { INTRUDER_FREE_URI, ts, 1, 1, BROKER_URI });
+		AbstractComponent.createComponent(ScenarioRunner.class.getCanonicalName(),
+			new Object[] { SCENARIO_RUNNER_URI, ts, 1, 1 });
 
 		super.deploy();
 
@@ -351,7 +363,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 		try {
 			DemoMidSemComplexTimedScenario cvm = new DemoMidSemComplexTimedScenario();
 		// START_DELAY + scenario execution + a margin.
-		cvm.startStandardLifeCycle(35_000L);
+		cvm.startStandardLifeCycle(60_000L);
 			System.exit(0);
 		} catch (Exception e) {
 			System.err.println(e.getMessage());

@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class DemoAudit2TimedScenario extends AbstractCVM
 {
+	public static final String BROKER_URI = "broker";
 	public static final String CLOCK_URI = "audit2-clock";
 	public static final String START_INSTANT = "2026-02-01T09:00:00.00Z";
 	public static final String END_INSTANT = "2026-02-01T09:00:30.00Z";
@@ -165,7 +166,8 @@ public class DemoAudit2TimedScenario extends AbstractCVM
 
 		System.out.println("[Audit2Timed] Déploiement du CVM : création du broker + clients + horloge accélérée + runner...\n");
 
-		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 4, 0 });
+		AbstractComponent.createComponent(Broker.class.getCanonicalName(),
+			new Object[] { BROKER_URI, 4, 1, 3, 2, 5, 2, 4, 8 });
 
 		TestScenario ts = testScenario();
 		long current = System.currentTimeMillis();
@@ -177,17 +179,17 @@ public class DemoAudit2TimedScenario extends AbstractCVM
 
 		AbstractComponent.createComponent(
 			PluginClient.class.getCanonicalName(),
-			new Object[] { CLIENT_A_RIP_URI, 2, 0 });
+			new Object[] { CLIENT_A_RIP_URI, 2, 0, BROKER_URI });
 		AbstractComponent.createComponent(
 			PluginClient.class.getCanonicalName(),
-			new Object[] { CLIENT_B_RIP_URI, 2, 0 });
+			new Object[] { CLIENT_B_RIP_URI, 2, 0, BROKER_URI });
 
 		// Participant "runner" qui exécute les étapes du scénario qui lui sont
 		// affectées (et uniquement celles-ci) : il doit donc être un PluginClient
 		// exécutant executeTestScenario comme les autres participants.
 		AbstractComponent.createComponent(
 			ScenarioPluginClient.class.getCanonicalName(),
-			new Object[] { "audit2-scenario-runner", ts, 1, 0 });
+			new Object[] { "audit2-scenario-runner", ts, 1, 0, BROKER_URI });
 
 		super.deploy();
 

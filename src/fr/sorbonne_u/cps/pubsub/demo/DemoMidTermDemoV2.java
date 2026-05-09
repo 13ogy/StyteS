@@ -32,6 +32,7 @@ import fr.sorbonne_u.cps.pubsub.messages.filters.PropertyFilter;
  */
 public class DemoMidTermDemoV2 extends AbstractCVM
 {
+	public static final String BROKER_URI = "broker";
 	public static final String OWNER_URI = "midterm-owner";
 	public static final String SUBSCRIBER_URI = "midterm-subscriber";
 
@@ -45,10 +46,13 @@ public class DemoMidTermDemoV2 extends AbstractCVM
 	@Override
 	public void deploy() throws Exception
 	{
-		AbstractComponent.createComponent(Broker.class.getCanonicalName(), new Object[] { 2, 0 });
+		AbstractComponent.createComponent(Broker.class.getCanonicalName(),
+			new Object[] { BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8 });
 
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { OWNER_URI, 1, 0 });
-		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(), new Object[] { SUBSCRIBER_URI, 1, 0 });
+		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(),
+			new Object[] { OWNER_URI, 1, 0, BROKER_URI });
+		AbstractComponent.createComponent(PluginClient.class.getCanonicalName(),
+			new Object[] { SUBSCRIBER_URI, 1, 0, BROKER_URI });
 
 		super.deploy();
 

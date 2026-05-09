@@ -51,10 +51,11 @@ public class DemoSeparatedPlugin extends AbstractCVM
     // Clock configuration
     // -------------------------------------------------------------------------
 
+    public static final String  BROKER_URI           = "broker";
     public static final String  TEST_CLOCK_URI       = "midsem-test-clock";
     public static final String  START_INSTANT_STR    = "2026-04-22T09:00:00.00Z";
     public static final double  ACCELERATION_FACTOR  = 1.0; // 1 virtual minute = 1 real second
-    protected static final long DELAY_TO_START       = 3L;
+    protected static final long DELAY_TO_START       = 15_000L;
 
     // -------------------------------------------------------------------------
     // Channels
@@ -350,7 +351,7 @@ public class DemoSeparatedPlugin extends AbstractCVM
         // Create Broker
         AbstractComponent.createComponent(
                 Broker.class.getCanonicalName(),
-                new Object[] { 2, 0, 3, 2, 5 });
+                new Object[] { BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8 });
 
         // Create ClocksServer
         long current = System.currentTimeMillis();
@@ -372,34 +373,34 @@ public class DemoSeparatedPlugin extends AbstractCVM
         // Turbines — SubscriberClient (register FREE, subscribe only)
         AbstractComponent.createComponent(
                 SubscriberClient.class.getCanonicalName(),
-                new Object[] { TURBINE_NEAR_URI, ts, RegistrationClass.FREE });
+                new Object[] { TURBINE_NEAR_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         AbstractComponent.createComponent(
                 SubscriberClient.class.getCanonicalName(),
-                new Object[] { TURBINE_FAR_URI, ts, RegistrationClass.FREE });
+                new Object[] { TURBINE_FAR_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         // Intruder — SubscriberClient (register FREE, will be rejected)
         AbstractComponent.createComponent(
                 SubscriberClient.class.getCanonicalName(),
-                new Object[] { INTRUDER_URI, ts, RegistrationClass.FREE });
+                new Object[] { INTRUDER_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         // Stations — PublisherClient (register FREE, publish only)
         AbstractComponent.createComponent(
                 PublisherClient.class.getCanonicalName(),
-                new Object[] { STATION_NEAR_URI, ts, RegistrationClass.FREE });
+                new Object[] { STATION_NEAR_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         AbstractComponent.createComponent(
                 PublisherClient.class.getCanonicalName(),
-                new Object[] { STATION_FAR_URI, ts, RegistrationClass.FREE });
+                new Object[] { STATION_FAR_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         // Offices — PrivilegedClient (register FREE, then upgrade + createChannel)
         AbstractComponent.createComponent(
                 PrivilegedClient.class.getCanonicalName(),
-                new Object[] { OFFICE_STD_URI, ts, RegistrationClass.FREE });
+                new Object[] { OFFICE_STD_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         AbstractComponent.createComponent(
                 PrivilegedClient.class.getCanonicalName(),
-                new Object[] { OFFICE_PREM_URI, ts, RegistrationClass.FREE });
+                new Object[] { OFFICE_PREM_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
         super.deploy();
 
