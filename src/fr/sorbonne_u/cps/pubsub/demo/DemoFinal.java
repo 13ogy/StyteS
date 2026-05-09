@@ -513,8 +513,8 @@ public class DemoFinal extends AbstractDistributedCVM
 
             createBroker(B1, broker1Neighbors);
 
-            createSubscriber(C1_SUB, ts, RegistrationClass.FREE);
-            createPublisher(C2_PUB,  ts, RegistrationClass.FREE);
+            createSubscriber(C1_SUB, B1, ts, RegistrationClass.FREE);
+            createPublisher(C2_PUB,  B1, ts, RegistrationClass.FREE);
 
         } else if (thisJVMURI.equals(JVM2)) {
 
@@ -524,8 +524,8 @@ public class DemoFinal extends AbstractDistributedCVM
             broker2Neighbors.add(B3 + Broker.GOSSIP_INBOUND_PORT_URI_SUFFIX);
             createBroker(B2, broker2Neighbors);
 
-            createPrivileged(C3_PRIV, ts, RegistrationClass.FREE);
-            createSubscriber(C4_SUB,  ts, RegistrationClass.FREE);
+            createPrivileged(C3_PRIV, B2, ts, RegistrationClass.FREE);
+            createSubscriber(C4_SUB,  B2, ts, RegistrationClass.FREE);
 
         } else if (thisJVMURI.equals(JVM3)) {
 
@@ -537,8 +537,8 @@ public class DemoFinal extends AbstractDistributedCVM
 
             createBroker(B3, broker3Neighbors);
 
-            createPrivileged(C5_PRIV, ts, RegistrationClass.FREE);
-            createPublisher(C6_PUB,   ts, RegistrationClass.FREE);
+            createPrivileged(C5_PRIV, B3, ts, RegistrationClass.FREE);
+            createPublisher(C6_PUB,   B3, ts, RegistrationClass.FREE);
 
             // ClocksServer — unique, shared across all JVMs via RMI
             long unixStart = TimeUnit.MILLISECONDS.toNanos(
@@ -559,8 +559,8 @@ public class DemoFinal extends AbstractDistributedCVM
             broker4Neighbors.add(B3 + Broker.GOSSIP_INBOUND_PORT_URI_SUFFIX);
             createBroker(B4, broker4Neighbors);
 
-            createSubscriber(C7_SUB,      ts, RegistrationClass.FREE);
-            createSubscriber(C8_INTRUDER, ts, RegistrationClass.FREE);
+            createSubscriber(C7_SUB,      B4, ts, RegistrationClass.FREE);
+            createSubscriber(C8_INTRUDER, B4, ts, RegistrationClass.FREE);
 
         } else {
             System.out.println("Unknown JVM URI: " + thisJVMURI);
@@ -596,25 +596,25 @@ public class DemoFinal extends AbstractDistributedCVM
                 });
     }
 
-    private void createSubscriber(String uri, TestScenario ts,
+    private void createSubscriber(String uri, String brokerURI, TestScenario ts,
                                   RegistrationClass rc) throws Exception {
         AbstractComponent.createComponent(
                 SubscriberClient.class.getCanonicalName(),
-                new Object[] { uri, ts, rc });
+                new Object[] { uri, brokerURI, ts, rc });
     }
 
-    private void createPublisher(String uri, TestScenario ts,
+    private void createPublisher(String uri, String brokerURI, TestScenario ts,
                                  RegistrationClass rc) throws Exception {
         AbstractComponent.createComponent(
                 PublisherClient.class.getCanonicalName(),
-                new Object[] { uri, ts, rc });
+                new Object[] { uri, brokerURI, ts, rc });
     }
 
-    private void createPrivileged(String uri, TestScenario ts,
+    private void createPrivileged(String uri, String brokerURI, TestScenario ts,
                                   RegistrationClass rc) throws Exception {
         AbstractComponent.createComponent(
                 PrivilegedClient.class.getCanonicalName(),
-                new Object[] { uri, ts, rc });
+                new Object[] { uri, brokerURI, ts, rc });
     }
 
     // =========================================================================

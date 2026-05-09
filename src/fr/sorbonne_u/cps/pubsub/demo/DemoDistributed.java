@@ -99,7 +99,7 @@ public class DemoDistributed extends AbstractDistributedCVM {
             //  C1 s'enregistre chez B1
             AbstractComponent.createComponent(
                     SubscriberClient.class.getCanonicalName(),
-                    new Object[] { CLIENT1_URI, RegistrationCI.RegistrationClass.FREE });
+                    new Object[] { CLIENT1_URI, BROKER1_URI, RegistrationCI.RegistrationClass.FREE });
 
             // ClocksServer sur JVM 1
             long current = System.currentTimeMillis();
@@ -133,7 +133,7 @@ public class DemoDistributed extends AbstractDistributedCVM {
             //Client C2 s'enregistre chez B2
             AbstractComponent.createComponent(
                     SubscriberClient.class.getCanonicalName(),
-                    new Object[] { CLIENT2_URI, RegistrationCI.RegistrationClass.FREE });
+                    new Object[] { CLIENT2_URI, BROKER2_URI, RegistrationCI.RegistrationClass.FREE });
 
         } else {
             System.out.println("Unknown JVM URI: " + thisJVMURI);
