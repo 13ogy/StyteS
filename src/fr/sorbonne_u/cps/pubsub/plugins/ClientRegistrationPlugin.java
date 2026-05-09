@@ -74,11 +74,21 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	public void installOn(fr.sorbonne_u.components.ComponentI owner) throws Exception
 	{
 		super.installOn(owner);
-		// Add interfaces
-		this.addOfferedInterface(ReceivingCI.class);
-		this.addRequiredInterface(RegistrationCI.class);
-		this.addRequiredInterface(PublishingCI.class);
-		this.addRequiredInterface(PrivilegedClientCI.class);
+		// Add interfaces only if the owner does not already declare them
+		// (e.g. via @OfferedInterfaces / @RequiredInterfaces annotations).
+		// Re-adding triggers a precondition assertion under -ea.
+		if (!owner.isOfferedInterface(ReceivingCI.class)) {
+			this.addOfferedInterface(ReceivingCI.class);
+		}
+		if (!owner.isRequiredInterface(RegistrationCI.class)) {
+			this.addRequiredInterface(RegistrationCI.class);
+		}
+		if (!owner.isRequiredInterface(PublishingCI.class)) {
+			this.addRequiredInterface(PublishingCI.class);
+		}
+		if (!owner.isRequiredInterface(PrivilegedClientCI.class)) {
+			this.addRequiredInterface(PrivilegedClientCI.class);
+		}
 	}
 	@Override
 	public void initialise() throws Exception {
@@ -124,28 +134,52 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	@Override
 	public void uninstall() throws Exception
 	{
-		// Unpublish ports
+		// Defensive disconnect-before-destroy: shutdown() may invoke uninstall()
+		// before finalise() runs (or finalise() may have been bypassed entirely),
+		// in which case destroyPort() would trip a !connected() precondition.
+		if (this.registrationPortOUT != null && this.registrationPortOUT.connected()) {
+			this.getOwner().doPortDisconnection(this.registrationPortOUT.getPortURI());
+		}
+		if (this.publishingPortOUT != null && this.publishingPortOUT.connected()) {
+			this.getOwner().doPortDisconnection(this.publishingPortOUT.getPortURI());
+		}
+		if (this.privilegedPortOUT != null && this.privilegedPortOUT.connected()) {
+			this.getOwner().doPortDisconnection(this.privilegedPortOUT.getPortURI());
+		}
+
+		// Unpublish ports (guarded with isPublished() — defensive shutdown
+		// helpers may have already unpublished some ports).
 		if (this.receptionPortIN != null && !this.receptionPortIN.isDestroyed()) {
-			this.receptionPortIN.unpublishPort();
+			if (this.receptionPortIN.isPublished()) this.receptionPortIN.unpublishPort();
 			this.receptionPortIN.destroyPort();
 		}
 		if (this.registrationPortOUT != null && !this.registrationPortOUT.isDestroyed()) {
-			this.registrationPortOUT.unpublishPort();
+			if (this.registrationPortOUT.isPublished()) this.registrationPortOUT.unpublishPort();
 			this.registrationPortOUT.destroyPort();
 		}
 		if (this.publishingPortOUT != null && !this.publishingPortOUT.isDestroyed()) {
-			this.publishingPortOUT.unpublishPort();
+			if (this.publishingPortOUT.isPublished()) this.publishingPortOUT.unpublishPort();
 			this.publishingPortOUT.destroyPort();
 		}
 		if (this.privilegedPortOUT != null && !this.privilegedPortOUT.isDestroyed()) {
-			this.privilegedPortOUT.unpublishPort();
+			if (this.privilegedPortOUT.isPublished()) this.privilegedPortOUT.unpublishPort();
 			this.privilegedPortOUT.destroyPort();
 		}
-		//Removing interfaces
-		this.removeOfferedInterface(ReceivingCI.class);
-		this.removeRequiredInterface(RegistrationCI.class);
-		this.removeRequiredInterface(PrivilegedClientCI.class);
-		this.removeRequiredInterface(PublishingCI.class);
+		// Remove interfaces only if currently declared (mirrors the guarded
+		// installOn(): when the owner declares them via annotations, the
+		// plugin must not try to remove them).
+		if (this.getOwner().isOfferedInterface(ReceivingCI.class)) {
+			this.removeOfferedInterface(ReceivingCI.class);
+		}
+		if (this.getOwner().isRequiredInterface(RegistrationCI.class)) {
+			this.removeRequiredInterface(RegistrationCI.class);
+		}
+		if (this.getOwner().isRequiredInterface(PrivilegedClientCI.class)) {
+			this.removeRequiredInterface(PrivilegedClientCI.class);
+		}
+		if (this.getOwner().isRequiredInterface(PublishingCI.class)) {
+			this.removeRequiredInterface(PublishingCI.class);
+		}
 
 		super.uninstall();
 	}
@@ -209,11 +243,19 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 						brokerPortURI,
 						PublishingConnector.class.getCanonicalName());
 			} else {
-				// STANDARD/PREMIUM get privileged (which also covers publishing)
+				// STANDARD/PREMIUM get privileged (which also covers publishing
+				// because PrivilegedClientCI extends PublishingCI). Connect
+				// BOTH outbound ports to the same broker privileged inbound
+				// port so the publication plugin (which uses the publishing
+				// outbound port) keeps working for these classes.
 				this.getOwner().doPortConnection(
 						this.privilegedPortOUT.getPortURI(),
 						brokerPortURI,
 						PrivilegedClientConnector.class.getCanonicalName());
+				this.getOwner().doPortConnection(
+						this.publishingPortOUT.getPortURI(),
+						brokerPortURI,
+						PublishingConnector.class.getCanonicalName());
 			}
 			this.currentRC = rc;
 			this.registered=true;
@@ -239,6 +281,9 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 				this.getOwner().doPortDisconnection(this.publishingPortOUT.getPortURI());
 			} else {
 				this.getOwner().doPortDisconnection(this.privilegedPortOUT.getPortURI());
+				if (this.publishingPortOUT.connected()) {
+					this.getOwner().doPortDisconnection(this.publishingPortOUT.getPortURI());
+				}
 			}
 
 			if (rc == RegistrationClass.FREE) {
@@ -251,6 +296,10 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 						this.privilegedPortOUT.getPortURI(),
 						brokerPortURI,
 						PrivilegedClientConnector.class.getCanonicalName());
+				this.getOwner().doPortConnection(
+						this.publishingPortOUT.getPortURI(),
+						brokerPortURI,
+						PublishingConnector.class.getCanonicalName());
 			}
 
 			this.currentRC = rc;
