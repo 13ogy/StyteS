@@ -13,6 +13,9 @@ import fr.sorbonne_u.cps.pubsub.application.meteo.WeatherStation;
 import fr.sorbonne_u.cps.pubsub.application.meteo.WindTurbine;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
+import fr.sorbonne_u.cps.pubsub.base.components.PrivilegedClient;
+import fr.sorbonne_u.cps.pubsub.base.components.PublisherClient;
+import fr.sorbonne_u.cps.pubsub.base.components.SubscriberClient;
 import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
@@ -137,56 +140,58 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 					logStep(owner, "bootstrap");
 					owner.logMessage("[MidSemScenario] runner bootstrap step\n");
 				})),
-				// 1) register everyone as FREE
+				// 1) Confirmation d'enregistrement FREE.
+				// L'enregistrement initial est effectué automatiquement par
+				// SubscriberClient/PublisherClient/PrivilegedClient dans leur
+				// execute() ; ces étapes ne font donc qu'attester de l'état
+				// au démarrage du scénario. Seul l'intrus (PluginClient brut)
+				// s'auto-enregistre depuis le scénario.
 				new TestStep(TEST_CLOCK_URI, TURBINE_NEAR_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
-					logStep(owner, "register FREE turbine-near");
-					((PluginClient) owner).register(RegistrationClass.FREE);
+					logStep(owner, "auto-registered FREE turbine-near");
 				})),
 				new TestStep(TEST_CLOCK_URI, TURBINE_FAR_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
-					logStep(owner, "register FREE turbine-far");
-					((PluginClient) owner).register(RegistrationClass.FREE);
+					logStep(owner, "auto-registered FREE turbine-far");
 				})),
 				new TestStep(TEST_CLOCK_URI, STATION_NEAR_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
-					logStep(owner, "register FREE station-near");
-					((PluginClient) owner).register(RegistrationClass.FREE);
+					logStep(owner, "auto-registered FREE station-near");
 				})),
 				new TestStep(TEST_CLOCK_URI, STATION_FAR_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
-					logStep(owner, "register FREE station-far");
-					((PluginClient) owner).register(RegistrationClass.FREE);
+					logStep(owner, "auto-registered FREE station-far");
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tRegisterAll, owner -> safe(owner, () -> {
-					logStep(owner, "register FREE office-standard");
-					((PluginClient) owner).register(RegistrationClass.FREE);
+					logStep(owner, "auto-registered FREE office-standard");
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_PREMIUM_URI, tRegisterAll, owner -> safe(owner, () -> {
-					logStep(owner, "register FREE office-premium");
-					((PluginClient) owner).register(RegistrationClass.FREE);
+					logStep(owner, "auto-registered FREE office-premium");
 				})),
 				new TestStep(TEST_CLOCK_URI, INTRUDER_FREE_URI, tRegisterAll, owner -> safe(owner, () -> {
 					logStep(owner, "register FREE intruder");
 					((PluginClient) owner).register(RegistrationClass.FREE);
 				})),
 
-				// 2) upgrade service class to use privileged operations
+				// 2) Promotion de classe pour activer les opérations privilégiées.
+				// WeatherOffice s'auto-promeut déjà à STANDARD dans son execute() ;
+				// l'étape STANDARD est donc idempotente. Le cas PREMIUM monte
+				// effectivement la classe d'un cran.
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tUpgradeStd, owner -> safe(owner, () -> {
 					logStep(owner, "upgrade office-standard -> STANDARD");
-					((PluginClient) owner).modifyServiceClass(RegistrationClass.STANDARD);
+					((PrivilegedClient) owner).modifyServiceClass(RegistrationClass.STANDARD);
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_PREMIUM_URI, tUpgradePrem, owner -> safe(owner, () -> {
 					logStep(owner, "upgrade office-premium -> PREMIUM");
-					((PluginClient) owner).modifyServiceClass(RegistrationClass.PREMIUM);
+					((PrivilegedClient) owner).modifyServiceClass(RegistrationClass.PREMIUM);
 				})),
 
-				// 3) create privileged channels
+				// 3) Création de canaux privilégiés (CDC §3.6).
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tCreateStdPriv, owner -> safe(owner, () -> {
 					logStep(owner, "createChannel alerts-std-private (authorised turbines)");
 					String regex = "^(" + TURBINE_NEAR_FREE_URI + "|" + TURBINE_FAR_FREE_URI + ")$";
-					((PluginClient) owner).createChannel(CH_ALERTS_STD_PRIVATE, regex);
+					((PrivilegedClient) owner).createChannel(CH_ALERTS_STD_PRIVATE, regex);
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tQuotaStd, owner -> safe(owner, () -> {
 					logStep(owner, "createChannel std-extra-should-fail (quota)");
 					try {
-						((PluginClient) owner).createChannel("std-extra-should-fail", ".*");
+						((PrivilegedClient) owner).createChannel("std-extra-should-fail", ".*");
 					} catch (ChannelQuotaExceededException expected) {
 						owner.logMessage("[MidSemScenario] quota exceeded as expected\n");
 					}
@@ -194,10 +199,10 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 				new TestStep(TEST_CLOCK_URI, OFFICE_PREMIUM_URI, tCreatePremPriv, owner -> safe(owner, () -> {
 					logStep(owner, "createChannel wind-prem-private (authorised turbine-near + station-near)");
 					String regex = "^(" + TURBINE_NEAR_FREE_URI + "|" + STATION_NEAR_FREE_URI + ")$";
-					((PluginClient) owner).createChannel(CH_WIND_PREM_PRIVATE, regex);
+					((PrivilegedClient) owner).createChannel(CH_WIND_PREM_PRIVATE, regex);
 				})),
 
-				// 4) turbine subscriptions using all filter families
+				// 4) Souscriptions de l'éolienne couvrant toutes les familles de filtres.
 				new TestStep(TEST_CLOCK_URI, TURBINE_NEAR_FREE_URI, tSubNearWind, owner -> safe(owner, () -> {
 					logStep(owner, "subscribe turbine-near to wind-free (type==wind + time window)");
 					MessageFilterI f = new MessageFilter(
@@ -206,7 +211,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 						},
 						new MessageFilterI.PropertiesFilterI[0],
 						new BetweenTimeFilter(acceptFrom, acceptUntil));
-					((PluginClient) owner).subscribe(CH_WIND_FREE, f);
+					((SubscriberClient) owner).subscribe(CH_WIND_FREE, f);
 				})),
 				new TestStep(TEST_CLOCK_URI, TURBINE_NEAR_FREE_URI, tSubNearAlertsPriv, owner -> safe(owner, () -> {
 					logStep(owner, "subscribe turbine-near to alerts-std-private (alert filters)");
@@ -219,7 +224,7 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 						},
 						new MessageFilterI.PropertiesFilterI[0],
 						new AfterOrAtTimeFilter(start));
-					((PluginClient) owner).subscribe(CH_ALERTS_STD_PRIVATE, f);
+					((SubscriberClient) owner).subscribe(CH_ALERTS_STD_PRIVATE, f);
 				})),
 				new TestStep(TEST_CLOCK_URI, INTRUDER_FREE_URI, tSubIntruderAlertsPriv, owner -> safe(owner, () -> {
 					logStep(owner, "intruder subscribe to alerts-std-private (should be rejected)");
@@ -231,36 +236,36 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 					}
 				})),
 
-				// 5) publications on free channels
+				// 5) Publications sur des canaux libres.
 				new TestStep(TEST_CLOCK_URI, STATION_NEAR_FREE_URI, tPubNearWindOk, owner -> safe(owner, () -> {
 					logStep(owner, "publish station-near wind-free (wind-near)");
 					MessageI m = new Message("wind-near");
 					m.putProperty("type", "wind");
 					m.putProperty("distance", 1);
-					((PluginClient) owner).publish(CH_WIND_FREE, m);
+					((PublisherClient) owner).publish(CH_WIND_FREE, m);
 				})),
 				new TestStep(TEST_CLOCK_URI, STATION_FAR_FREE_URI, tPubFarWindReject, owner -> safe(owner, () -> {
 					logStep(owner, "publish station-far wind-free (wind-far)");
 					MessageI m = new Message("wind-far");
 					m.putProperty("type", "wind");
 					m.putProperty("distance", 10_000);
-					((PluginClient) owner).publish(CH_WIND_FREE, m);
+					((PublisherClient) owner).publish(CH_WIND_FREE, m);
 				})),
 				new TestStep(TEST_CLOCK_URI, STATION_NEAR_FREE_URI, tPubBadMsgFiltered, owner -> safe(owner, () -> {
 					logStep(owner, "publish station-near wind-free (bad-message filtered)");
 					MessageI m = new Message("bad-message");
 					m.putProperty("type", "not-wind");
-					((PluginClient) owner).publish(CH_WIND_FREE, m);
+					((PublisherClient) owner).publish(CH_WIND_FREE, m);
 				})),
 
-				// 6) privileged alert channel publications
+				// 6) Publications sur le canal d'alertes privilégié.
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tPubOrangePriv, owner -> safe(owner, () -> {
 					logStep(owner, "publish office-standard alerts-std-private (alert-orange)");
 					MessageI m = new Message("alert-orange");
 					m.putProperty("type", "alert");
 					m.putProperty("level", "ORANGE");
 					m.putProperty("alertType", "STORM");
-					((PluginClient) owner).publish(CH_ALERTS_STD_PRIVATE, m);
+					((PrivilegedClient) owner).publish(CH_ALERTS_STD_PRIVATE, m);
 				})),
 				new TestStep(TEST_CLOCK_URI, OFFICE_STANDARD_URI, tPubGreenPrivFiltered, owner -> safe(owner, () -> {
 					logStep(owner, "publish office-standard alerts-std-private (alert-green filtered)");
@@ -268,16 +273,16 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 					m.putProperty("type", "alert");
 					m.putProperty("level", "GREEN");
 					m.putProperty("alertType", "STORM");
-					((PluginClient) owner).publish(CH_ALERTS_STD_PRIVATE, m);
+					((PrivilegedClient) owner).publish(CH_ALERTS_STD_PRIVATE, m);
 				})),
 
-				// 7) premium private wind channel
+				// 7) Canal de vent privilégié premium.
 				new TestStep(TEST_CLOCK_URI, OFFICE_PREMIUM_URI, tPubPremWindPriv, owner -> safe(owner, () -> {
 					logStep(owner, "publish office-premium wind-prem-private (wind-premium)");
 					MessageI m = new Message("wind-premium");
 					m.putProperty("type", "wind");
 					m.putProperty("premium", true);
-					((PluginClient) owner).publish(CH_WIND_PREM_PRIVATE, m);
+					((PrivilegedClient) owner).publish(CH_WIND_PREM_PRIVATE, m);
 				}))
 			});
 	}
@@ -327,13 +332,13 @@ public class DemoMidSemComplexTimedScenario extends AbstractCVM
 		AbstractComponent.createComponent(WindTurbine.class.getCanonicalName(),
 			new Object[] { TURBINE_FAR_FREE_URI, ts, TURBINE_FAR_FREE_URI, new Position2D(100.0, 0.0), 20.0, 5_000L, MeteoAlertI.Level.ORANGE, BROKER_URI });
 		AbstractComponent.createComponent(WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_NEAR_FREE_URI, STATION_NEAR_FREE_URI, new Position2D(1.0, 0.0), BROKER_URI });
+			new Object[] { STATION_NEAR_FREE_URI, ts, STATION_NEAR_FREE_URI, new Position2D(1.0, 0.0), BROKER_URI });
 		AbstractComponent.createComponent(WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_FAR_FREE_URI, STATION_FAR_FREE_URI, new Position2D(101.0, 0.0), BROKER_URI });
+			new Object[] { STATION_FAR_FREE_URI, ts, STATION_FAR_FREE_URI, new Position2D(101.0, 0.0), BROKER_URI });
 		AbstractComponent.createComponent(WeatherOffice.class.getCanonicalName(),
-			new Object[] { OFFICE_STANDARD_URI, OFFICE_STANDARD_URI, BROKER_URI });
+			new Object[] { OFFICE_STANDARD_URI, ts, OFFICE_STANDARD_URI, BROKER_URI });
 		AbstractComponent.createComponent(WeatherOffice.class.getCanonicalName(),
-			new Object[] { OFFICE_PREMIUM_URI, OFFICE_PREMIUM_URI, BROKER_URI });
+			new Object[] { OFFICE_PREMIUM_URI, ts, OFFICE_PREMIUM_URI, BROKER_URI });
 		AbstractComponent.createComponent(ScenarioPluginClient.class.getCanonicalName(),
 			new Object[] { INTRUDER_FREE_URI, ts, 1, 1, BROKER_URI });
 		AbstractComponent.createComponent(ScenarioRunner.class.getCanonicalName(),

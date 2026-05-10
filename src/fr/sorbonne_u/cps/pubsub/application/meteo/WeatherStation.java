@@ -1,64 +1,62 @@
 package fr.sorbonne_u.cps.pubsub.application.meteo;
 
-import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
-import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
-import fr.sorbonne_u.components.annotations.OfferedInterfaces;
-import fr.sorbonne_u.components.annotations.RequiredInterfaces;
-import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
+import fr.sorbonne_u.components.utils.tests.TestScenario;
+import fr.sorbonne_u.cps.pubsub.base.components.PublisherClient;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.meteo.PositionI;
 import fr.sorbonne_u.cps.pubsub.meteo.WindDataI;
-import fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin;
-import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 
 /**
- * Composant "Station météo" (CDC §3.4) implémenté comme un client du système
- * pub/sub basé sur greffons ({@link PluginClient}).
+ * Composant "Station météo" (CDC §3.4) modélisé comme un client pub/sub
+ * <strong>publieur</strong> spécialisé.
  *
  * <p>
- * Avantage : la station bénéficie directement des fonctionnalités côté client
- * (notamment CDC §3.5.3 si besoin) sans embarquer un second composant.
+ * <strong>Choix de conception</strong> : <em>WeatherStation</em> hérite de
+ * {@link PublisherClient}, qui fournit déjà les greffons
+ * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin} +
+ * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin} ainsi que
+ * tout le câblage de cycle de vie. Le composant n'embarque que sa logique
+ * métier (fabrication des messages vent + identifiants/position de la
+ * station). Cela évite la duplication du wiring BCM4Java et garantit que
+ * tous les publieurs FREE partagent le même contrat.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-@OfferedInterfaces(offered = { ReceivingCI.class })
-@RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class })
-public class WeatherStation extends AbstractComponent
+public class WeatherStation extends PublisherClient
 {
-	// Weather Station register and publish messages
-	// Needs registration and publish plugin
-	private ClientRegistrationPlugin regPlugin;
-	private ClientPublicationPlugin pubPlugin;
+	// -------------------------------------------------------------------------
+	// Champs métier (l'enregistrement + le greffon de publication sont
+	// hérités de PublisherClient).
+	// -------------------------------------------------------------------------
 
 	private final String stationId;
 	private final PositionI position;
 
-	protected WeatherStation(String stationId, PositionI position) throws Exception
-	{
-		this(stationId, stationId, position, null);
-	}
-
-	/** Constructeur avec URI du port de réflexion (obligatoire pour BCM4Java). */
-	protected WeatherStation(String reflectionInboundPortURI, String stationId, PositionI position) throws Exception
-	{
-		this(reflectionInboundPortURI, stationId, position, null);
-	}
+	// -------------------------------------------------------------------------
+	// Constructeurs
+	// -------------------------------------------------------------------------
 
 	/**
-	 * Préféré (Phase C.3) : prend en plus l'URI de réflexion du courtier
-	 * cible afin que le greffon d'enregistrement sache à qui se connecter.
+	 * Constructeur principal utilisé par les démos centralisées.
+	 *
+	 * @param uri					URI de port de réflexion / identifiant participant.
+	 * @param testScenario			scénario temporisé optionnel ({@code null} = aucun).
+	 * @param stationId				identifiant métier de la station.
+	 * @param position				position géographique.
+	 * @param brokerReflectionURI	URI de réflexion du courtier cible.
+	 * @throws Exception			si l'initialisation BCM ou des plugins échoue.
 	 */
-	protected WeatherStation(String reflectionInboundPortURI, String stationId,
-							 PositionI position, String brokerReflectionURI) throws Exception
+	protected WeatherStation(
+		String uri,
+		TestScenario testScenario,
+		String stationId,
+		PositionI position,
+		String brokerReflectionURI) throws Exception
 	{
-		super(reflectionInboundPortURI, 1, 0);
+		super(uri, brokerReflectionURI, testScenario,
+				RegistrationCI.RegistrationClass.FREE);
 		if (stationId == null || stationId.isEmpty()) {
 			throw new IllegalArgumentException("stationId cannot be null/empty");
 		}
@@ -67,47 +65,41 @@ public class WeatherStation extends AbstractComponent
 		}
 		this.stationId = stationId;
 		this.position = position;
-
-		regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
-		regPlugin.setPluginURI(reflectionInboundPortURI + "-reg");
-
-		pubPlugin = new ClientPublicationPlugin(regPlugin, brokerReflectionURI);
-		pubPlugin.setPluginURI(reflectionInboundPortURI + "-pub");
-
 	}
 
-	@Override
-	public synchronized void start() throws ComponentStartException {
-		try {
-			this.installPlugin(this.regPlugin);
-			this.installPlugin(this.pubPlugin);
-		} catch (Exception e) {
-			throw new ComponentStartException(e);
-		}
-		super.start();
-	}
-
-	@Override
-	public void execute()
+	/**
+	 * Surcharge sans scénario (déploiements répartis).
+	 *
+	 * @param uri					URI de port de réflexion.
+	 * @param stationId				identifiant métier de la station.
+	 * @param position				position géographique.
+	 * @param brokerReflectionURI	URI de réflexion du courtier cible.
+	 * @throws Exception			si l'initialisation échoue.
+	 */
+	protected WeatherStation(
+		String uri,
+		String stationId,
+		PositionI position,
+		String brokerReflectionURI) throws Exception
 	{
-		try {
-			super.execute();
-			this.regPlugin.register(RegistrationClass.FREE);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		this(uri, null, stationId, position, brokerReflectionURI);
 	}
 
-	@Override
-	public void finalise() throws Exception {
-		super.finalise();
+	/**
+	 * Surcharge legacy (URI = stationId).
+	 *
+	 * @param uri		URI de port de réflexion BCM = identifiant métier.
+	 * @param position	position géographique.
+	 * @throws Exception si l'initialisation échoue.
+	 */
+	protected WeatherStation(String uri, PositionI position) throws Exception
+	{
+		this(uri, null, uri, position, null);
 	}
 
-	@Override
-	public synchronized void shutdown() throws fr.sorbonne_u.components.exceptions.ComponentShutdownException {
-		fr.sorbonne_u.cps.pubsub.base.util.PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
-		super.shutdown();
-	}
+	// -------------------------------------------------------------------------
+	// API métier
+	// -------------------------------------------------------------------------
 
 	/** @return la position géographique de la station. */
 	public PositionI getPosition()
@@ -115,27 +107,24 @@ public class WeatherStation extends AbstractComponent
 		return position;
 	}
 
-
 	/**
-	 * Publie une observation de vent sur le canal indiqué.
-	 *
-	 * <p>
-	 * Le message est construit via {@link WindMessageFactory#build(String, WindDataI)}
+	 * Publie une observation de vent sur le canal indiqué. Le message est
+	 * construit via {@link WindMessageFactory#build(String, WindDataI)}
 	 * (CDC §3.5 — convention de propriétés des messages vent).
-	 * </p>
 	 *
-	 * @param windChannel canal de publication (typiquement
-	 *                    {@link MeteoProperties#DEFAULT_WIND_CHANNEL}).
-	 * @param wind        observation de vent à publier (non {@code null}).
-	 * @throws Exception si la publication via le greffon échoue.
+	 * @param windChannel	canal de publication (typiquement
+	 *						{@link MeteoProperties#DEFAULT_WIND_CHANNEL}).
+	 * @param wind			observation de vent à publier (non {@code null}).
+	 * @throws Exception	si la publication via le greffon échoue.
 	 */
 	public void publishWind(String windChannel, WindDataI wind) throws Exception
 	{
 		MessageI m = WindMessageFactory.build(stationId, wind);
 
-		String out = "WeatherStation[" + stationId + "] publish wind " + wind + " on " + windChannel;
+		String out = "WeatherStation[" + stationId + "] publish wind " + wind
+				+ " on " + windChannel;
 		this.traceMessage(out + "\n");
 		this.logMessage(out + "\n");
-		this.pubPlugin.publish(windChannel, m);
+		this.publish(windChannel, m);
 	}
 }

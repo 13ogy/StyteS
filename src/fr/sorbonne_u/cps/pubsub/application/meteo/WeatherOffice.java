@@ -1,115 +1,124 @@
 package fr.sorbonne_u.cps.pubsub.application.meteo;
 
-import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
-import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
-import fr.sorbonne_u.components.annotations.OfferedInterfaces;
-import fr.sorbonne_u.components.annotations.RequiredInterfaces;
-import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
+import fr.sorbonne_u.components.utils.tests.TestScenario;
+import fr.sorbonne_u.cps.pubsub.base.components.PrivilegedClient;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
-import fr.sorbonne_u.cps.pubsub.plugins.ClientPrivilegedPlugin;
-import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 
 /**
- * Composant "Bureau météo" (CDC §3.4) implémenté comme un client pub/sub
- * basé sur greffons ({@link PluginClient}).
+ * Composant "Bureau météo" (CDC §3.4) modélisé comme un client pub/sub
+ * <strong>privilégié</strong> spécialisé.
  *
  * <p>
- * Le bureau s'enregistre comme client {@code FREE} puis se promeut en
- * {@code STANDARD} pour bénéficier des canaux privilégiés (CDC §3.3 — quotas
- * par classe de service).
+ * <strong>Choix de conception</strong> : <em>WeatherOffice</em> hérite de
+ * {@link PrivilegedClient}, qui fournit
+ * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin} +
+ * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientPrivilegedPlugin} (canal
+ * privilégié = inclut publication, cf. CDC §3.6). Le composant n'apporte
+ * que la fabrication des messages d'alerte et la promotion automatique en
+ * classe {@code STANDARD} (le bureau a besoin des canaux privés pour
+ * diffuser ses alertes ; cf. CDC §3.3 — quotas par classe de service).
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-@OfferedInterfaces(offered = { ReceivingCI.class })
-@RequiredInterfaces(required = { RegistrationCI.class, PrivilegedClientCI.class })
-public class WeatherOffice extends AbstractComponent
+public class WeatherOffice extends PrivilegedClient
 {
-
-	// Weather Office register and publish messages as privileged clients
-	// Needs registration and privileged plugin
-	private final ClientRegistrationPlugin regPlugin;
-	private final ClientPrivilegedPlugin privPlugin;
+	// -------------------------------------------------------------------------
+	// Champs métier (l'enregistrement + le greffon privilégié sont hérités
+	// de PrivilegedClient).
+	// -------------------------------------------------------------------------
 
 	private final String officeId;
 
-	protected WeatherOffice(String reflectionInboundPortURI, String officeId) throws Exception {
-		this(reflectionInboundPortURI, officeId, null);
-	}
+	// -------------------------------------------------------------------------
+	// Constructeurs
+	// -------------------------------------------------------------------------
 
-	/** Phase C.3: identifie le courtier cible via son URI de réflexion. */
-	protected WeatherOffice(String reflectionInboundPortURI, String officeId,
-							String brokerReflectionURI) throws Exception {
-		super(reflectionInboundPortURI, 1, 0);
-		this.officeId = officeId;
-
-		regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
-		regPlugin.setPluginURI(reflectionInboundPortURI + "-reg");
-
-		privPlugin = new ClientPrivilegedPlugin(regPlugin, brokerReflectionURI);
-		privPlugin.setPluginURI(reflectionInboundPortURI + "-priv");
-	}
-
-	@Override
-	public synchronized void start() throws ComponentStartException {
-		try {
-			this.installPlugin(this.regPlugin);
-			this.installPlugin(this.privPlugin);
-		} catch (Exception e) {
-			throw new ComponentStartException(e);
-		}
-		super.start();
-	}
-	@Override
-	public void execute()
+	/**
+	 * Constructeur principal utilisé par les démos centralisées.
+	 *
+	 * @param uri					URI de port de réflexion / identifiant participant.
+	 * @param testScenario			scénario temporisé optionnel ({@code null} = aucun).
+	 * @param officeId				identifiant métier du bureau météo.
+	 * @param brokerReflectionURI	URI de réflexion du courtier cible.
+	 * @throws Exception			si l'initialisation BCM ou des plugins échoue.
+	 */
+	protected WeatherOffice(
+		String uri,
+		TestScenario testScenario,
+		String officeId,
+		String brokerReflectionURI) throws Exception
 	{
-		try {
-			super.execute();
-			this.regPlugin.register(RegistrationClass.FREE);
-			this.regPlugin.modifyServiceClass(RegistrationClass.STANDARD);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-	@Override
-	public void finalise() throws Exception {
-		super.finalise();
-	}
-
-	@Override
-	public synchronized void shutdown() throws fr.sorbonne_u.components.exceptions.ComponentShutdownException {
-		fr.sorbonne_u.cps.pubsub.base.util.PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
-		super.shutdown();
+		super(uri, brokerReflectionURI, testScenario,
+				RegistrationCI.RegistrationClass.FREE);
+		this.officeId = officeId;
 	}
 
 	/**
-	 * Publie une alerte météo sur le canal indiqué.
+	 * Surcharge sans scénario (déploiements répartis).
 	 *
-	 * <p>
-	 * Le message est construit via {@link MeteoAlertMessageFactory#build(String, MeteoAlertI)}
+	 * @param uri					URI de port de réflexion.
+	 * @param officeId				identifiant métier.
+	 * @param brokerReflectionURI	URI de réflexion du courtier cible.
+	 * @throws Exception			si l'initialisation échoue.
+	 */
+	protected WeatherOffice(
+		String uri,
+		String officeId,
+		String brokerReflectionURI) throws Exception
+	{
+		this(uri, null, officeId, brokerReflectionURI);
+	}
+
+	// (Pas de surcharge legacy : le constructeur 3-arg suffit. Les démos
+	// répartis fournissent toujours l'URI de broker en argument explicite.)
+
+	// -------------------------------------------------------------------------
+	// Cycle de vie : enregistré FREE par le parent puis promu STANDARD pour
+	// pouvoir créer/publier sur des canaux privilégiés.
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Le parent {@link PrivilegedClient#execute()} effectue l'enregistrement
+	 * FREE puis exécute le scénario éventuel ; on enchaîne ici la promotion
+	 * vers la classe {@code STANDARD} pour activer les fonctionnalités
+	 * privilégiées attendues du bureau (création de canaux privés et
+	 * publications associées, cf. CDC §3.3).
+	 *
+	 * @throws Exception si l'enregistrement initial ou la promotion échoue.
+	 */
+	@Override
+	public void execute() throws Exception
+	{
+		super.execute();
+		this.modifyServiceClass(RegistrationCI.RegistrationClass.STANDARD);
+	}
+
+	// -------------------------------------------------------------------------
+	// API métier
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Publie une alerte météo sur le canal indiqué. Le message est construit
+	 * via {@link MeteoAlertMessageFactory#build(String, MeteoAlertI)}
 	 * (CDC §3.5 — convention de propriétés des messages d'alerte).
-	 * </p>
 	 *
-	 * @param alertChannel canal de publication (typiquement
-	 *                     {@link MeteoProperties#DEFAULT_ALERT_CHANNEL} ou un
-	 *                     canal privilégié appartenant au bureau).
-	 * @param alert        alerte à publier (non {@code null}).
-	 * @throws Exception si la publication via le greffon échoue.
+	 * @param alertChannel	canal de publication (typiquement
+	 *						{@link MeteoProperties#DEFAULT_ALERT_CHANNEL} ou un
+	 *						canal privilégié appartenant au bureau).
+	 * @param alert			alerte à publier (non {@code null}).
+	 * @throws Exception	si la publication via le greffon échoue.
 	 */
 	public void publishAlert(String alertChannel, MeteoAlertI alert) throws Exception
 	{
 		MessageI m = MeteoAlertMessageFactory.build(officeId, alert);
 
-		String out = "WeatherOffice[" + officeId + "] publish alert " + alert + " on " + alertChannel;
+		String out = "WeatherOffice[" + officeId + "] publish alert " + alert
+				+ " on " + alertChannel;
 		this.traceMessage(out + "\n");
 		this.logMessage(out + "\n");
-		this.privPlugin.publish(alertChannel, m);
+		this.publish(alertChannel, m);
 	}
 }

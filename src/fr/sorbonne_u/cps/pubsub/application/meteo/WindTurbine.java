@@ -1,43 +1,43 @@
 package fr.sorbonne_u.cps.pubsub.application.meteo;
 
-import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
-import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
-import fr.sorbonne_u.components.annotations.OfferedInterfaces;
-import fr.sorbonne_u.components.annotations.RequiredInterfaces;
-import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+import fr.sorbonne_u.components.utils.tests.TestScenario;
+import fr.sorbonne_u.cps.pubsub.base.components.SubscriberClient;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
-import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
 import fr.sorbonne_u.cps.pubsub.meteo.PositionI;
 import fr.sorbonne_u.cps.pubsub.meteo.RegionI;
 import fr.sorbonne_u.cps.pubsub.meteo.WindDataI;
 import fr.sorbonne_u.cps.pubsub.meteo.impl.Position2D;
-import fr.sorbonne_u.components.utils.tests.TestScenario;
-import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
-import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
-import fr.sorbonne_u.exceptions.PreconditionException;
-import fr.sorbonne_u.utils.aclocks.ClocksServer;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Composant "Éolienne" (CDC §3.4) implémenté comme un client pub/sub basé sur
- * greffons ({@link PluginClient}).
+ * Composant "Éolienne" (CDC §3.4) modélisé comme un client pub/sub
+ * <strong>souscripteur</strong> spécialisé.
+ *
+ * <p>
+ * <strong>Choix de conception</strong> : <em>WindTurbine</em> hérite de
+ * {@link SubscriberClient}, le composant client générique qui possède déjà
+ * les greffons {@link fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin}
+ * et {@link fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin}. On
+ * évite ainsi de redupliquer le câblage des plugins (installation,
+ * connexion, déconnexion, propre {@code start}/{@code shutdown}) déjà
+ * présent dans la classe parente. Le composant ne contient plus que la
+ * logique métier (filtrage géographique, dispatch wind/alert, mode
+ * sécurité). Cette factorisation s'inscrit dans le principe DRY.
+ * </p>
  *
  * <p>
  * Le composant reçoit des observations de vent ({@link WindDataI}) et des
  * alertes ({@link MeteoAlertI}). Les observations de vent sont filtrées par
- * distance côté courtier via {@link MeteoFilters#windWithinDistance(PositionI, double)}
- * (offload du filtrage géographique vers le pub/sub).
+ * distance côté courtier via
+ * {@link MeteoFilters#windWithinDistance(PositionI, double)}, ce qui
+ * <em>déporte</em> le filtrage géographique vers le système pub/sub plutôt
+ * que de transporter inutilement les messages éloignés.
  * </p>
  *
  * <p>
@@ -48,17 +48,12 @@ import java.util.List;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-@OfferedInterfaces(offered = { ReceivingCI.class })
-@RequiredInterfaces(required = { RegistrationCI.class })
-public class WindTurbine extends AbstractComponent
+public class WindTurbine extends SubscriberClient
 {
-	// Wind Turbine registers and subscribes to channels
-	// Needs registration and subscription plugin
-	private ClientRegistrationPlugin regPlugin;
-	private ClientSubscriptionPlugin subPlugin;
-
-	/** Si non null, le composant exécute sa partie du scénario temporisé. */
-	private final TestScenario testScenario;
+	// -------------------------------------------------------------------------
+	// Champs métier (l'enregistrement et le greffon de souscription sont
+	// hérités de SubscriberClient ; cf. choix de conception en tête de classe).
+	// -------------------------------------------------------------------------
 
 	private final String turbineId;
 	private final PositionI position;
@@ -66,6 +61,7 @@ public class WindTurbine extends AbstractComponent
 	private final long recentWindowMillis;
 	private final MeteoAlertI.Level threshold;
 	private volatile boolean safetyMode;
+	private final boolean autoSubscribeDefaults;
 
 	private static class TimedWind
 	{
@@ -81,49 +77,28 @@ public class WindTurbine extends AbstractComponent
 
 	private final List<TimedWind> windBuffer = new ArrayList<>();
 
-	protected WindTurbine(
-		String turbineId,
-		PositionI position,
-		double maxDistance,
-		long recentWindowMillis,
-		MeteoAlertI.Level threshold) throws Exception
-	{
-		this(turbineId, null, turbineId, position, maxDistance, recentWindowMillis, threshold);
-	}
-
-	protected WindTurbine(
-		String reflectionInboundPortURI,
-		TestScenario testScenario,
-		String turbineId,
-		PositionI position,
-		double maxDistance,
-		long recentWindowMillis,
-		MeteoAlertI.Level threshold) throws Exception
-	{
-		this(reflectionInboundPortURI, testScenario, turbineId, position,
-				maxDistance, recentWindowMillis, threshold, null);
-	}
+	// -------------------------------------------------------------------------
+	// Constructeurs
+	// -------------------------------------------------------------------------
 
 	/**
-	 * Convenience constructor for untimed deployments (no TestScenario)
-	 * that still need to identify their broker via Phase C.3 reflection URI.
+	 * Constructeur principal. La signature respecte la convention
+	 * {@code (uri, scenario?, turbineId, position, maxDistance,
+	 * recentWindowMillis, threshold, brokerReflectionURI)} utilisée par les
+	 * démos centralisées.
+	 *
+	 * @param uri					URI de port de réflexion / identifiant participant.
+	 * @param testScenario			scénario temporisé optionnel ({@code null} = aucun).
+	 * @param turbineId				identifiant métier de l'éolienne.
+	 * @param position				position géographique.
+	 * @param maxDistance			rayon maximal accepté pour les observations de vent.
+	 * @param recentWindowMillis	fenêtre glissante (ms) pour pondérer les observations.
+	 * @param threshold				seuil d'alerte au-delà duquel passer en mode sécurité.
+	 * @param brokerReflectionURI	URI de réflexion du courtier cible.
+	 * @throws Exception			si l'initialisation BCM ou des plugins échoue.
 	 */
 	protected WindTurbine(
-		String reflectionInboundPortURI,
-		String turbineId,
-		PositionI position,
-		double maxDistance,
-		long recentWindowMillis,
-		MeteoAlertI.Level threshold,
-		String brokerReflectionURI) throws Exception
-	{
-		this(reflectionInboundPortURI, null, turbineId, position,
-				maxDistance, recentWindowMillis, threshold, brokerReflectionURI);
-	}
-
-	/** Phase C.3: identifie le courtier cible via son URI de réflexion. */
-	protected WindTurbine(
-		String reflectionInboundPortURI,
+		String uri,
 		TestScenario testScenario,
 		String turbineId,
 		PositionI position,
@@ -132,99 +107,75 @@ public class WindTurbine extends AbstractComponent
 		MeteoAlertI.Level threshold,
 		String brokerReflectionURI) throws Exception
 	{
-		super(reflectionInboundPortURI, 1, 1);
+		super(uri, brokerReflectionURI, testScenario, RegistrationCI.RegistrationClass.FREE);
 		if (turbineId == null || turbineId.isEmpty()) {
 			throw new IllegalArgumentException("turbineId cannot be null/empty");
 		}
 		if (position == null) {
 			throw new IllegalArgumentException("position cannot be null");
 		}
-		assert testScenario == null
-				|| testScenario.entityAppearsIn(getReflectionInboundPortURI()) :
-				new PreconditionException("testScenario == null"
-						+ " || testScenario.entityAppearsIn(" + getReflectionInboundPortURI() + ")");
-
 		this.turbineId = turbineId;
 		this.position = position;
 		this.maxDistance = maxDistance;
 		this.recentWindowMillis = recentWindowMillis;
 		this.threshold = threshold;
 		this.safetyMode = false;
-		this.testScenario = testScenario;
-
-		regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
-		regPlugin.setPluginURI(reflectionInboundPortURI + "-reg");
-
-		subPlugin = new ClientSubscriptionPlugin(regPlugin, this::onReceive);
-		subPlugin.setPluginURI(reflectionInboundPortURI + "-sub");
-
+		this.autoSubscribeDefaults = (testScenario == null);
 	}
 
-	@Override
-	public synchronized void start() throws ComponentStartException {
-		try {
-			this.installPlugin(this.regPlugin);
-			this.installPlugin(this.subPlugin);
-		} catch (Exception e) {
-			throw new ComponentStartException(e);
-		}
-		super.start();
-	}
-
-
-	@Override
-	public void execute()
+	/**
+	 * Surcharge sans scénario, pour les déploiements répartis (cf.
+	 * {@link fr.sorbonne_u.cps.pubsub.demo.DemoTimedDistributed}).
+	 *
+	 * @param uri					URI de port de réflexion.
+	 * @param turbineId				identifiant métier.
+	 * @param position				position géographique.
+	 * @param maxDistance			rayon maximal accepté.
+	 * @param recentWindowMillis	fenêtre glissante (ms).
+	 * @param threshold				seuil d'alerte.
+	 * @param brokerReflectionURI	URI de réflexion du courtier.
+	 * @throws Exception			si l'initialisation échoue.
+	 */
+	protected WindTurbine(
+		String uri,
+		String turbineId,
+		PositionI position,
+		double maxDistance,
+		long recentWindowMillis,
+		MeteoAlertI.Level threshold,
+		String brokerReflectionURI) throws Exception
 	{
-		try {
-			super.execute();
-			this.regPlugin.register(RegistrationClass.FREE);
-			subscribeToWindAndAlerts("channel0", "channel1");
-			if (this.testScenario != null
-				&& this.testScenario.entityAppearsIn(getReflectionInboundPortURI())) {
-				this.traceMessage("[TimedDemo] WindTurbine.execute() rip=" + this.getReflectionInboundPortURI() + "\n");
-				this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, this.testScenario.getClockURI());
-				this.executeTestScenario(this.testScenario);
-			}
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		this(uri, null, turbineId, position, maxDistance,
+				recentWindowMillis, threshold, brokerReflectionURI);
 	}
 
-	@Override
-	public void finalise() throws Exception {
-		super.finalise();
-	}
+	// -------------------------------------------------------------------------
+	// Cycle de vie BCM (start/finalise/shutdown sont hérités de
+	// SubscriberClient ; on n'a qu'à enrichir execute() pour ajouter les
+	// souscriptions par défaut quand aucun scénario n'est fourni).
+	// -------------------------------------------------------------------------
 
-	@Override
-	public synchronized void shutdown() throws fr.sorbonne_u.components.exceptions.ComponentShutdownException {
-		fr.sorbonne_u.cps.pubsub.base.util.PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
-		super.shutdown();
-	}
-	/*
+	/**
+	 * Enregistre le composant (via le parent) puis, en l'absence de
+	 * scénario, souscrit aux canaux par défaut afin de rester utilisable
+	 * dans les déploiements simples (sans {@code TestScenario}).
+	 *
+	 * @throws Exception si l'enregistrement, l'horloge ou la souscription
+	 *					 échoue.
+	 */
 	@Override
 	public void execute() throws Exception
 	{
 		super.execute();
-		if (this.testScenario != null) {
-			this.traceMessage("[TimedDemo] WindTurbine.execute() rip=" + this.getReflectionInboundPortURI() + "\n");
-			this.initialiseClock(ClocksServer.STANDARD_INBOUNDPORT_URI, this.testScenario.getClockURI());
-			this.getClock().waitUntilStart();
-			this.executeTestScenario(this.testScenario);
-		}
-
-		// Démonstration de la réception avancée (CDC §3.5.3) : on consomme quelques
-		// messages directement via le greffon de souscription.
-		if (this.testScenario != null) {
-			this.traceMessage("[TimedDemo] WindTurbine : consommation via waitForNextMessage(Duration)\n");
-			for (int i = 0; i < 4; i++) {
-				MessageI m = this.subscriptionPlugin.waitForNextMessage("channel0", Duration.ofSeconds(2));
-				if (m != null) {
-					this.onReceive("channel0", m);
-				}
-			}
+		if (this.autoSubscribeDefaults) {
+			subscribeToWindAndAlerts(MeteoProperties.DEFAULT_WIND_CHANNEL,
+									MeteoProperties.DEFAULT_ALERT_CHANNEL);
 		}
 	}
-	*/
+
+	// -------------------------------------------------------------------------
+	// API métier
+	// -------------------------------------------------------------------------
 
 	/** @return la position géographique de l'éolienne. */
 	public PositionI getPosition()
@@ -234,32 +185,35 @@ public class WindTurbine extends AbstractComponent
 
 	/**
 	 * Souscrit aux observations de vent (filtrées par distance) et à toutes
-	 * les alertes météo.
+	 * les alertes météo, en réutilisant la méthode {@code subscribe} héritée
+	 * du parent (qui passe par le greffon de souscription).
 	 *
-	 * @param windChannel  canal des observations de vent (FREE,
-	 *                     typiquement {@link MeteoProperties#DEFAULT_WIND_CHANNEL}).
-	 * @param alertChannel canal des alertes (FREE,
-	 *                     typiquement {@link MeteoProperties#DEFAULT_ALERT_CHANNEL}).
-	 * @throws Exception si l'enregistrement des souscriptions auprès du
-	 *                   courtier échoue.
+	 * @param windChannel	canal des observations de vent.
+	 * @param alertChannel	canal des alertes.
+	 * @throws Exception	si l'enregistrement des souscriptions auprès du
+	 *						courtier échoue.
 	 */
 	public void subscribeToWindAndAlerts(String windChannel, String alertChannel) throws Exception
 	{
 		MessageFilterI windFilter = MeteoFilters.windWithinDistance(this.position, this.maxDistance);
 		MessageFilterI alertFilter = MeteoFilters.anyAlert();
 
-		this.subPlugin.subscribe(windChannel, windFilter);
-		this.subPlugin.subscribe(alertChannel, alertFilter);
-		this.traceMessage("WindTurbine[" + turbineId + "] subscribed to " + windChannel + " and " + alertChannel + "\n");
+		this.subscribe(windChannel, windFilter);
+		this.subscribe(alertChannel, alertFilter);
+		this.traceMessage("WindTurbine[" + turbineId + "] subscribed to "
+				+ windChannel + " and " + alertChannel + "\n");
 	}
 
 	/**
-	 * Callback de livraison appelé par le greffon de souscription pour chaque
-	 * message reçu sur l'un des canaux souscrits.
+	 * Hook de livraison appelé par le greffon de souscription pour chaque
+	 * message reçu sur l'un des canaux souscrits. <em>Override</em> du
+	 * comportement neutre du parent : on dispatche en fonction du type de
+	 * payload (vent, alerte, autre).
 	 *
 	 * @param channel canal d'origine.
-	 * @param message message reçu (non {@code null}).
+	 * @param message message reçu.
 	 */
+	@Override
 	public void onReceive(String channel, MessageI message)
 	{
 		try {
@@ -270,10 +224,12 @@ public class WindTurbine extends AbstractComponent
 				onAlert((MeteoAlertI) payload);
 			} else {
 				this.traceMessage(
-					"WindTurbine[" + turbineId + "] received unknown payload on " + channel + ": " + payload + "\n");
+					"WindTurbine[" + turbineId + "] received unknown payload on "
+						+ channel + ": " + payload + "\n");
 			}
 		} catch (Exception e) {
-			this.logMessage("WindTurbine[" + turbineId + "] receive failed: " + e.getMessage() + "\n");
+			this.logMessage("WindTurbine[" + turbineId + "] receive failed: "
+					+ e.getMessage() + "\n");
 		}
 	}
 
@@ -284,7 +240,8 @@ public class WindTurbine extends AbstractComponent
 
 		double d = distanceFromTurbine(wind.getPosition());
 		windBuffer.add(new TimedWind(messageTs, wind));
-		this.traceMessage("WindTurbine[" + turbineId + "] accept wind d=" + d + ": " + wind + "\n");
+		this.traceMessage("WindTurbine[" + turbineId + "] accept wind d=" + d
+				+ ": " + wind + "\n");
 
 		double sumX = 0.0;
 		double sumY = 0.0;
@@ -297,8 +254,8 @@ public class WindTurbine extends AbstractComponent
 		double orientX = -sumX;
 		double orientY = -sumY;
 		this.traceMessage(
-			"WindTurbine[" + turbineId + "] orientation vector = (" + orientX + ", " + orientY + ") safetyMode="
-				+ safetyMode + "\n");
+			"WindTurbine[" + turbineId + "] orientation vector = ("
+				+ orientX + ", " + orientY + ") safetyMode=" + safetyMode + "\n");
 	}
 
 	private void onAlert(MeteoAlertI alert)
@@ -311,7 +268,8 @@ public class WindTurbine extends AbstractComponent
 			}
 		}
 		if (!concerned) {
-			this.traceMessage("WindTurbine[" + turbineId + "] ignore alert (not concerned): " + alert + "\n");
+			this.traceMessage("WindTurbine[" + turbineId
+					+ "] ignore alert (not concerned): " + alert + "\n");
 			return;
 		}
 
@@ -319,18 +277,21 @@ public class WindTurbine extends AbstractComponent
 			? (MeteoAlertI.Level) alert.getLevel()
 			: null;
 
-		this.traceMessage("WindTurbine[" + turbineId + "] received alert: " + alert + "\n");
+		this.traceMessage("WindTurbine[" + turbineId + "] received alert: "
+				+ alert + "\n");
 
 		if (level == MeteoAlertI.Level.GREEN) {
 			safetyMode = false;
-			this.traceMessage("WindTurbine[" + turbineId + "] RETURN NORMAL (GREEN)\n");
+			this.traceMessage("WindTurbine[" + turbineId
+					+ "] RETURN NORMAL (GREEN)\n");
 			return;
 		}
 
 		if (level != null && level.ordinal() >= threshold.ordinal()) {
 			safetyMode = true;
 			this.traceMessage(
-				"WindTurbine[" + turbineId + "] ENTER SAFETY MODE (level=" + level + ", threshold=" + threshold + ")\n");
+				"WindTurbine[" + turbineId + "] ENTER SAFETY MODE (level="
+					+ level + ", threshold=" + threshold + ")\n");
 		}
 	}
 

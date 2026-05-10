@@ -93,10 +93,11 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 			Instant.now(),
 			Duration.ofMinutes(1));
 
+		// (beginningMessage, endingMessage, clockURI, startInstant, endInstant, steps)
 		return new TestScenario(
-			CLOCK_URI,
 			"[TimedDemo] BEGIN meteo timed scenario",
 			"[TimedDemo] END meteo timed scenario",
+			CLOCK_URI,
 			startInstant,
 			endInstant,
 			new TestStepI[] {
@@ -210,15 +211,15 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 
 		AbstractComponent.createComponent(
 			WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_NEAR_RIP_URI, "WS1", stationNearPos, BROKER_URI });
+			new Object[] { STATION_NEAR_RIP_URI, ts, "WS1", stationNearPos, BROKER_URI });
 
 		AbstractComponent.createComponent(
 			WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_FAR_RIP_URI, "WS2", stationFarPos, BROKER_URI });
+			new Object[] { STATION_FAR_RIP_URI, ts, "WS2", stationFarPos, BROKER_URI });
 
 		AbstractComponent.createComponent(
 			WeatherOffice.class.getCanonicalName(),
-			new Object[] { OFFICE_RIP_URI, "WO1", BROKER_URI });
+			new Object[] { OFFICE_RIP_URI, ts, "WO1", BROKER_URI });
 
 		System.out.println("[TimedDemo] scenario contains turbine? " + ts.entityAppearsIn(TURBINE_RIP_URI));
 		System.out.println("[TimedDemo] scenario contains stationNear? " + ts.entityAppearsIn(STATION_NEAR_RIP_URI));
@@ -240,7 +241,7 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	{
 		try {
 			DemoMeteoTimedTestTool cvm = new DemoMeteoTimedTestTool();
-			cvm.startStandardLifeCycle(20_000L);
+			cvm.startStandardLifeCycle(30_000L);
 			System.exit(0);
 		} catch (Exception e) {
 			System.err.println(e.getMessage());
