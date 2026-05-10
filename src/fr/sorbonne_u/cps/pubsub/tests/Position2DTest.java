@@ -8,20 +8,20 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * Unit tests for {@link Position2D} after Phase B.3 added
- * {@code distanceTo} and {@code isInside} (CDC §3.4).
+ * Unit tests for {@link Position2D} covering the {@code distanceTo}
+ * and {@code isInside} methods (CDC §3.4).
  *
  * <p>
  * What is being tested:
  * </p>
  * <ul>
- *   <li>{@code distanceTo} computes the correct Euclidean distance.</li>
- *   <li>{@code distanceTo(same)} returns 0.</li>
- *   <li>{@code distanceTo(null)} returns {@link Double#POSITIVE_INFINITY} (defensive).</li>
- *   <li>{@code distanceTo} with an incompatible {@code PositionI} subtype returns infinity.</li>
- *   <li>{@code isInside} delegates to {@code RegionI.in(this)} — verified with a lambda stub.</li>
- *   <li>{@code isInside(null)} returns false.</li>
- *   <li>{@code isInside} with a {@link CircularRegion}: true at center, true at edge, false beyond.</li>
+ * <li>{@code distanceTo} computes the correct Euclidean distance.</li>
+ * <li>{@code distanceTo(same)} returns 0.</li>
+ * <li>{@code distanceTo(null)} returns {@link Double#POSITIVE_INFINITY} (defensive).</li>
+ * <li>{@code distanceTo} with an incompatible {@code PositionI} subtype returns infinity.</li>
+ * <li>{@code isInside} delegates to {@code RegionI.in(this)} — verified with a lambda stub.</li>
+ * <li>{@code isInside(null)} returns false.</li>
+ * <li>{@code isInside} with a {@link CircularRegion}: true at center, true at edge, false beyond.</li>
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa

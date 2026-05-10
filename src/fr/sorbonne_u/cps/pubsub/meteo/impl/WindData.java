@@ -23,8 +23,8 @@ public class WindData implements WindDataI
 	 * Crée une mesure de vent.
 	 *
 	 * @param position position d'observation (non {@code null}).
-	 * @param x        composante horizontale du vecteur vent.
-	 * @param y        composante verticale du vecteur vent.
+	 * @param x composante horizontale du vecteur vent.
+	 * @param y composante verticale du vecteur vent.
 	 * @throws IllegalArgumentException si {@code position} est {@code null}.
 	 */
 	public WindData(PositionI position, double x, double y)
@@ -60,7 +60,7 @@ public class WindData implements WindDataI
 
 	/**
 	 * @return la norme euclidienne du vecteur vent
-	 *         ({@code sqrt(x*x + y*y)}, en m/s).
+	 * ({@code sqrt(x*x + y*y)}, en m/s).
 	 */
 	@Override
 	public double force()

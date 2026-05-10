@@ -30,16 +30,16 @@ public final class WindMessageFactory
 	 * Properties set:
 	 * </p>
 	 * <ul>
-	 *   <li>{@link MeteoProperties#TYPE} = {@link MeteoProperties#TYPE_WIND}</li>
-	 *   <li>{@link MeteoProperties#PAYLOAD} = the {@link WindDataI} payload (so value filters can reach it)</li>
-	 *   <li>{@link MeteoProperties#STATION_ID} = {@code stationId}</li>
-	 *   <li>{@link MeteoProperties#FORCE} = string form of {@link WindDataI#force()}</li>
-	 *   <li>{@link MeteoProperties#X} = string form of {@link WindDataI#xComponent()}</li>
-	 *   <li>{@link MeteoProperties#Y} = string form of {@link WindDataI#yComponent()}</li>
+	 * <li>{@link MeteoProperties#TYPE} = {@link MeteoProperties#TYPE_WIND}</li>
+	 * <li>{@link MeteoProperties#PAYLOAD} = the {@link WindDataI} payload (so value filters can reach it)</li>
+	 * <li>{@link MeteoProperties#STATION_ID} = {@code stationId}</li>
+	 * <li>{@link MeteoProperties#FORCE} = string form of {@link WindDataI#force()}</li>
+	 * <li>{@link MeteoProperties#X} = string form of {@link WindDataI#xComponent()}</li>
+	 * <li>{@link MeteoProperties#Y} = string form of {@link WindDataI#yComponent()}</li>
 	 * </ul>
 	 *
 	 * @param stationId identifier of the publishing {@link WeatherStation}.
-	 * @param wind      wind observation (must not be null).
+	 * @param wind wind observation (must not be null).
 	 * @return a fully populated {@link MessageI}.
 	 */
 	public static MessageI build(String stationId, WindDataI wind)

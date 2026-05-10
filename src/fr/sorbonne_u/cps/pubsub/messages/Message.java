@@ -18,18 +18,18 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
  * Un message est composé :
  * </p>
  * <ul>
- *   <li>d’une charge utile (payload), tout objet {@link Serializable} ;</li>
- *   <li>d’un horodatage (date de création) ;</li>
- *   <li>d’un ensemble de propriétés nommées (paires nom/valeur).</li>
+ * <li>d’une charge utile (payload), tout objet {@link Serializable} ;</li>
+ * <li>d’un horodatage (date de création) ;</li>
+ * <li>d’un ensemble de propriétés nommées (paires nom/valeur).</li>
  * </ul>
  *
  * <p>
  * Cette implémentation respecte le contrat de {@link MessageI} :
  * </p>
  * <ul>
- *   <li>les noms de propriétés sont uniques dans un message ;</li>
- *   <li>{@link #copy()} effectue une copie profonde de la structure du message
- *   et des propriétés, mais conserve une référence vers le même objet payload.</li>
+ * <li>les noms de propriétés sont uniques dans un message ;</li>
+ * <li>{@link #copy()} effectue une copie profonde de la structure du message
+ * et des propriétés, mais conserve une référence vers le même objet payload.</li>
  * </ul>
  *
  *
@@ -75,7 +75,7 @@ public class Message implements MessageI
 	/**
 	 * Crée une propriété.
 	 *
-	 * @param name  nom de la propriété.
+	 * @param name nom de la propriété.
 	 * @param value valeur de la propriété.
 	 */
 		public Property(String name, Serializable value)
@@ -114,7 +114,7 @@ public class Message implements MessageI
 	 * <p><strong>Contract</strong></p>
 	 *
 	 * <pre>
-	 * pre  {@code true}  // pas de précondition.
+	 * pre {@code true} // pas de précondition.
 	 * post {@code getTimeStamp() != null}
 	 * </pre>
 	 *
@@ -130,8 +130,8 @@ public class Message implements MessageI
 	 * (mainly to implement {@link #copy()} as an actual copy, preserving the
 	 * original timestamp).
 	 *
-	 * @param payload    payload of the message.
-	 * @param timeStamp  timestamp of the message (must not be null).
+	 * @param payload payload of the message.
+	 * @param timeStamp timestamp of the message (must not be null).
 	 */
 	protected Message(Serializable payload, Instant timeStamp)
 	{
@@ -144,12 +144,12 @@ public class Message implements MessageI
 	 * <p><strong>Contract</strong></p>
 	 *
 	 * <pre>
-	 * pre  {@code true}  // pas de précondition.
+	 * pre {@code true} // pas de précondition.
 	 * post {@code getTimeStamp() != null}
 	 * </pre>
 	 *
-	 * @param payload            charge utile du message.
-	 * @param initialProperties  propriétés initiales indexées par nom (peut être null).
+	 * @param payload charge utile du message.
+	 * @param initialProperties propriétés initiales indexées par nom (peut être null).
 	 */
 	public Message(Serializable payload, Map<String, Serializable> initialProperties)
 	{
@@ -159,9 +159,9 @@ public class Message implements MessageI
 	/**
 	 * Internal constructor used to set an explicit timestamp.
 	 *
-	 * @param payload            payload of the message.
-	 * @param initialProperties  initial properties (may be null).
-	 * @param timeStamp          explicit timestamp (must not be null).
+	 * @param payload payload of the message.
+	 * @param initialProperties initial properties (may be null).
+	 * @param timeStamp explicit timestamp (must not be null).
 	 */
 	protected Message(
 		Serializable payload,

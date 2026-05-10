@@ -18,7 +18,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  * chaque méthode pour récupérer le composant concret).</p>
  *
  * <p>
- * Phase D.3 : chaque méthode void route l'appel broker effectif via
+ * chaque méthode void route l'appel broker effectif via
  * {@link Broker#getReceptionExecutorIndex()} dans
  * {@link fr.sorbonne_u.components.AbstractComponent#runTask(int, fr.sorbonne_u.components.ComponentI.ComponentTask)},
  * de sorte que la thread RMI rend la main immédiatement. Toute exception
@@ -28,7 +28,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  * </p>
  *
  * <p>
- * Phase D.5 : la convention du projet est respectée — les exceptions métier
+ * la convention du projet est respectée — les exceptions métier
  * déclarées sur la CI sont propagées telles quelles ; toute autre
  * {@link Exception} technique est encapsulée dans une
  * {@link RemoteException}.
@@ -52,7 +52,7 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 	}
 
 	/**
-	 * Constructeur à URI explicite (Phase C.3) : permet au broker de choisir
+	 * Constructeur à URI explicite : permet au broker de choisir
 	 * une URI déterministe dérivée de son URI de réflexion.
 	 */
 	public BrokerPublishingInboundPort(String uri, ComponentI owner) throws Exception {
@@ -60,7 +60,7 @@ public class BrokerPublishingInboundPort extends AbstractInboundPort implements 
 	}
 
 	/**
-	 * Constructeur à URI explicite + interface (Phase C.3) utilisé par les
+	 * Constructeur à URI explicite + interface utilisé par les
 	 * sous-classes (par exemple {@link BrokerPrivilegedInboundPort}) qui
 	 * souhaitent une URI déterministe tout en déclarant une CI plus spécifique.
 	 */

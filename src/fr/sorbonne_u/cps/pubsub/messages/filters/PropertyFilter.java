@@ -25,7 +25,7 @@ public class PropertyFilter implements PropertyFilterI
 	/**
 	 * Crée le filtre.
 	 *
-	 * @param name        nom de la propriété ciblée (non {@code null}, non vide).
+	 * @param name nom de la propriété ciblée (non {@code null}, non vide).
 	 * @param valueFilter filtre appliqué à la valeur de la propriété (non {@code null}).
 	 * @throws IllegalArgumentException si une précondition n'est pas respectée.
 	 */
@@ -58,7 +58,7 @@ public class PropertyFilter implements PropertyFilterI
 	/**
 	 * @param property propriété candidate.
 	 * @return {@code true} ssi {@code property != null}, son nom correspond
-	 *         à {@link #getName()} et sa valeur satisfait {@link #getValueFilter()}.
+	 * à {@link #getName()} et sa valeur satisfait {@link #getValueFilter()}.
 	 */
 	@Override
 	public boolean match(PropertyI property)

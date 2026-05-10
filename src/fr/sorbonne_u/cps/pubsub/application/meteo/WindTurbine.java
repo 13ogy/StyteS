@@ -56,12 +56,17 @@ public class WindTurbine extends SubscriberClient
 	// -------------------------------------------------------------------------
 
 	private final String turbineId;
-	private final PositionI position;
+	private final Position2D position;
 	private final double maxDistance;
 	private final long recentWindowMillis;
 	private final MeteoAlertI.Level threshold;
 	private volatile boolean safetyMode;
 	private final boolean autoSubscribeDefaults;
+
+	// Canaux mémorisés à la souscription pour permettre le dispatch par
+	// canal dans onReceive(...) — évite tout instanceof sur le payload.
+	private volatile String windChannel;
+	private volatile String alertChannel;
 
 	private static class TimedWind
 	{
@@ -114,8 +119,13 @@ public class WindTurbine extends SubscriberClient
 		if (position == null) {
 			throw new IllegalArgumentException("position cannot be null");
 		}
+		if (!(position instanceof Position2D)) {
+			throw new IllegalArgumentException(
+				"WindTurbine requires a Position2D (got "
+				+ position.getClass().getName() + ")");
+		}
 		this.turbineId = turbineId;
-		this.position = position;
+		this.position = (Position2D) position;
 		this.maxDistance = maxDistance;
 		this.recentWindowMillis = recentWindowMillis;
 		this.threshold = threshold;
@@ -198,6 +208,9 @@ public class WindTurbine extends SubscriberClient
 		MessageFilterI windFilter = MeteoFilters.windWithinDistance(this.position, this.maxDistance);
 		MessageFilterI alertFilter = MeteoFilters.anyAlert();
 
+		this.windChannel  = windChannel;
+		this.alertChannel = alertChannel;
+
 		this.subscribe(windChannel, windFilter);
 		this.subscribe(alertChannel, alertFilter);
 		this.traceMessage("WindTurbine[" + turbineId + "] subscribed to "
@@ -207,8 +220,9 @@ public class WindTurbine extends SubscriberClient
 	/**
 	 * Hook de livraison appelé par le greffon de souscription pour chaque
 	 * message reçu sur l'un des canaux souscrits. <em>Override</em> du
-	 * comportement neutre du parent : on dispatche en fonction du type de
-	 * payload (vent, alerte, autre).
+	 * comportement neutre du parent : le dispatch se fait par <strong>nom
+	 * de canal</strong> (et non par {@code instanceof} sur le payload),
+	 * ce qui découple la dispatch du type concret de message.
 	 *
 	 * @param channel canal d'origine.
 	 * @param message message reçu.
@@ -217,15 +231,15 @@ public class WindTurbine extends SubscriberClient
 	public void onReceive(String channel, MessageI message)
 	{
 		try {
-			Object payload = message.getPayload();
-			if (payload instanceof WindDataI) {
-				onWind((WindDataI) payload, message.getTimeStamp().toEpochMilli());
-			} else if (payload instanceof MeteoAlertI) {
-				onAlert((MeteoAlertI) payload);
+			if (channel.equals(this.windChannel)) {
+				onWind((WindDataI) message.getPayload(),
+					   message.getTimeStamp().toEpochMilli());
+			} else if (channel.equals(this.alertChannel)) {
+				onAlert((MeteoAlertI) message.getPayload());
 			} else {
 				this.traceMessage(
-					"WindTurbine[" + turbineId + "] received unknown payload on "
-						+ channel + ": " + payload + "\n");
+					"WindTurbine[" + turbineId + "] received message on "
+						+ "unsubscribed channel " + channel + "\n");
 			}
 		} catch (Exception e) {
 			this.logMessage("WindTurbine[" + turbineId + "] receive failed: "
@@ -273,8 +287,9 @@ public class WindTurbine extends SubscriberClient
 			return;
 		}
 
-		MeteoAlertI.Level level = (alert.getLevel() instanceof MeteoAlertI.Level)
-			? (MeteoAlertI.Level) alert.getLevel()
+		MeteoAlertI.LevelI rawLevel = alert.getLevel();
+		MeteoAlertI.Level level = (rawLevel instanceof MeteoAlertI.Level)
+			? (MeteoAlertI.Level) rawLevel
 			: null;
 
 		this.traceMessage("WindTurbine[" + turbineId + "] received alert: "
@@ -297,14 +312,9 @@ public class WindTurbine extends SubscriberClient
 
 	private double distanceFromTurbine(PositionI other)
 	{
-		// Calcul délégué à Position2D pour respecter l'encapsulation OO :
-		// la géométrie est dans la classe qui possède les coordonnées.
-		if (this.position instanceof Position2D) {
-			return ((Position2D) this.position).distanceTo(other);
-		}
-		if (other instanceof Position2D) {
-			return ((Position2D) other).distanceTo(this.position);
-		}
-		return Double.POSITIVE_INFINITY;
+		// La géométrie est encapsulée dans Position2D (CDC §3.4) ; le champ
+		// {@code position} étant typé Position2D (validé au constructeur),
+		// aucune vérification de type n'est nécessaire ici.
+		return this.position.distanceTo(other);
 	}
 }

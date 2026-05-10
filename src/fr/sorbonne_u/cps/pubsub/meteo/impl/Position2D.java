@@ -59,7 +59,7 @@ public class Position2D implements PositionI
 	 *
 	 * @param other another position.
 	 * @return the Euclidean distance, or {@link Double#POSITIVE_INFINITY} if
-	 *         {@code other} is not a {@link Position2D}.
+	 * {@code other} is not a {@link Position2D}.
 	 */
 	public double distanceTo(PositionI other)
 	{

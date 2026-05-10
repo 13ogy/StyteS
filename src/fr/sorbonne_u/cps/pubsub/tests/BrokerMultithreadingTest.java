@@ -61,7 +61,7 @@ public class		BrokerMultithreadingTest
 	private static final String BROKER_RIP = "instrumented-broker-rip";
 
 	/** Limite max d'attente pour la barrière concurrente — au-delà, on
-	 *  considère que les tâches sont sérialisées et le test échoue. */
+	 * considère que les tâches sont sérialisées et le test échoue. */
 	private static final long	BARRIER_TIMEOUT_S = 5L;
 
 	/** Latch + recorder partagés ; remis à zéro à chaque test. */
@@ -84,12 +84,12 @@ public class		BrokerMultithreadingTest
 	public static class InstrumentedBroker extends Broker
 	{
 		protected InstrumentedBroker(String reflectionInboundPortURI,
-								  int nbThreads, int nbSchedulableThreads,
-								  int nbFreeChannels,
-								  int standardQuota, int premiumQuota,
-								  int nbReceptionThreads,
-								  int nbPropagationThreads,
-								  int nbDeliveryThreads) throws Exception
+								 int nbThreads, int nbSchedulableThreads,
+								 int nbFreeChannels,
+								 int standardQuota, int premiumQuota,
+								 int nbReceptionThreads,
+								 int nbPropagationThreads,
+								 int nbDeliveryThreads) throws Exception
 		{
 			super(reflectionInboundPortURI, nbThreads, nbSchedulableThreads,
 				nbFreeChannels, standardQuota, premiumQuota,
@@ -135,11 +135,11 @@ public class		BrokerMultithreadingTest
 	 * Démarre une CVM avec un {@link InstrumentedBroker}, soumet une
 	 * sonde à chacun des trois executors et vérifie que :
 	 * <ol>
-	 *   <li>le {@link CountDownLatch} commun atteint zéro avant le délai
-	 *       (preuve que les trois threads progressent en parallèle) ;</li>
-	 *   <li>les trois sondes ont été exécutées par <em>trois threads
-	 *       distincts</em> (preuve que chaque executor possède bien son
-	 *       propre pool indépendant).</li>
+	 * <li>le {@link CountDownLatch} commun atteint zéro avant le délai
+	 * (preuve que les trois threads progressent en parallèle) ;</li>
+	 * <li>les trois sondes ont été exécutées par <em>trois threads
+	 * distincts</em> (preuve que chaque executor possède bien son
+	 * propre pool indépendant).</li>
 	 * </ol>
 	 *
 	 * @throws Exception si une étape de la CVM ou de la soumission

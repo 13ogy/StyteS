@@ -44,11 +44,11 @@ public class DistanceWindFilter implements MessageFilterI.ValueFilterI
 	 * Crée le filtre de distance.
 	 *
 	 * @param referencePosition position de référence (non {@code null}).
-	 * @param maxDistance       distance maximale acceptée, en unités de
-	 *                          {@link Position2D#distanceTo(PositionI)}
-	 *                          (doit être {@code >= 0}).
+	 * @param maxDistance distance maximale acceptée, en unités de
+	 * {@link Position2D#distanceTo(PositionI)}
+	 * (doit être {@code >= 0}).
 	 * @throws IllegalArgumentException si {@code referencePosition} est {@code null}
-	 *                                  ou si {@code maxDistance < 0}.
+	 * ou si {@code maxDistance < 0}.
 	 */
 	public DistanceWindFilter(PositionI referencePosition, double maxDistance)
 	{
@@ -65,9 +65,9 @@ public class DistanceWindFilter implements MessageFilterI.ValueFilterI
 	/**
 	 * @param value valeur candidate.
 	 * @return {@code true} ssi {@code value} est un {@link WindDataI} dont la
-	 *         position est à distance {@code <= maxDistance} de la position
-	 *         de référence ; {@code false} sinon (y compris pour des
-	 *         implémentations de {@link PositionI} non gérables géométriquement).
+	 * position est à distance {@code <= maxDistance} de la position
+	 * de référence ; {@code false} sinon (y compris pour des
+	 * implémentations de {@link PositionI} non gérables géométriquement).
 	 */
 	@Override
 	public boolean match(Serializable value)

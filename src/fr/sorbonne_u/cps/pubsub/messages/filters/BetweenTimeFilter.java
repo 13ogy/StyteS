@@ -30,10 +30,10 @@ public class BetweenTimeFilter implements TimeFilterI
 	 * Crée le filtre temporel.
 	 *
 	 * @param startInclusive borne inférieure inclusive (non {@code null}).
-	 * @param endInclusive   borne supérieure inclusive (non {@code null},
-	 *                       et {@code >= startInclusive}).
+	 * @param endInclusive borne supérieure inclusive (non {@code null},
+	 * et {@code >= startInclusive}).
 	 * @throws IllegalArgumentException si une borne est {@code null} ou si
-	 *                                  {@code endInclusive < startInclusive}.
+	 * {@code endInclusive < startInclusive}.
 	 */
 	public BetweenTimeFilter(Instant startInclusive, Instant endInclusive)
 	{
@@ -50,7 +50,7 @@ public class BetweenTimeFilter implements TimeFilterI
 	/**
 	 * @param timestamp horodatage candidat.
 	 * @return {@code true} ssi {@code timestamp != null} et
-	 *         {@code startInclusive <= timestamp <= endInclusive}.
+	 * {@code startInclusive <= timestamp <= endInclusive}.
 	 */
 	@Override
 	public boolean match(Instant timestamp)

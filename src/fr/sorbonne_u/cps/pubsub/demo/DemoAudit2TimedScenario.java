@@ -28,11 +28,11 @@ import java.util.concurrent.TimeUnit;
  * Objectifs démontrés :
  * </p>
  * <ul>
- *   <li>Appels asynchrones pour la publication (pipeline asynchrone dans le broker).</li>
- *   <li>Parallélisme explicite via trois pools de threads (réception/propagation/livraison).</li>
- *   <li>Concurrence maîtrisée (sections critiques dans le broker).</li>
- *   <li>Modes de réception avancés côté client : {@code getNextMessage} et
- *       {@code waitForNextMessage(Duration)}.</li>
+ * <li>Appels asynchrones pour la publication (pipeline asynchrone dans le broker).</li>
+ * <li>Parallélisme explicite via trois pools de threads (réception/propagation/livraison).</li>
+ * <li>Concurrence maîtrisée (sections critiques dans le broker).</li>
+ * <li>Modes de réception avancés côté client : {@code getNextMessage} et
+ * {@code waitForNextMessage(Duration)}.</li>
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa

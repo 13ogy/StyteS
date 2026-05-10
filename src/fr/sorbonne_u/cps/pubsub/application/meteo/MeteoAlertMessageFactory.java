@@ -30,15 +30,15 @@ public final class MeteoAlertMessageFactory
 	 * Properties set:
 	 * </p>
 	 * <ul>
-	 *   <li>{@link MeteoProperties#TYPE} = {@link MeteoProperties#TYPE_ALERT}</li>
-	 *   <li>{@link MeteoProperties#PAYLOAD} = the {@link MeteoAlertI} payload</li>
-	 *   <li>{@link MeteoProperties#OFFICE_ID} = {@code officeId}</li>
-	 *   <li>{@link MeteoProperties#LEVEL} = {@code alert.getLevel().toString()}</li>
-	 *   <li>{@link MeteoProperties#ALERT_TYPE} = {@code alert.getAlertType().toString()}</li>
+	 * <li>{@link MeteoProperties#TYPE} = {@link MeteoProperties#TYPE_ALERT}</li>
+	 * <li>{@link MeteoProperties#PAYLOAD} = the {@link MeteoAlertI} payload</li>
+	 * <li>{@link MeteoProperties#OFFICE_ID} = {@code officeId}</li>
+	 * <li>{@link MeteoProperties#LEVEL} = {@code alert.getLevel().toString()}</li>
+	 * <li>{@link MeteoProperties#ALERT_TYPE} = {@code alert.getAlertType().toString()}</li>
 	 * </ul>
 	 *
 	 * @param officeId identifier of the publishing {@link WeatherOffice}.
-	 * @param alert    alert payload (must not be null).
+	 * @param alert alert payload (must not be null).
 	 * @return a fully populated {@link MessageI}.
 	 */
 	public static MessageI build(String officeId, MeteoAlertI alert)

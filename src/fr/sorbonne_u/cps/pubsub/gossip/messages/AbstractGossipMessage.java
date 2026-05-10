@@ -14,13 +14,13 @@ import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
  * Cette classe joue deux rôles :
  * </p>
  * <ul>
- *   <li>elle introduit le double-dispatch via {@link #accept(GossipMessageVisitor)}
- *   pour le {@link GossipMessageVisitor} (pattern Visitor — évite les chaînes
- *   {@code instanceof} dans {@code Broker.update(...)}, conformément au
- *   dispatch dynamique sans test de type) ;</li>
- *   <li>elle propage le contrat {@link EmitterAwareGossipMessageI} à toutes
- *   les sous-classes concrètes, garantissant que chaque message gossip
- *   expose son {@code emitterURI} (clef du skip-echo, cf. {@code docs/GOSSIP.md} §4).</li>
+ * <li>elle introduit le double-dispatch via {@link #accept(GossipMessageVisitor)}
+ * pour le {@link GossipMessageVisitor} (pattern Visitor — évite les chaînes
+ * {@code instanceof} dans {@code Broker.update(...)}, conformément au
+ * dispatch dynamique sans test de type) ;</li>
+ * <li>elle propage le contrat {@link EmitterAwareGossipMessageI} à toutes
+ * les sous-classes concrètes, garantissant que chaque message gossip
+ * expose son {@code emitterURI} (clef du skip-echo, cf. {@code docs/GOSSIP.md} §4).</li>
  * </ul>
  *
  * <p>
@@ -28,7 +28,7 @@ import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
  * </p>
  * <pre>{@code
  * public void accept(GossipMessageVisitor visitor) {
- *     visitor.visit(this);
+ * visitor.visit(this);
  * }
  * }</pre>
  *
@@ -40,12 +40,12 @@ import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
  */
 public abstract class AbstractGossipMessage implements EmitterAwareGossipMessageI {
 
-    /**
-     * Accepte un {@link GossipMessageVisitor} et dispatche le traitement vers
-     * la méthode {@code visit} appropriée selon le type concret de ce message.
-     *
-     * @param visitor le visiteur qui traitera ce message.
-     */
-    abstract public void accept(GossipMessageVisitor visitor);
+ /**
+ * Accepte un {@link GossipMessageVisitor} et dispatche le traitement vers
+ * la méthode {@code visit} appropriée selon le type concret de ce message.
+ *
+ * @param visitor le visiteur qui traitera ce message.
+ */
+ abstract public void accept(GossipMessageVisitor visitor);
 
 }

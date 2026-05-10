@@ -1,7 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.messages;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Objects;
 
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
@@ -18,11 +17,11 @@ import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
  * Un message est accepté lorsque :
  * </p>
  * <ul>
- *   <li>tous les {@link PropertyFilterI} configurés acceptent leur propriété
- *   cible (sémantique AND) ;</li>
- *   <li>tous les {@link PropertiesFilterI} configurés acceptent leur ensemble de
- *   propriétés cibles (sémantique AND) ;</li>
- *   <li>le {@link TimeFilterI} configuré accepte l’horodatage du message.</li>
+ * <li>tous les {@link PropertyFilterI} configurés acceptent leur propriété
+ * cible (sémantique AND) ;</li>
+ * <li>tous les {@link PropertiesFilterI} configurés acceptent leur ensemble de
+ * propriétés cibles (sémantique AND) ;</li>
+ * <li>le {@link TimeFilterI} configuré accepte l’horodatage du message.</li>
  * </ul>
  *
  * <p>
@@ -60,16 +59,16 @@ public class MessageFilter implements MessageFilterI
 	 * <p><strong>Contract</strong></p>
 	 *
 	 * <pre>
-	 * pre  {@code propertyFilters != null}
-	 * pre  {@code propertiesFilters != null}
+	 * pre {@code propertyFilters != null}
+	 * pre {@code propertiesFilters != null}
 	 * post {@code getPropertyFilters() != null}
 	 * post {@code getPropertiesFilters() != null}
 	 * post {@code getTimeFilter() != null}
 	 * </pre>
 	 *
-	 * @param propertyFilters    filtres unitaires (peut être vide).
-	 * @param propertiesFilters  filtres multi-propriétés (peut être vide).
-	 * @param timeFilter         filtre temporel ; peut être null (joker appliqué).
+	 * @param propertyFilters filtres unitaires (peut être vide).
+	 * @param propertiesFilters filtres multi-propriétés (peut être vide).
+	 * @param timeFilter filtre temporel ; peut être null (joker appliqué).
 	 */
 	public MessageFilter(
 		PropertyFilterI[] propertyFilters,
@@ -143,52 +142,31 @@ public class MessageFilter implements MessageFilterI
 			return false;
 		}
 
-		// Reuse the immutable view exposed by Message rather than rebuild a
-		// HashMap auxiliaire (allocations inutiles). On revient à un balayage linéaire
-		// scan over getProperties() if the message is some other MessageI impl.
-		if (message instanceof Message) {
-			final Map<String, PropertyI> byName = ((Message) message).getPropertiesMap();
-			for (PropertyFilterI pf : this.propertyFilters) {
-				PropertyI p = byName.get(pf.getName());
-				if (p == null || !pf.match(p)) {
-					return false;
-				}
+		// On itère sur la vue immutable des propriétés exposée par MessageI
+		// (CDC §3.3) sans nous appuyer sur une implantation concrète : cela
+		// permet à n'importe quelle implantation de MessageI d'être filtrée
+		// sans connaissance de sa structure interne. Les tableaux de filtres
+		// étant typiquement petits (≤ quelques propriétés), un balayage
+		// linéaire reste largement suffisant.
+		final PropertyI[] props = message.getProperties();
+		for (PropertyFilterI pf : this.propertyFilters) {
+			PropertyI p = findByName(props, pf.getName());
+			if (p == null || !pf.match(p)) {
+				return false;
 			}
-			for (PropertiesFilterI mpf : this.propertiesFilters) {
-				String[] required = mpf.getMultiValuesFilter().getNames();
-				PropertyI[] selected = new PropertyI[required.length];
-				for (int i = 0; i < required.length; i++) {
-					PropertyI p = byName.get(required[i]);
-					if (p == null) {
-						return false;
-					}
-					selected[i] = p;
-				}
-				if (!mpf.match(selected)) {
+		}
+		for (PropertiesFilterI mpf : this.propertiesFilters) {
+			String[] required = mpf.getMultiValuesFilter().getNames();
+			PropertyI[] selected = new PropertyI[required.length];
+			for (int i = 0; i < required.length; i++) {
+				PropertyI p = findByName(props, required[i]);
+				if (p == null) {
 					return false;
 				}
+				selected[i] = p;
 			}
-		} else {
-			final PropertyI[] props = message.getProperties();
-			for (PropertyFilterI pf : this.propertyFilters) {
-				PropertyI p = findByName(props, pf.getName());
-				if (p == null || !pf.match(p)) {
-					return false;
-				}
-			}
-			for (PropertiesFilterI mpf : this.propertiesFilters) {
-				String[] required = mpf.getMultiValuesFilter().getNames();
-				PropertyI[] selected = new PropertyI[required.length];
-				for (int i = 0; i < required.length; i++) {
-					PropertyI p = findByName(props, required[i]);
-					if (p == null) {
-						return false;
-					}
-					selected[i] = p;
-				}
-				if (!mpf.match(selected)) {
-					return false;
-				}
+			if (!mpf.match(selected)) {
+				return false;
 			}
 		}
 

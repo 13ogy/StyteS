@@ -22,9 +22,9 @@ public class CircularRegion implements RegionI
 	 *
 	 * @param center centre de la région (non {@code null}).
 	 * @param radius rayon (en unités de distance utilisées par
-	 *               {@link Position2D#distanceTo(PositionI)}, doit être {@code >= 0}).
+	 * {@link Position2D#distanceTo(PositionI)}, doit être {@code >= 0}).
 	 * @throws IllegalArgumentException si {@code center} est {@code null} ou si
-	 *                                  {@code radius < 0}.
+	 * {@code radius < 0}.
 	 */
 	public CircularRegion(Position2D center, double radius)
 	{

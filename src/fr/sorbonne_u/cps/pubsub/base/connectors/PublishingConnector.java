@@ -17,7 +17,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  * pointe vers le port inbound du broker qui offre {@link PublishingCI}.</p>
  *
  * <p>
- * Phase D.5 : les exceptions techniques levées côté offering sont
+ * les exceptions techniques levées côté offering sont
  * encapsulées dans {@link RemoteException} (la CI ne déclare que
  * {@code throws Exception} et {@link PublishingCI} ne porte aucune
  * exception métier).

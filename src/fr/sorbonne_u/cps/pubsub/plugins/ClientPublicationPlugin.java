@@ -41,14 +41,14 @@ import java.util.Objects;
  *
  * <p>Cycle de vie BCM :</p>
  * <ul>
- *   <li>{@link #installOn} — déclare {@code PublishingCI} comme requise
- *       (idempotent) ;</li>
- *   <li>{@link #initialise} — publie le port et le connecte au port
- *       inbound {@code PublishingCI} du broker, dont l'URI est dérivée
- *       déterministement via {@link Broker#publishingPortURIFor(String)} ;</li>
- *   <li>{@link #finalise} — déconnecte le port s'il l'est encore ;</li>
- *   <li>{@link #uninstall} — déconnecte (défensif), dépublie et détruit
- *       le port, retire l'interface requise.</li>
+ * <li>{@link #installOn} — déclare {@code PublishingCI} comme requise
+ * (idempotent) ;</li>
+ * <li>{@link #initialise} — publie le port et le connecte au port
+ * inbound {@code PublishingCI} du broker, dont l'URI est dérivée
+ * déterministement via {@link Broker#publishingPortURIFor(String)} ;</li>
+ * <li>{@link #finalise} — déconnecte le port s'il l'est encore ;</li>
+ * <li>{@link #uninstall} — déconnecte (défensif), dépublie et détruit
+ * le port, retire l'interface requise.</li>
  * </ul>
  *
  * <p>L'URI du plugin suit la convention
@@ -65,21 +65,21 @@ implements		ClientPublicationI
 	private static final long serialVersionUID = 1L;
 
 	/** Plugin de registration : fournit l'URI {@code ReceivingCI} (identité
-	 *  du client) et le port outbound {@code RegistrationCI} pour
-	 *  {@code channelExist} / {@code channelAuthorised}. */
+	 * du client) et le port outbound {@code RegistrationCI} pour
+	 * {@code channelExist} / {@code channelAuthorised}. */
 	protected final ClientRegistrationPlugin registrationPlugin;
 	/** URI de réflexion du broker, utilisée pour dériver l'URI du port
-	 *  inbound {@code PublishingCI} via
-	 *  {@link Broker#publishingPortURIFor(String)}. */
+	 * inbound {@code PublishingCI} via
+	 * {@link Broker#publishingPortURIFor(String)}. */
 	protected final String brokerReflectionURI;
 
 	/** Port outbound {@code PublishingCI} possédé par ce greffon. */
 	protected ClientPublishingOutboundPort publishingPortOUT;
 	/** {@code true} ssi {@link #installOn} a effectivement déclaré
-	 *  {@code PublishingCI} sur le composant ; sinon, l'interface était
-	 *  déjà déclarée (par exemple via une annotation {@code @RequiredInterfaces}
-	 *  sur le composant) et le greffon ne doit pas la retirer dans
-	 *  {@link #uninstall} sous peine de violer la postcondition BCM. */
+	 * {@code PublishingCI} sur le composant ; sinon, l'interface était
+	 * déjà déclarée (par exemple via une annotation {@code @RequiredInterfaces}
+	 * sur le composant) et le greffon ne doit pas la retirer dans
+	 * {@link #uninstall} sous peine de violer la postcondition BCM. */
 	private boolean addedRequiredInterface;
 
 	/**
@@ -93,7 +93,7 @@ implements		ClientPublicationI
 	 *								vide.
 	 */
 	public ClientPublicationPlugin(ClientRegistrationPlugin registrationPlugin,
-								   String brokerReflectionURI)
+								 String brokerReflectionURI)
 	{
 		super();
 		this.registrationPlugin = Objects.requireNonNull(

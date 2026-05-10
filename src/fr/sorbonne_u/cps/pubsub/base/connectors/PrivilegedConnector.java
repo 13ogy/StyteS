@@ -16,12 +16,12 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
  * <p><strong>Sens du raccordement</strong> : la référence {@link #offering}
  * pointe vers le port inbound du broker qui offre {@link PrivilegedClientCI}.
  * Les opérations de publication sont héritées de {@link PublishingConnector}
- * (Phase D.2) : {@link PrivilegedClientCI} étend
+ * : {@link PrivilegedClientCI} étend
  * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, donc le
  * connecteur privilégié est-un connecteur de publication.</p>
  *
  * <p>
- * Phase D.5 : les exceptions métier déclarées sur la CI sont propagées
+ * les exceptions métier déclarées sur la CI sont propagées
  * telles quelles ; toute autre {@link Exception} technique est encapsulée
  * dans une {@link RemoteException}.
  * </p>

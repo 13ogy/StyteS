@@ -12,12 +12,12 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  * Port outbound utilisé par un composant client pour appeler le service de
  * publication du broker (interface {@link PublishingCI}).
  *
- * <p><strong>Propriétaire</strong> : composant client (par exemple
- * {@link fr.sorbonne_u.cps.pubsub.base.components.Client} ou un porteur du
- * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin}).</p>
+ * <p><strong>Propriétaire</strong> : le {@link
+ * fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin} installé sur le
+ * composant client.</p>
  *
  * <p>
- * Phase D.5 : les exceptions techniques levées par le connecteur sont
+ * les exceptions techniques levées par le connecteur sont
  * encapsulées dans une {@link RemoteException} ; {@link PublishingCI} ne
  * déclare aucune exception métier sur ses méthodes, le wrap-tout suffit.
  * </p>

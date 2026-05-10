@@ -24,12 +24,12 @@ import java.util.Objects;
  * Ce greffon possède :
  * </p>
  * <ul>
- *   <li>le port inbound {@link ClientInboundPort} offrant
- *       {@code ReceivingCI} — son URI sert d'identité unique du client
- *       vis-à-vis du broker (clé d'enregistrement, motifs
- *       {@code authorisedUsers} des canaux privilégiés, …) ;</li>
- *   <li>le port outbound {@link ClientRegistrationOutboundPort} vers
- *       {@code RegistrationCI} (register / unregister / subscribe / …).</li>
+ * <li>le port inbound {@link ClientInboundPort} offrant
+ * {@code ReceivingCI} — son URI sert d'identité unique du client
+ * vis-à-vis du broker (clé d'enregistrement, motifs
+ * {@code authorisedUsers} des canaux privilégiés, …) ;</li>
+ * <li>le port outbound {@link ClientRegistrationOutboundPort} vers
+ * {@code RegistrationCI} (register / unregister / subscribe / …).</li>
  * </ul>
  *
  * <p>
@@ -45,16 +45,16 @@ import java.util.Objects;
  *
  * <p>Cycle de vie BCM (cf. {@link AbstractPlugin}) :</p>
  * <ul>
- *   <li>{@link #installOn} — déclare {@code ReceivingCI} (offerte) et
- *       {@code RegistrationCI} (requise) si non déclarées par le composant
- *       (idempotent) ;</li>
- *   <li>{@link #initialise} — publie les deux ports puis connecte le port
- *       de registration au broker (URI dérivée via
- *       {@link Broker#registrationPortURIFor(String)}) ;</li>
- *   <li>{@link #finalise} — déconnecte le port outbound s'il l'est
- *       encore ;</li>
- *   <li>{@link #uninstall} — déconnecte (défensif), dépublie et détruit
- *       les deux ports, retire les interfaces déclarées par {@code installOn}.</li>
+ * <li>{@link #installOn} — déclare {@code ReceivingCI} (offerte) et
+ * {@code RegistrationCI} (requise) si non déclarées par le composant
+ * (idempotent) ;</li>
+ * <li>{@link #initialise} — publie les deux ports puis connecte le port
+ * de registration au broker (URI dérivée via
+ * {@link Broker#registrationPortURIFor(String)}) ;</li>
+ * <li>{@link #finalise} — déconnecte le port outbound s'il l'est
+ * encore ;</li>
+ * <li>{@link #uninstall} — déconnecte (défensif), dépublie et détruit
+ * les deux ports, retire les interfaces déclarées par {@code installOn}.</li>
  * </ul>
  *
  * <p>L'URI du plugin suit la convention
@@ -75,10 +75,10 @@ implements		ClientRegistrationI
 	/** Port outbound vers {@code RegistrationCI} du broker. */
 	protected ClientRegistrationOutboundPort registrationPortOUT;
 	/** {@code true} ssi {@link #installOn} a effectivement déclaré
-	 *  {@code ReceivingCI} sur le composant ; sinon, l'interface était
-	 *  déjà déclarée (par exemple via {@code @OfferedInterfaces}) et le
-	 *  greffon ne doit pas la retirer dans {@link #uninstall} sous peine
-	 *  de violer la postcondition BCM. */
+	 * {@code ReceivingCI} sur le composant ; sinon, l'interface était
+	 * déjà déclarée (par exemple via {@code @OfferedInterfaces}) et le
+	 * greffon ne doit pas la retirer dans {@link #uninstall} sous peine
+	 * de violer la postcondition BCM. */
 	private boolean addedOfferedInterface;
 	/** Idem pour {@code RegistrationCI} (interface requise). */
 	private boolean addedRequiredInterface;
@@ -96,8 +96,8 @@ implements		ClientRegistrationI
 
 	/**
 	 * @deprecated utilisez {@link #ClientRegistrationPlugin(String)} pour
-	 *             qu'un client connaisse son broker dans un environnement
-	 *             multi-broker (Phase C.3).
+	 * qu'un client connaisse son broker dans un environnement
+	 * multi-broker.
 	 */
 	@Deprecated
 	public ClientRegistrationPlugin()
@@ -180,7 +180,7 @@ implements		ClientRegistrationI
 			throw new IllegalStateException(
 				"ClientRegistrationPlugin requires a broker reflection inbound "
 				+ "port URI; use ClientRegistrationPlugin(String) instead of "
-				+ "the deprecated no-arg variant (Phase C.3).");
+				+ "the deprecated no-arg variant.");
 		}
 		this.receptionPortIN = new ClientInboundPort(
 			this.getOwner(), this.getPluginURI());
@@ -260,7 +260,7 @@ implements		ClientRegistrationI
 
 	/**
 	 * @return l'URI publiée du port {@code ReceivingCI} ; cette URI est
-	 *         l'identité unique de ce client telle que vue par le broker.
+	 * l'identité unique de ce client telle que vue par le broker.
 	 * @throws Exception si le port n'est pas encore publié.
 	 */
 	public String getReceptionPortURI() throws Exception
@@ -270,9 +270,9 @@ implements		ClientRegistrationI
 
 	/**
 	 * @return le port outbound {@code RegistrationCI} possédé par ce
-	 *         greffon, partagé avec les greffons de souscription/publication
-	 *         (qui s'en servent pour les méthodes {@code channelExist} et
-	 *         {@code channelAuthorised} qui font partie de {@code RegistrationCI}).
+	 * greffon, partagé avec les greffons de souscription/publication
+	 * (qui s'en servent pour les méthodes {@code channelExist} et
+	 * {@code channelAuthorised} qui font partie de {@code RegistrationCI}).
 	 */
 	public ClientRegistrationOutboundPort getRegistrationPortOUT()
 	{
@@ -287,7 +287,7 @@ implements		ClientRegistrationI
 	 * {@inheritDoc}
 	 *
 	 * @return {@code true} ssi {@link #register} a été appelé avec succès
-	 *         et {@link #unregister} ne l'a pas (encore) annulé.
+	 * et {@link #unregister} ne l'a pas (encore) annulé.
 	 */
 	@Override
 	public boolean registered()

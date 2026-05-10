@@ -40,7 +40,7 @@ public class BeforeOrAtTimeFilter implements TimeFilterI
 	/**
 	 * @param timestamp horodatage candidat.
 	 * @return {@code true} ssi {@code timestamp != null} et
-	 *         {@code timestamp <= upperBoundInclusive}.
+	 * {@code timestamp <= upperBoundInclusive}.
 	 */
 	@Override
 	public boolean match(Instant timestamp)

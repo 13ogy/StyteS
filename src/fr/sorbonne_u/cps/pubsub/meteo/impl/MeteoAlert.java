@@ -28,10 +28,10 @@ public class MeteoAlert implements MeteoAlertI
 	 * Crée une alerte météo.
 	 *
 	 * @param alertType type d'aléa (non {@code null}).
-	 * @param level     niveau de sévérité (non {@code null}).
-	 * @param regions   régions concernées (non {@code null}, non vide).
+	 * @param level niveau de sévérité (non {@code null}).
+	 * @param regions régions concernées (non {@code null}, non vide).
 	 * @param startTime instant de début de validité (non {@code null}).
-	 * @param duration  durée de validité (non {@code null}).
+	 * @param duration durée de validité (non {@code null}).
 	 * @throws IllegalArgumentException si l'une des préconditions est violée.
 	 */
 	public MeteoAlert(

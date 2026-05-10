@@ -16,12 +16,12 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  * Port outbound utilisé par un composant client pour invoquer le service
  * d'enregistrement du broker via l'interface {@link RegistrationCI}.
  *
- * <p><strong>Propriétaire</strong> : le composant client (par exemple
- * {@link fr.sorbonne_u.cps.pubsub.base.components.Client} ou un porteur du
- * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin}).</p>
+ * <p><strong>Propriétaire</strong> : le {@link
+ * fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin} installé sur le
+ * composant client.</p>
  *
  * <p>
- * Phase D.5 : les exceptions métier déclarées sur la CI sont propagées
+ * les exceptions métier déclarées sur la CI sont propagées
  * telles quelles ; toute autre {@link Exception} technique est encapsulée
  * dans une {@link RemoteException}.
  * </p>

@@ -29,7 +29,7 @@ public class PropertiesFilter implements PropertiesFilterI
 	 * Crée le filtre.
 	 *
 	 * @param multiValuesFilter filtre multi-valeurs portant la contrainte croisée
-	 *                          (non {@code null}).
+	 * (non {@code null}).
 	 * @throws IllegalArgumentException si {@code multiValuesFilter} est {@code null}.
 	 */
 	public PropertiesFilter(MultiValuesFilterI multiValuesFilter)
@@ -50,8 +50,8 @@ public class PropertiesFilter implements PropertiesFilterI
 	/**
 	 * @param properties propriétés candidates ({@code length >= 2} attendu).
 	 * @return {@code true} ssi toutes les propriétés requises par le
-	 *         {@link MultiValuesFilterI} sont présentes dans {@code properties}
-	 *         et que leurs valeurs satisfont {@link MultiValuesFilterI#match}.
+	 * {@link MultiValuesFilterI} sont présentes dans {@code properties}
+	 * et que leurs valeurs satisfont {@link MultiValuesFilterI#match}.
 	 */
 	@Override
 	public boolean match(PropertyI... properties)

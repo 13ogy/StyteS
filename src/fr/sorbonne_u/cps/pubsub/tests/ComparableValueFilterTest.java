@@ -15,27 +15,27 @@ import static org.junit.Assert.*;
  * Unit tests for the {@link ComparableValueFilter} hierarchy (CDC §3.2).
  *
  * <p>
- * After Phase B.2, the single-operator {@code ComparableValueFilter} was
- * refactored into a class hierarchy:
+ * The single-operator {@code ComparableValueFilter} was refactored into a
+ * class hierarchy:
  * </p>
  * <ul>
- *   <li>{@link GreaterOrEqualValueFilter}</li>
- *   <li>{@link LowerOrEqualValueFilter}</li>
- *   <li>{@link BetweenInclusiveValueFilter}</li>
- *   <li>{@link StrictlyGreaterValueFilter}</li>
- *   <li>{@link StrictlyLowerValueFilter}</li>
+ * <li>{@link GreaterOrEqualValueFilter}</li>
+ * <li>{@link LowerOrEqualValueFilter}</li>
+ * <li>{@link BetweenInclusiveValueFilter}</li>
+ * <li>{@link StrictlyGreaterValueFilter}</li>
+ * <li>{@link StrictlyLowerValueFilter}</li>
  * </ul>
  *
  * <p>
  * What is being tested:
  * </p>
  * <ul>
- *   <li>Boundary, above-boundary, and below-boundary cases with Integer values.</li>
- *   <li>Factory methods return the correct concrete class.</li>
- *   <li>BetweenInclusive with inverted bounds (lower &gt; upper) does NOT throw
- *       (constructor is lenient) but matches nothing.</li>
- *   <li>match returns false on null.</li>
- *   <li>match returns false on non-Comparable input.</li>
+ * <li>Boundary, above-boundary, and below-boundary cases with Integer values.</li>
+ * <li>Factory methods return the correct concrete class.</li>
+ * <li>BetweenInclusive with inverted bounds (lower &gt; upper) does NOT throw
+ * (constructor is lenient) but matches nothing.</li>
+ * <li>match returns false on null.</li>
+ * <li>match returns false on non-Comparable input.</li>
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa

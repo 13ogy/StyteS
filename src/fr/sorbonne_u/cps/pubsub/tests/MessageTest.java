@@ -19,13 +19,13 @@ import static org.junit.Assert.*;
  * Points vérifiés :
  * </p>
  * <ul>
- *   <li>un message porte un payload et un timestamp non nul ;</li>
- *   <li>les propriétés respectent le contrat CDC : noms uniques, test d'existence,
- *       récupération de valeur ;</li>
- *   <li>la suppression de propriétés fonctionne, et toute propriété manquante lève
- *       {@link UnknownPropertyException} ;</li>
- *   <li>{@code copy()} préserve le timestamp et les propriétés, et autorise une
- *       modification de payload uniquement sur la copie.</li>
+ * <li>un message porte un payload et un timestamp non nul ;</li>
+ * <li>les propriétés respectent le contrat CDC : noms uniques, test d'existence,
+ * récupération de valeur ;</li>
+ * <li>la suppression de propriétés fonctionne, et toute propriété manquante lève
+ * {@link UnknownPropertyException} ;</li>
+ * <li>{@code copy()} préserve le timestamp et les propriétés, et autorise une
+ * modification de payload uniquement sur la copie.</li>
  * </ul>
  *
  * <p>

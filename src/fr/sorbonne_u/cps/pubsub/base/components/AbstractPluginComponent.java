@@ -16,7 +16,7 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
 import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
 
 /**
- * Phase E.1 — opt-in abstract base for clients composed from the four
+ * opt-in abstract base for clients composed from the four
  * pub/sub plugins ({@link ClientRegistrationPlugin},
  * {@link ClientSubscriptionPlugin}, {@link ClientPublicationPlugin},
  * {@link ClientPrivilegedPlugin}).
@@ -35,21 +35,21 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
  *
  * <h2>Lifecycle template</h2>
  * <ol>
- *   <li>The constructor installs the four plugins and configures the
- *       reception callback to {@link #onReceive(String, MessageI)} (which
- *       subclasses may override).</li>
- *   <li>BCM4Java calls {@link #execute()}; this method is {@code final} and
- *       follows the convention "register in {@code execute()}, never in
- *       {@code start()} or constructors":
- *     <ul>
- *       <li>{@code super.execute()} runs first;</li>
- *       <li>if an {@code initialRC} was supplied, the registration plugin's
- *           {@code register(initialRC)} is invoked;</li>
- *       <li>then {@link #scenarioExecute()} is called, where subclasses
- *           drive the actual scenario (subscribe / publish / privileged
- *           channel management).</li>
- *     </ul>
- *   </li>
+ * <li>The constructor installs the four plugins and configures the
+ * reception callback to {@link #onReceive(String, MessageI)} (which
+ * subclasses may override).</li>
+ * <li>BCM4Java calls {@link #execute()}; this method is {@code final} and
+ * follows the convention "register in {@code execute()}, never in
+ * {@code start()} or constructors":
+ * <ul>
+ * <li>{@code super.execute()} runs first;</li>
+ * <li>if an {@code initialRC} was supplied, the registration plugin's
+ * {@code register(initialRC)} is invoked;</li>
+ * <li>then {@link #scenarioExecute()} is called, where subclasses
+ * drive the actual scenario (subscribe / publish / privileged
+ * channel management).</li>
+ * </ul>
+ * </li>
  * </ol>
  *
  * <p>
@@ -74,8 +74,8 @@ public abstract class AbstractPluginComponent extends AbstractComponent
 	protected final ClientPrivilegedPlugin privilegedPlugin;
 
 	/** Service class to register with on {@link #execute()}; {@code null}
-	 *  means "do not auto-register, the subclass will register manually
-	 *  inside {@link #scenarioExecute()}". */
+	 * means "do not auto-register, the subclass will register manually
+	 * inside {@link #scenarioExecute()}". */
 	protected final RegistrationClass initialRC;
 
 	protected AbstractPluginComponent(

@@ -26,7 +26,7 @@ import fr.sorbonne_u.utils.aclocks.ClocksServer;
  * Constructeur recommandé : 5 arguments
  * {@code (reflectionInboundPortURI, scenario, nbThreads, nbSchedulableThreads,
  * brokerReflectionURI)}. Le constructeur 4-arg est conservé pour rétro-compat
- * et marqué {@code @Deprecated} (voir Phase C.3).
+ * et marqué {@code @Deprecated} (voir ).
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
@@ -42,11 +42,11 @@ public class ScenarioPluginClient extends PluginClient
 	 * Constructeur historique sans URI de broker.
 	 *
 	 * @param reflectionInboundPortURI URI du port de réflexion (= URI participant).
-	 * @param scenario                 scénario à exécuter.
-	 * @param nbThreads                taille du pool standard de threads.
-	 * @param nbSchedulableThreads     taille du pool schedulable.
+	 * @param scenario scénario à exécuter.
+	 * @param nbThreads taille du pool standard de threads.
+	 * @param nbSchedulableThreads taille du pool schedulable.
 	 * @throws Exception si la création du composant échoue.
-	 * @deprecated utiliser le constructeur 5-arg avec l'URI du broker (Phase C.3).
+	 * @deprecated utiliser le constructeur 5-arg avec l'URI du broker.
 	 */
 	@Deprecated
 	protected ScenarioPluginClient(
@@ -63,11 +63,11 @@ public class ScenarioPluginClient extends PluginClient
 	 * de réflexion.
 	 *
 	 * @param reflectionInboundPortURI URI du port de réflexion (= URI participant
-	 *                                 dans le scénario).
-	 * @param scenario                 scénario à exécuter.
-	 * @param nbThreads                taille du pool standard.
-	 * @param nbSchedulableThreads     taille du pool schedulable.
-	 * @param brokerReflectionURI      URI du broker auquel se connecter (post C.3).
+	 * dans le scénario).
+	 * @param scenario scénario à exécuter.
+	 * @param nbThreads taille du pool standard.
+	 * @param nbSchedulableThreads taille du pool schedulable.
+	 * @param brokerReflectionURI URI du broker auquel se connecter (post C.3).
 	 * @throws Exception si la création du composant ou du parent échoue.
 	 */
 	protected ScenarioPluginClient(

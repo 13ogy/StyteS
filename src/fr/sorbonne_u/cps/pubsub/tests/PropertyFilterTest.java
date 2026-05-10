@@ -20,13 +20,13 @@ import static org.junit.Assert.*;
  * What is being tested:
  * </p>
  * <ul>
- *   <li>match returns false when property argument is null.</li>
- *   <li>match returns false when the property name does not equal the filter name.</li>
- *   <li>match returns true when name matches AND inner valueFilter accepts the value.</li>
- *   <li>match returns false when name matches but inner valueFilter rejects the value.</li>
- *   <li>Constructor rejects a null name with {@link IllegalArgumentException}.</li>
- *   <li>Constructor rejects an empty name with {@link IllegalArgumentException}.</li>
- *   <li>Constructor rejects a null valueFilter with {@link IllegalArgumentException}.</li>
+ * <li>match returns false when property argument is null.</li>
+ * <li>match returns false when the property name does not equal the filter name.</li>
+ * <li>match returns true when name matches AND inner valueFilter accepts the value.</li>
+ * <li>match returns false when name matches but inner valueFilter rejects the value.</li>
+ * <li>Constructor rejects a null name with {@link IllegalArgumentException}.</li>
+ * <li>Constructor rejects an empty name with {@link IllegalArgumentException}.</li>
+ * <li>Constructor rejects a null valueFilter with {@link IllegalArgumentException}.</li>
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa

@@ -35,17 +35,17 @@ import static org.junit.Assert.assertTrue;
  * <p>These tests validate the three contracts every gossip message must
  * satisfy, regardless of payload :</p>
  * <ol>
- *   <li>Constructor preserves every payload field unchanged
- *       (no silent munging).</li>
- *   <li>{@link GossipMessageI#copyWithNewEmitterURI(String)} returns an
- *       instance of the <em>same concrete subclass</em>, with the new
- *       emitter URI, and the original {@code gossipMessageURI} +
- *       {@code timestamp} preserved (key invariants for skip-echo +
- *       atomic dedup, cf. {@code docs/GOSSIP.md} §3 §4).</li>
- *   <li>Each concrete subclass implements
- *       {@link EmitterAwareGossipMessageI}, inherited transitively via
- *       {@link AbstractGossipMessage}, so the broker can rely on it
- *       defensively (no {@code instanceof} chain).</li>
+ * <li>Constructor preserves every payload field unchanged
+ * (no silent munging).</li>
+ * <li>{@link GossipMessageI#copyWithNewEmitterURI(String)} returns an
+ * instance of the <em>same concrete subclass</em>, with the new
+ * emitter URI, and the original {@code gossipMessageURI} +
+ * {@code timestamp} preserved (key invariants for skip-echo +
+ * atomic dedup, cf. {@code docs/GOSSIP.md} §3 §4).</li>
+ * <li>Each concrete subclass implements
+ * {@link EmitterAwareGossipMessageI}, inherited transitively via
+ * {@link AbstractGossipMessage}, so the broker can rely on it
+ * defensively (no {@code instanceof} chain).</li>
  * </ol>
  *
  * <p>The {@code gossipMessageURI} of every distinct in-flight message is
@@ -57,7 +57,7 @@ import static org.junit.Assert.assertTrue;
 public class GossipMessageTest
 {
 	private static final String INITIAL_EMITTER = "broker-A";
-	private static final String NEW_EMITTER     = "broker-B";
+	private static final String NEW_EMITTER = "broker-B";
 
 	private static String fresh(String tag)
 	{
@@ -77,19 +77,19 @@ public class GossipMessageTest
 				uri, ts, INITIAL_EMITTER, "client-1", RegistrationClass.STANDARD);
 
 		assertEquals("gossipMessageURI preserved", uri, m.gossipMessageURI());
-		assertEquals("timestamp preserved",       ts,  m.timestamp());
-		assertEquals("emitterURI preserved",      INITIAL_EMITTER, m.getEmitterURI());
-		assertEquals("clientReceptionPortURI",    "client-1", m.getClientReceptionPortURI());
-		assertEquals("registrationClass",         RegistrationClass.STANDARD, m.getRegistrationClass());
+		assertEquals("timestamp preserved", ts, m.timestamp());
+		assertEquals("emitterURI preserved", INITIAL_EMITTER, m.getEmitterURI());
+		assertEquals("clientReceptionPortURI", "client-1", m.getClientReceptionPortURI());
+		assertEquals("registrationClass", RegistrationClass.STANDARD, m.getRegistrationClass());
 
 		final GossipMessageI copy = m.copyWithNewEmitterURI(NEW_EMITTER);
-		assertEquals("subtype preserved",  RegisterGossipMessage.class, copy.getClass());
+		assertEquals("subtype preserved", RegisterGossipMessage.class, copy.getClass());
 		final RegisterGossipMessage cm = (RegisterGossipMessage) copy;
 		assertEquals("gossipMessageURI preserved across copy", uri, cm.gossipMessageURI());
-		assertEquals("timestamp preserved across copy",        ts,  cm.timestamp());
-		assertEquals("emitter is the new emitter",   NEW_EMITTER, cm.getEmitterURI());
-		assertEquals("payload field 1 preserved",    "client-1",  cm.getClientReceptionPortURI());
-		assertEquals("payload field 2 preserved",    RegistrationClass.STANDARD, cm.getRegistrationClass());
+		assertEquals("timestamp preserved across copy", ts, cm.timestamp());
+		assertEquals("emitter is the new emitter", NEW_EMITTER, cm.getEmitterURI());
+		assertEquals("payload field 1 preserved", "client-1", cm.getClientReceptionPortURI());
+		assertEquals("payload field 2 preserved", RegistrationClass.STANDARD, cm.getRegistrationClass());
 	}
 
 	@Test

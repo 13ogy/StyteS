@@ -22,14 +22,13 @@ import fr.sorbonne_u.cps.pubsub.base.components.Broker;
  * Comme {@link PrivilegedClientCI} étend
  * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, ce port hérite
  * également des opérations {@code publish} / {@code asyncPublishAndNotify}
- * via {@link BrokerPublishingInboundPort} (Phase D.2 — la spécialisation des CIs
- * est miroitée par la hiérarchie OO des ports).
+ * via {@link BrokerPublishingInboundPort}.
  * </p>
  *
  * <p>
- * Convention Phase D.5 : les exceptions métier déclarées sur la CI sont
+ * Convention : les exceptions métier déclarées sur la CI sont
  * propagées telles quelles ; toute autre {@link Exception} technique est
- * encapsulée dans une {@link RemoteException}. Phase D.3 : les opérations
+ * encapsulée dans une {@link RemoteException}. : les opérations
  * void véritablement fire-and-forget ({@link #modifyAuthorisedUsers},
  * {@link #destroyChannel}) sont dispatchées sur l'executor de réception ;
  * leurs exceptions sont logguées (l'appelant ne peut pas les observer).
@@ -51,7 +50,7 @@ public class BrokerPrivilegedInboundPort extends BrokerPublishingInboundPort imp
 	}
 
 	/**
-	 * Constructeur à URI explicite (Phase C.3) — le broker dérive cette URI
+	 * Constructeur à URI explicite — le broker dérive cette URI
 	 * depuis son URI de réflexion.
 	 */
 	public BrokerPrivilegedInboundPort(String uri, ComponentI owner) throws Exception
@@ -112,7 +111,7 @@ public class BrokerPrivilegedInboundPort extends BrokerPublishingInboundPort imp
 	}
 
 	/**
-	 * Modification asynchrone (Phase D.3) de la regex {@code authorisedUsers}.
+	 * Modification asynchrone de la regex {@code authorisedUsers}.
 	 * @see PrivilegedClientCI#modifyAuthorisedUsers(String, String, String)
 	 */
 	@Override
@@ -134,7 +133,7 @@ public class BrokerPrivilegedInboundPort extends BrokerPublishingInboundPort imp
 	}
 
 	/**
-	 * Destruction asynchrone (Phase D.3) — le canal devient invisible mais
+	 * Destruction asynchrone — le canal devient invisible mais
 	 * son nettoyage profond se fait après vidage du compteur in-flight.
 	 * @see PrivilegedClientCI#destroyChannel(String, String)
 	 */

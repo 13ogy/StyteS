@@ -40,26 +40,26 @@ import java.util.concurrent.TimeUnit;
  * fourni au constructeur, ce plugin offre deux modes pull :
  * </p>
  * <ul>
- *   <li>{@link #waitForNextMessage(String)} et
- *       {@link #waitForNextMessage(String, Duration)} : prélèvement
- *       bloquant, équitable (FIFO) et thread-safe sur le canal donné.</li>
- *   <li>{@link #getNextMessage(String)} : retourne un
- *       {@link CompletableFuture} résolu lorsque le prochain message
- *       arrive (ou immédiatement si la file contient déjà un message).</li>
+ * <li>{@link #waitForNextMessage(String)} et
+ * {@link #waitForNextMessage(String, Duration)} : prélèvement
+ * bloquant, équitable (FIFO) et thread-safe sur le canal donné.</li>
+ * <li>{@link #getNextMessage(String)} : retourne un
+ * {@link CompletableFuture} résolu lorsque le prochain message
+ * arrive (ou immédiatement si la file contient déjà un message).</li>
  * </ul>
  *
  * <p>
- * Les files par canal sont des {@link LinkedBlockingQueue} (Phase E.4).
+ * Les files par canal sont des {@link LinkedBlockingQueue}.
  * Cette structure :
  * </p>
  * <ul>
- *   <li>est intrinsèquement thread-safe : aucune synchronisation
- *       supplémentaire n'est nécessaire pour {@code add} / {@code take}
- *       / {@code poll} ;</li>
- *   <li>fournit une garantie d'équité FIFO entre consommateurs
- *       concurrents, contrairement à l'ancien
- *       {@code ArrayDeque + wait/notifyAll} qui mêlait insertion FIFO
- *       et réveil non FIFO.</li>
+ * <li>est intrinsèquement thread-safe : aucune synchronisation
+ * supplémentaire n'est nécessaire pour {@code add} / {@code take}
+ * / {@code poll} ;</li>
+ * <li>fournit une garantie d'équité FIFO entre consommateurs
+ * concurrents, contrairement à l'ancien
+ * {@code ArrayDeque + wait/notifyAll} qui mêlait insertion FIFO
+ * et réveil non FIFO.</li>
  * </ul>
  *
  * <p>L'URI du plugin suit la convention
@@ -83,7 +83,7 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 
 	/**
 	 * Per-channel FIFO of received messages not yet consumed by advanced calls.
-	 * Backed by {@link LinkedBlockingQueue} (Phase E.4) so that
+	 * Backed by {@link LinkedBlockingQueue} so that
 	 * {@link #waitForNextMessage(String)} and
 	 * {@link #waitForNextMessage(String, Duration)} provide fair, blocking
 	 * FIFO semantics when multiple consumers race on the same channel; this
@@ -258,16 +258,16 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 	 *
 	 * <p>Logique de routage :</p>
 	 * <ol>
-	 *   <li>si un {@link CompletableFuture} non terminé est en attente
-	 *       sur ce canal (mode {@link #getNextMessage}), il est complété
-	 *       avec le message et retiré du registre ; le handler passif
-	 *       est ensuite notifié et la méthode retourne ;</li>
-	 *   <li>sinon, le message est ajouté à la {@link LinkedBlockingQueue}
-	 *       du canal (créée à la demande) ; cet ajout débloque tout
-	 *       consommateur en attente sur
-	 *       {@link #waitForNextMessage(String)} dans l'ordre FIFO ;</li>
-	 *   <li>le handler passif {@link ReceivingI} est ensuite notifié
-	 *       (s'il est non {@code null}).</li>
+	 * <li>si un {@link CompletableFuture} non terminé est en attente
+	 * sur ce canal (mode {@link #getNextMessage}), il est complété
+	 * avec le message et retiré du registre ; le handler passif
+	 * est ensuite notifié et la méthode retourne ;</li>
+	 * <li>sinon, le message est ajouté à la {@link LinkedBlockingQueue}
+	 * du canal (créée à la demande) ; cet ajout débloque tout
+	 * consommateur en attente sur
+	 * {@link #waitForNextMessage(String)} dans l'ordre FIFO ;</li>
+	 * <li>le handler passif {@link ReceivingI} est ensuite notifié
+	 * (s'il est non {@code null}).</li>
 	 * </ol>
 	 *
 	 * <p>L'enqueue est volontairement réalisé hors du moniteur : la
@@ -414,13 +414,13 @@ public class ClientSubscriptionPlugin extends AbstractPlugin implements ClientSu
 	 *
 	 * <p><strong>Sémantique</strong></p>
 	 * <ul>
-	 *   <li>si la file du canal contient déjà un message, il est consommé
-	 *       et le future retourné est <em>déjà complété</em>
-	 *       ({@code CompletableFuture.completedFuture(head)}) ;</li>
-	 *   <li>sinon, un future en attente est mémorisé pour ce canal et
-	 *       partagé entre appelants successifs tant qu'il n'est pas
-	 *       complété ; le prochain {@link #receive} sur ce canal le
-	 *       complète puis l'efface du registre.</li>
+	 * <li>si la file du canal contient déjà un message, il est consommé
+	 * et le future retourné est <em>déjà complété</em>
+	 * ({@code CompletableFuture.completedFuture(head)}) ;</li>
+	 * <li>sinon, un future en attente est mémorisé pour ce canal et
+	 * partagé entre appelants successifs tant qu'il n'est pas
+	 * complété ; le prochain {@link #receive} sur ce canal le
+	 * complète puis l'efface du registre.</li>
 	 * </ul>
 	 *
 	 * <p>

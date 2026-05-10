@@ -21,9 +21,9 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  * {@code getOwner()} vers ce type concret).</p>
  *
  * <p>
- * Convention Phase D.5 : les exceptions métier déclarées sur la CI sont
+ * Convention : les exceptions métier déclarées sur la CI sont
  * rejetées telles quelles ; toute autre {@link Exception} technique est
- * encapsulée dans une {@link RemoteException}. Phase D.3 : les méthodes
+ * encapsulée dans une {@link RemoteException}. : les méthodes
  * void asynchrones ({@link #unregister(String)},
  * {@link #subscribe(String,String,MessageFilterI)},
  * {@link #unsubscribe(String,String)}) sont dispatchées sur l'executor
@@ -51,7 +51,7 @@ public class BrokerRegistrationInboundPort extends AbstractInboundPort implement
 	 * C.3). Permet au broker de dériver l'URI du port d'enregistrement
 	 * depuis son URI de réflexion, supprimant le besoin d'un statique global.
 	 *
-	 * @param uri   URI à publier pour ce port.
+	 * @param uri URI à publier pour ce port.
 	 * @param owner composant propriétaire — doit être un {@link Broker}.
 	 */
 	public BrokerRegistrationInboundPort(String uri, ComponentI owner) throws Exception {
@@ -116,7 +116,7 @@ public class BrokerRegistrationInboundPort extends AbstractInboundPort implement
 
 	/**
 	 * Désenregistrement asynchrone : dispatché sur l'executor de réception
-	 * du broker pour libérer immédiatement le thread RMI (Phase D.3).
+	 * du broker pour libérer immédiatement le thread RMI.
 	 * @see RegistrationCI#unregister(String)
 	 */
 	@Override
@@ -181,7 +181,7 @@ public class BrokerRegistrationInboundPort extends AbstractInboundPort implement
 
 	/**
 	 * Souscription asynchrone : dispatchée sur l'executor de réception
-	 * (Phase D.3). L'appelant ne voit pas les exceptions métier (logguées).
+	 *. L'appelant ne voit pas les exceptions métier (logguées).
 	 * @see RegistrationCI#subscribe(String, String, MessageFilterI)
 	 */
 	@Override
@@ -203,7 +203,7 @@ public class BrokerRegistrationInboundPort extends AbstractInboundPort implement
 	}
 
 	/**
-	 * Désabonnement asynchrone (Phase D.3).
+	 * Désabonnement asynchrone.
 	 * @see RegistrationCI#unsubscribe(String, String)
 	 */
 	@Override

@@ -21,7 +21,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  * {@link #offering} pointe vers le port inbound du broker.</p>
  *
  * <p>
- * Phase D.5 : les exceptions métier déclarées sur la CI sont propagées
+ * les exceptions métier déclarées sur la CI sont propagées
  * telles quelles ; toute autre {@link Exception} technique est encapsulée
  * dans une {@link RemoteException}.
  * </p>

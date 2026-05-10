@@ -39,18 +39,18 @@ import static org.junit.Assert.*;
  * Ce qui est testé (CDC §3.5) :
  * </p>
  * <ul>
- *   <li>{@code register(uri, FREE)} returns the publishing port URI;
- *       {@code registered(uri)} is subsequently {@code true}.</li>
- *   <li>A second {@code register} with the same URI throws
- *       {@link AlreadyRegisteredException}.</li>
- *   <li>{@code register(uri, STANDARD)} returns the privileged port URI,
- *       which differs from the FREE publishing URI.</li>
- *   <li>{@code registered(uri, rc)} throws {@link UnknownClientException}
- *       for an unknown URI (new C.1 contract).</li>
- *   <li>{@code registered(uri, FREE)} is {@code true} when the class matches,
- *       {@code false} when it does not.</li>
- *   <li>{@code unregister} removes the client; a second call throws
- *       {@link UnknownClientException}.</li>
+ * <li>{@code register(uri, FREE)} returns the publishing port URI;
+ * {@code registered(uri)} is subsequently {@code true}.</li>
+ * <li>A second {@code register} with the same URI throws
+ * {@link AlreadyRegisteredException}.</li>
+ * <li>{@code register(uri, STANDARD)} returns the privileged port URI,
+ * which differs from the FREE publishing URI.</li>
+ * <li>{@code registered(uri, rc)} throws {@link UnknownClientException}
+ * for an unknown URI (new C.1 contract).</li>
+ * <li>{@code registered(uri, FREE)} is {@code true} when the class matches,
+ * {@code false} when it does not.</li>
+ * <li>{@code unregister} removes the client; a second call throws
+ * {@link UnknownClientException}.</li>
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
@@ -97,14 +97,14 @@ public class BrokerRegistrationTest
 			this.brokerUri = AbstractComponent.createComponent(
 				Broker.class.getCanonicalName(),
 				new Object[] {
-					2,  // nbThreads
-					1,  // nbSchedulableThreads
-					3,  // nbFreeChannels
-					2,  // standardQuota
-					5,  // premiumQuota
-					1,  // nbReceptionThreads
-					1,  // nbPropagationThreads
-					1   // nbDeliveryThreads
+					2, // nbThreads
+					1, // nbSchedulableThreads
+					3, // nbFreeChannels
+					2, // standardQuota
+					5, // premiumQuota
+					1, // nbReceptionThreads
+					1, // nbPropagationThreads
+					1 // nbDeliveryThreads
 				});
 
 			// Two stub ReceivingCI components (one for FREE, one for STANDARD).
@@ -197,7 +197,7 @@ public class BrokerRegistrationTest
 			// Test 5: registered(uriA, rc) — true for FREE, false for STANDARD
 			// ------------------------------------------------------------------
 			try {
-				boolean matchFree     = broker.registered(uriA, RegistrationClass.FREE);
+				boolean matchFree = broker.registered(uriA, RegistrationClass.FREE);
 				boolean matchStandard = broker.registered(uriA, RegistrationClass.STANDARD);
 				results.put("T5_matchFree", matchFree);
 				results.put("T5_notMatchStandard", !matchStandard);

@@ -40,7 +40,7 @@ public class AfterOrAtTimeFilter implements TimeFilterI
 	/**
 	 * @param timestamp horodatage candidat.
 	 * @return {@code true} ssi {@code timestamp != null} et
-	 *         {@code timestamp >= lowerBoundInclusive}.
+	 * {@code timestamp >= lowerBoundInclusive}.
 	 */
 	@Override
 	public boolean match(Instant timestamp)

@@ -20,7 +20,7 @@ import java.time.Instant;
 import static org.junit.Assert.*;
 
 /**
- * Unit tests for the Phase B.4 factory classes and filter helpers:
+ * Unit tests for the factory classes and filter helpers:
  * {@link WindMessageFactory}, {@link MeteoAlertMessageFactory},
  * {@link MeteoFilters}, and {@link MeteoProperties} (CDC §3.4).
  *
@@ -28,12 +28,12 @@ import static org.junit.Assert.*;
  * What is being tested:
  * </p>
  * <ul>
- *   <li>{@code WindMessageFactory.build} sets the expected property keys and values.</li>
- *   <li>{@code MeteoAlertMessageFactory.build} sets the expected property keys and values.</li>
- *   <li>{@code MeteoFilters.windWithinDistance} matches a wind message inside the radius
- *       and rejects one beyond it.</li>
- *   <li>{@code MeteoFilters.anyAlert} accepts any alert message and rejects wind messages.</li>
- *   <li>{@code MeteoFilters.anyWind} accepts any wind message and rejects alert messages.</li>
+ * <li>{@code WindMessageFactory.build} sets the expected property keys and values.</li>
+ * <li>{@code MeteoAlertMessageFactory.build} sets the expected property keys and values.</li>
+ * <li>{@code MeteoFilters.windWithinDistance} matches a wind message inside the radius
+ * and rejects one beyond it.</li>
+ * <li>{@code MeteoFilters.anyAlert} accepts any alert message and rejects wind messages.</li>
+ * <li>{@code MeteoFilters.anyWind} accepts any wind message and rejects alert messages.</li>
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa

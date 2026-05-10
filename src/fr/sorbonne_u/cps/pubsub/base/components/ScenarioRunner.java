@@ -30,12 +30,12 @@ public class ScenarioRunner extends AbstractComponent
 	 * Crée un runner de scénario.
 	 *
 	 * @param reflectionInboundPortURI URI du port de réflexion BCM (= URI participant
-	 *                                 dans le {@link TestScenario}).
-	 * @param scenario                 scénario à exécuter ({@code null} = aucun).
-	 * @param nbThreads                taille du pool standard de threads.
-	 * @param nbSchedulableThreads     taille du pool schedulable
-	 *                                 (doit être {@code > 0} pour
-	 *                                 {@code executeTestScenario}).
+	 * dans le {@link TestScenario}).
+	 * @param scenario scénario à exécuter ({@code null} = aucun).
+	 * @param nbThreads taille du pool standard de threads.
+	 * @param nbSchedulableThreads taille du pool schedulable
+	 * (doit être {@code > 0} pour
+	 * {@code executeTestScenario}).
 	 * @throws Exception si la création du composant échoue.
 	 */
 	protected ScenarioRunner(String reflectionInboundPortURI,

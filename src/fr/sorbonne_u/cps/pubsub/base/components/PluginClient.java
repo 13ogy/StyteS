@@ -26,25 +26,26 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientSubscriptionPlugin;
  * <p>
  * Ce composant compose explicitement quatre plugins (cf. paquetage
  * {@code fr.sorbonne_u.cps.pubsub.plugins}) plutôt que d'agréger
- * manuellement les ports comme {@link Client} :
+ * manuellement les ports :
  * </p>
  * <ul>
- *   <li>{@link ClientRegistrationPlugin} — porte le port inbound
- *       {@link ReceivingCI} et le port outbound {@link RegistrationCI} ;
- *       toutes les autres opérations passent par lui pour récupérer
- *       l'URI du port de réception (qui sert d'identité du client) ;</li>
- *   <li>{@link ClientSubscriptionPlugin} — souscriptions, modification
- *       de filtre et API de réception avancée ;</li>
- *   <li>{@link ClientPublicationPlugin} — port outbound
- *       {@link PublishingCI} ;</li>
- *   <li>{@link ClientPrivilegedPlugin} — port outbound
- *       {@link PrivilegedClientCI} pour la gestion des canaux privilégiés.</li>
+ * <li>{@link ClientRegistrationPlugin} — porte le port inbound
+ * {@link ReceivingCI} et le port outbound {@link RegistrationCI} ;
+ * toutes les autres opérations passent par lui pour récupérer
+ * l'URI du port de réception (qui sert d'identité du client) ;</li>
+ * <li>{@link ClientSubscriptionPlugin} — souscriptions, modification
+ * de filtre et API de réception avancée ;</li>
+ * <li>{@link ClientPublicationPlugin} — port outbound
+ * {@link PublishingCI} ;</li>
+ * <li>{@link ClientPrivilegedPlugin} — port outbound
+ * {@link PrivilegedClientCI} pour la gestion des canaux privilégiés.</li>
  * </ul>
  *
  * <p>
- * Coexiste avec le composant historique {@link Client} pour ne pas casser
- * les démos déjà écrites. Préférer {@link AbstractPluginComponent} pour les
- * nouveaux composants spécialisés (publisher / subscriber dédiés).
+ * Pour un composant qui n'a besoin que d'un sous-ensemble de rôles,
+ * préférer {@link SubscriberClient}, {@link PublisherClient},
+ * {@link PrivilegedClient} ou {@link AbstractPluginComponent} (composant
+ * abstrait spécialisable).
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
@@ -64,8 +65,8 @@ public class PluginClient extends AbstractComponent
 
 	/**
 	 * @deprecated use {@link #PluginClient(String, int, int, String)} so
-	 *             that this client knows which broker to connect to in
-	 *             a multi-broker environment (Phase C.3).
+	 * that this client knows which broker to connect to in
+	 * a multi-broker environment.
 	 */
 	@Deprecated
 	protected PluginClient(
@@ -77,7 +78,7 @@ public class PluginClient extends AbstractComponent
 	}
 
 	/**
-	 * Preferred constructor (Phase C.3): also takes the
+	 * Preferred constructor: also takes the
 	 * {@code brokerReflectionURI} so the registration plugin knows
 	 * which broker to contact.
 	 */
@@ -148,9 +149,9 @@ public class PluginClient extends AbstractComponent
 	 * Demande au broker un changement de classe de service (upgrade ou
 	 * downgrade vers FREE).
 	 *
-	 * @throws UnknownClientException     si le client n'est pas enregistré.
+	 * @throws UnknownClientException si le client n'est pas enregistré.
 	 * @throws AlreadyRegisteredException si la nouvelle classe est identique
-	 *                                    à la classe actuelle.
+	 * à la classe actuelle.
 	 */
 	public void modifyServiceClass(RegistrationClass rc) throws UnknownClientException, AlreadyRegisteredException
 	{
@@ -214,10 +215,10 @@ public class PluginClient extends AbstractComponent
 	/**
 	 * Crée un canal privilégié appartenant à ce client.
 	 *
-	 * @param channel          nom du canal à créer.
-	 * @param authorisedUsers  regex appliquée aux URIs de port de réception
-	 *                         des clients autorisés (peut être vide pour
-	 *                         « tout client enregistré »).
+	 * @param channel nom du canal à créer.
+	 * @param authorisedUsers regex appliquée aux URIs de port de réception
+	 * des clients autorisés (peut être vide pour
+	 * « tout client enregistré »).
 	 */
 	public void createChannel(String channel, String authorisedUsers)
 	throws UnknownClientException,
@@ -263,7 +264,7 @@ public class PluginClient extends AbstractComponent
 	}
 
 	/** Variante synchrone de {@link #destroyChannel} : la destruction est
-	 *  achevée au retour de la méthode. */
+	 * achevée au retour de la méthode. */
 	public void destroyChannelNow(String channel)
 	throws UnknownClientException,
 			fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException,

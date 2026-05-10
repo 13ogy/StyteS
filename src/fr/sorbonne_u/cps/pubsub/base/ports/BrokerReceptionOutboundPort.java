@@ -16,7 +16,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
  * {@code Broker.receptionPortsOUT}).</p>
  *
  * <p>
- * Phase D.5 : les exceptions techniques sont encapsulées dans
+ * les exceptions techniques sont encapsulées dans
  * {@link RemoteException} (la CI ne déclare que {@code throws Exception}).
  * </p>
  *

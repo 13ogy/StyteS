@@ -160,24 +160,24 @@ public class GossipMessageVisitorTest
 	private static final class RecordingVisitor implements GossipMessageVisitor
 	{
 		String lastVisitKind = null;
-		Object lastVisited   = null;
+		Object lastVisited = null;
 		private int callCount = 0;
 
 		int totalCalls() { return this.callCount; }
 
 		@Override public void visit(RegisterGossipMessage m)
-		{ this.lastVisitKind = "register";              this.lastVisited = m; this.callCount++; }
+		{ this.lastVisitKind = "register"; this.lastVisited = m; this.callCount++; }
 		@Override public void visit(PublishGossipMessage m)
-		{ this.lastVisitKind = "publish";               this.lastVisited = m; this.callCount++; }
+		{ this.lastVisitKind = "publish"; this.lastVisited = m; this.callCount++; }
 		@Override public void visit(CreateChannelGossipMessage m)
-		{ this.lastVisitKind = "createChannel";         this.lastVisited = m; this.callCount++; }
+		{ this.lastVisitKind = "createChannel"; this.lastVisited = m; this.callCount++; }
 		@Override public void visit(DestroyChannelGossipMessage m)
-		{ this.lastVisitKind = "destroyChannel";        this.lastVisited = m; this.callCount++; }
+		{ this.lastVisitKind = "destroyChannel"; this.lastVisited = m; this.callCount++; }
 		@Override public void visit(ModifyServiceClassGossipMessage m)
-		{ this.lastVisitKind = "modifyServiceClass";    this.lastVisited = m; this.callCount++; }
+		{ this.lastVisitKind = "modifyServiceClass"; this.lastVisited = m; this.callCount++; }
 		@Override public void visit(ModifyAuthorisedUsersGossipMessage m)
 		{ this.lastVisitKind = "modifyAuthorisedUsers"; this.lastVisited = m; this.callCount++; }
 		@Override public void visit(UnregisterGossipMessage m)
-		{ this.lastVisitKind = "unregister";            this.lastVisited = m; this.callCount++; }
+		{ this.lastVisitKind = "unregister"; this.lastVisited = m; this.callCount++; }
 	}
 }

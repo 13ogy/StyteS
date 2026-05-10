@@ -29,21 +29,21 @@ import static org.junit.Assert.*;
  * Points vérifiés :
  * </p>
  * <ul>
- *   <li>filtres de valeur :
- *     <ul>
- *       <li>{@link EqualsValueFilter} : égalité stricte ;</li>
- *       <li>{@link ComparableValueFilter} : comparaisons sur Comparable
- *           (GE, LE, BETWEEN) ;</li>
- *       <li>{@link AcceptAllValueFilter} : accepte toujours.</li>
- *     </ul>
- *   </li>
- *   <li>{@link PropertyFilter} : applique un {@code ValueFilterI} sur une
- *       {@link MessageI.PropertyI} (pas sur un message entier) ;</li>
- *   <li>{@link PropertiesFilter} : applique un {@code MultiValuesFilterI} sur
- *       plusieurs propriétés (contraintes croisées) ;</li>
- *   <li>filtres temporels : accept-all + intervalles inclusifs ;</li>
- *   <li>{@link MessageFilter} : match global sur un message complet
- *       (propriétés + temps).</li>
+ * <li>filtres de valeur :
+ * <ul>
+ * <li>{@link EqualsValueFilter} : égalité stricte ;</li>
+ * <li>{@link ComparableValueFilter} : comparaisons sur Comparable
+ * (GE, LE, BETWEEN) ;</li>
+ * <li>{@link AcceptAllValueFilter} : accepte toujours.</li>
+ * </ul>
+ * </li>
+ * <li>{@link PropertyFilter} : applique un {@code ValueFilterI} sur une
+ * {@link MessageI.PropertyI} (pas sur un message entier) ;</li>
+ * <li>{@link PropertiesFilter} : applique un {@code MultiValuesFilterI} sur
+ * plusieurs propriétés (contraintes croisées) ;</li>
+ * <li>filtres temporels : accept-all + intervalles inclusifs ;</li>
+ * <li>{@link MessageFilter} : match global sur un message complet
+ * (propriétés + temps).</li>
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa

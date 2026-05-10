@@ -16,24 +16,24 @@ import fr.sorbonne_u.cps.pubsub.gossip.messages.*;
  * @author Setbel Mélissa, Bogdan Styn
  */
 public interface GossipMessageVisitor {
-    /** Handles a client registration propagated via gossip. */
-    void visit(RegisterGossipMessage msg);
+ /** Handles a client registration propagated via gossip. */
+ void visit(RegisterGossipMessage msg);
 
-    /** Handles a message publication propagated via gossip. */
-    void visit(PublishGossipMessage msg);
+ /** Handles a message publication propagated via gossip. */
+ void visit(PublishGossipMessage msg);
 
-    /** Handles a channel creation propagated via gossip. */
-    void visit(CreateChannelGossipMessage msg);
+ /** Handles a channel creation propagated via gossip. */
+ void visit(CreateChannelGossipMessage msg);
 
-    /** Handles a channel destruction propagated via gossip. */
-    void visit(DestroyChannelGossipMessage msg);
+ /** Handles a channel destruction propagated via gossip. */
+ void visit(DestroyChannelGossipMessage msg);
 
-    /** Handles a service class modification propagated via gossip. */
-    void visit(ModifyServiceClassGossipMessage msg);
+ /** Handles a service class modification propagated via gossip. */
+ void visit(ModifyServiceClassGossipMessage msg);
 
-    /** Handles an authorised users modification propagated via gossip. */
-    void visit(ModifyAuthorisedUsersGossipMessage msg);
+ /** Handles an authorised users modification propagated via gossip. */
+ void visit(ModifyAuthorisedUsersGossipMessage msg);
 
-    /** Handles a client unregistration propagated via gossip. */
-    void visit(UnregisterGossipMessage msg);
+ /** Handles a client unregistration propagated via gossip. */
+ void visit(UnregisterGossipMessage msg);
 }
