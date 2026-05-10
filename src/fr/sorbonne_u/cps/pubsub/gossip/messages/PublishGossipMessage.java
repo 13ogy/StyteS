@@ -11,6 +11,8 @@ import java.time.Instant;
  *
  * Quand un client publie un message, le courtier C1 auprès duquel il est enregistré
  * crée ce message et le propage à ses voisins pour qu'ils le publient aux clients concernés.
+ *
+ * @author Melissa Setbel, Bogdan Styn
  */
 public class PublishGossipMessage extends AbstractGossipMessage{
 

@@ -9,6 +9,25 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * Concrete visitor that applies incoming gossip messages to a {@link Broker}'s
+ * local state.
+ * <p>
+ * Each {@code visit} method mirrors one operation that may have been performed
+ * on a remote broker — registration, channel creation, publication, etc. —
+ * and replicates its effect locally, ensuring consistency across the gossip
+ * network.
+ * </p>
+ * <p>
+ * This class accesses the broker's internal state directly and must therefore
+ * reside in the same package as {@link Broker}.
+ * </p>
+ *
+ * @see GossipMessageVisitor
+ * @see Broker
+ *
+ * @author Setbel Mélissa, Bogdan Styn
+ */
 public class BrokerGossipHandler implements GossipMessageVisitor {
 
     private final Broker broker;

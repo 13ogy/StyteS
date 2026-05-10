@@ -10,7 +10,8 @@ import java.time.Instant;
  * à tous les composants courtiers voisins.
  *
  * Chaque courtier qui reçoit ce message détruit sa copie locale du canal.
- */
+ * @author Melissa Setbel, Bogdan Styn
+ * */
 public class DestroyChannelGossipMessage extends AbstractGossipMessage{
 
     private static final long serialVersionUID = 1L;

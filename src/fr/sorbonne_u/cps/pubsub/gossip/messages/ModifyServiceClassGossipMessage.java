@@ -9,6 +9,7 @@ import java.time.Instant;
 /**
  * Message de bavardage pour propager la modification de classe de service
  * d'un client à tous les composants courtiers voisins.
+ * @author Melissa Setbel, Bogdan Styn
  */
 public class ModifyServiceClassGossipMessage extends AbstractGossipMessage {
 

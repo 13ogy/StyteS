@@ -13,6 +13,8 @@ import java.time.Instant;
  * Quand un client s'enregistre auprès d'un courtier C1, C1 crée
  * ce message et le propage à ses voisins pour qu'ils mémorisent
  * localement que ce client existe avec cette classe de service.
+ *
+ * @author Melissa Setbel, Bogdan Styn
  */
 public class RegisterGossipMessage extends AbstractGossipMessage{
 

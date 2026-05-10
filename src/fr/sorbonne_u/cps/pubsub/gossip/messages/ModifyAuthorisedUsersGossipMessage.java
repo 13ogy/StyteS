@@ -7,13 +7,11 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 import java.time.Instant;
 
 /**
- * Message de bavardage pour propager la création d'un canal privilégié
+ * Message de bavardage pour propager la modification des utilisateurs
+ * authorisés à utiliser un canal privilégié
  * à tous les composants courtiers voisins.
  *
- * Quand un client privilégié crée un canal auprès de C1, C1 crée
- * ce message et le propage pour que tous les courtiers dupliquent
- * ce canal localement.
- * @author Melissa Setbel
+ * @author Melissa Setbel, Bogdan Styn
  */
 public class ModifyAuthorisedUsersGossipMessage extends AbstractGossipMessage {
 
