@@ -1,4 +1,4 @@
-package fr.sorbonne_u.cps.pubsub.messages.filters;
+package fr.sorbonne_u.cps.pubsub.application.meteo.filters;
 
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.meteo.PositionI;
@@ -8,25 +8,24 @@ import fr.sorbonne_u.cps.pubsub.meteo.impl.Position2D;
 import java.io.Serializable;
 
 /**
- * Value filter for wind payloads that enforces a maximum distance to a reference position.
+ * Application-specific {@link MessageFilterI.ValueFilterI} that accepts a
+ * {@link WindDataI} payload only when its {@link WindDataI#getPosition()} is
+ * within {@code maxDistance} of a reference position.
  *
  * <p>
- * This filter is meant to be used as a default filter on wind subscriptions so that
- * distance-based rejection is performed by the pub/sub system filtering stage rather
- * than inside the subscriber business logic.
+ * Per soutenance §1 (separation of concerns): this filter belongs to the
+ * <em>wind application</em>, not to the generic publish/subscribe system.
+ * It therefore lives under {@code fr.sorbonne_u.cps.pubsub.application.meteo
+ * .filters}, alongside the other meteo-specific abstractions
+ * ({@code MeteoFilters}, {@code MeteoProperties},
+ * {@code WindMessageFactory}, {@code MeteoAlertMessageFactory}).
+ * The generic {@code messages.filters} package no longer imports anything
+ * from {@code meteo}.
  * </p>
- *
- * <p>
- * The filter accepts a value if:
- * </p>
- * <ul>
- *   <li>the value is a {@link WindDataI};</li>
- *   <li>its {@link WindDataI#getPosition()} is within {@code maxDistance} of {@code referencePosition}.</li>
- * </ul>
  *
  * <p>
  * Distance computation is delegated to {@link Position2D#distanceTo(PositionI)}
- * (cf. soutenance review 1.8): no caller may reach into the private coordinates
+ * (cf. soutenance §1.8): no caller may reach into the private coordinates
  * of a {@link Position2D}.
  * </p>
  *
@@ -44,7 +43,7 @@ public class DistanceWindFilter implements MessageFilterI.ValueFilterI
 	 *
 	 * @param referencePosition position de référence (non {@code null}).
 	 * @param maxDistance       distance maximale acceptée, en unités de
-	 *                          {@link fr.sorbonne_u.cps.pubsub.meteo.impl.Position2D#distanceTo}
+	 *                          {@link Position2D#distanceTo(PositionI)}
 	 *                          (doit être {@code >= 0}).
 	 * @throws IllegalArgumentException si {@code referencePosition} est {@code null}
 	 *                                  ou si {@code maxDistance < 0}.
@@ -83,7 +82,6 @@ public class DistanceWindFilter implements MessageFilterI.ValueFilterI
 		if (windPos instanceof Position2D) {
 			return ((Position2D) windPos).distanceTo(this.referencePosition) <= this.maxDistance;
 		}
-		// Unknown position implementation: fail safely.
 		return false;
 	}
 }

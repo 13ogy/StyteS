@@ -4,7 +4,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.messages.MessageFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.ComparableValueFilter;
-import fr.sorbonne_u.cps.pubsub.messages.filters.DistanceWindFilter;
+import fr.sorbonne_u.cps.pubsub.application.meteo.filters.DistanceWindFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.EqualsValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.PropertyFilter;
 import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
