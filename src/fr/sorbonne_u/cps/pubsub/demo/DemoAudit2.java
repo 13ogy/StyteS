@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class DemoAudit2SecondVersion extends AbstractCVM {
+public class DemoAudit2 extends AbstractCVM {
 	// -------------------------------------------------------------------------
 	// Clock configuration
 	// -------------------------------------------------------------------------
@@ -67,7 +67,7 @@ public class DemoAudit2SecondVersion extends AbstractCVM {
 	 *
 	 * @throws Exception si l'initialisation parent échoue.
 	 */
-	public DemoAudit2SecondVersion() throws Exception {
+	public DemoAudit2() throws Exception {
 		super();
 	}
 
@@ -422,7 +422,7 @@ public class DemoAudit2SecondVersion extends AbstractCVM {
 	 */
 	public static void main(String[] args) {
 		try {
-			DemoAudit2SecondVersion cvm = new DemoAudit2SecondVersion();
+			DemoAudit2 cvm = new DemoAudit2();
 			// DELAY(5s) + scenario(45s) + margin(10s) = 60s
 			cvm.startStandardLifeCycle(60_000L);
 			System.exit(0);

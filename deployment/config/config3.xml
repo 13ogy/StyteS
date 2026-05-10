@@ -1,7 +1,7 @@
 <deployment>
     <hosts>
         <host name="localhost"
-              dir="\Users\melse\IdeaProjects\StyteS\out\production\StyteS"/>
+              dir="out"/>
     </hosts>
 
     <cyclicBarrier  hostname="localhost" port="55253"/>

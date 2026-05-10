@@ -78,8 +78,7 @@ DEMOS=(
   DemoSeparatedPlugin
   DemoMidSemComplexTimedScenario
   DemoMeteoTimedTestTool
-  DemoAudit2SecondVersion
-  DemoAudit2TimedScenario
+  DemoAudit2
 )
 mkdir -p /tmp/stytes-demos
 TOTAL=0
