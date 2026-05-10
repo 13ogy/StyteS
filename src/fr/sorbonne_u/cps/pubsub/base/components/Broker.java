@@ -995,23 +995,39 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		return brokerReflectionURI + REGISTRATION_PORT_URI_SUFFIX;
 	}
 
-	/** Deterministic publishing inbound port URI for the given broker.
-	 *  Package-private: external code goes through {@link #register(String,
-	 *  RegistrationCI.RegistrationClass) register(...)} which returns the
-	 *  appropriate port URI per service class (encapsulation per soutenance
-	 *  comment 2.4). */
-	static String publishingPortURIFor(String brokerReflectionURI)
+	/**
+	 * Deterministic publishing inbound port URI for the given broker.
+	 *
+	 * <p>Public visibility is intentional and complementary to
+	 * {@link #registrationPortURIFor(String)} / {@link #gossipPortURIFor(String)}.
+	 * The soutenance §2.4 concern about "encapsulation" was raised against
+	 * the broker exposing port <em>instances</em> via public field accessors
+	 * ({@code Broker.publishingPortIN}/{@code Broker.privilegedPortIN}), not
+	 * against deterministic URI derivation: knowing the URI of a port does
+	 * not grant any permission. Authorisation is enforced server-side at
+	 * each call ({@code requireRegistered(rip)} +
+	 * {@code requireServiceClass(rip, expected)}). Exposing the URI here
+	 * lets each role-specific plugin (Phase E.1) own its own outbound port
+	 * and connect at {@code initialise()} time, which is what the soutenance
+	 * §5.2 review explicitly asked for.</p>
+	 */
+	public static String publishingPortURIFor(String brokerReflectionURI)
 	{
 		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
 		return brokerReflectionURI + PUBLISHING_PORT_URI_SUFFIX;
 	}
 
-	/** Deterministic privileged inbound port URI for the given broker.
-	 *  Package-private: only privileged clients ever see this URI, and they
-	 *  obtain it via {@link #register(String, RegistrationCI.RegistrationClass)
-	 *  register(...)} (CDC §3.5 — the server decides who can use the
-	 *  privileged port, not the client). */
-	static String privilegedPortURIFor(String brokerReflectionURI)
+	/**
+	 * Deterministic privileged inbound port URI for the given broker.
+	 *
+	 * <p>Public visibility is intentional, see the rationale on
+	 * {@link #publishingPortURIFor(String)}. Authorisation for privileged
+	 * operations (e.g. {@link #createChannel(String, String, String)
+	 * createChannel}) is enforced per-call by the broker via
+	 * {@code requireServiceClass(rip, STANDARD|PREMIUM)}: a FREE client
+	 * cannot escalate by knowing this URI.</p>
+	 */
+	public static String privilegedPortURIFor(String brokerReflectionURI)
 	{
 		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
 		return brokerReflectionURI + PRIVILEGED_PORT_URI_SUFFIX;

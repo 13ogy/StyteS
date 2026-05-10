@@ -29,7 +29,7 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
  * @author Bogdan Styn, Setbel Mélissa
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
-@RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
+@RequiredInterfaces(required = { RegistrationCI.class, PrivilegedClientCI.class })
 public class WeatherOffice extends AbstractComponent
 {
 
@@ -53,7 +53,7 @@ public class WeatherOffice extends AbstractComponent
 		regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
 		regPlugin.setPluginURI(reflectionInboundPortURI + "-reg");
 
-		privPlugin = new ClientPrivilegedPlugin(regPlugin);
+		privPlugin = new ClientPrivilegedPlugin(regPlugin, brokerReflectionURI);
 		privPlugin.setPluginURI(reflectionInboundPortURI + "-priv");
 	}
 

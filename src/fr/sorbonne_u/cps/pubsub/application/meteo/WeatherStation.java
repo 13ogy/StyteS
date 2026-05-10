@@ -29,7 +29,7 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
  * @author Bogdan Styn, Setbel Mélissa
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
-@RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
+@RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class })
 public class WeatherStation extends AbstractComponent
 {
 	// Weather Station register and publish messages
@@ -71,7 +71,7 @@ public class WeatherStation extends AbstractComponent
 		regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
 		regPlugin.setPluginURI(reflectionInboundPortURI + "-reg");
 
-		pubPlugin = new ClientPublicationPlugin(regPlugin);
+		pubPlugin = new ClientPublicationPlugin(regPlugin, brokerReflectionURI);
 		pubPlugin.setPluginURI(reflectionInboundPortURI + "-pub");
 
 	}

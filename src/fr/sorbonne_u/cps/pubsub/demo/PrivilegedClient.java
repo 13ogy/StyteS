@@ -68,7 +68,7 @@ public class PrivilegedClient extends AbstractComponent {
         this.regPlugin  = new ClientRegistrationPlugin(brokerReflectionURI);
         this.regPlugin.setPluginURI(uri + "-reg");
 
-        this.privPlugin = new ClientPrivilegedPlugin(regPlugin);
+        this.privPlugin = new ClientPrivilegedPlugin(regPlugin, brokerReflectionURI);
         this.privPlugin.setPluginURI(uri + "-priv");
 
         this.toggleTracing();

@@ -76,7 +76,7 @@ public class FullClient extends AbstractComponent {
 
         this.regPlugin.setSubscriptionPlugin(this.subPlugin);
 
-        this.pubPlugin = new ClientPublicationPlugin(regPlugin);
+        this.pubPlugin = new ClientPublicationPlugin(regPlugin, brokerReflectionURI);
         this.pubPlugin.setPluginURI(uri + "-pub");
 
 

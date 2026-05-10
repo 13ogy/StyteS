@@ -63,7 +63,7 @@ public class PublisherClient extends AbstractComponent {
         this.regPlugin = new ClientRegistrationPlugin(brokerReflectionURI);
         this.regPlugin.setPluginURI(uri + "-reg");
 
-        this.pubPlugin = new ClientPublicationPlugin(regPlugin);
+        this.pubPlugin = new ClientPublicationPlugin(regPlugin, brokerReflectionURI);
         this.pubPlugin.setPluginURI(uri + "-pub");
 
         this.toggleTracing();

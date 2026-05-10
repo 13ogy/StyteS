@@ -99,11 +99,11 @@ public class PluginClient extends AbstractComponent
 		this.subscriptionPlugin.setPluginURI(reflectionInboundPortURI + "-subscription-plugin");
 		this.installPlugin(this.subscriptionPlugin);
 
-		this.publicationPlugin = new ClientPublicationPlugin(this.registrationPlugin);
+		this.publicationPlugin = new ClientPublicationPlugin(this.registrationPlugin, brokerReflectionURI);
 		this.publicationPlugin.setPluginURI(reflectionInboundPortURI + "-publication-plugin");
 		this.installPlugin(this.publicationPlugin);
 
-		this.privilegedPlugin = new ClientPrivilegedPlugin(this.registrationPlugin);
+		this.privilegedPlugin = new ClientPrivilegedPlugin(this.registrationPlugin, brokerReflectionURI);
 		this.privilegedPlugin.setPluginURI(reflectionInboundPortURI + "-privileged-plugin");
 		this.installPlugin(this.privilegedPlugin);
 	}

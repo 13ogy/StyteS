@@ -1,14 +1,18 @@
 package fr.sorbonne_u.cps.pubsub.plugins;
 
-import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.AbstractPlugin;
+import fr.sorbonne_u.components.ComponentI;
+import fr.sorbonne_u.cps.pubsub.base.components.Broker;
+import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
-import fr.sorbonne_u.cps.pubsub.interfaces.*;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * Plugin client implémentant les opérations de publication (CDC §3.5).
@@ -16,106 +20,213 @@ import java.util.ArrayList;
  * <p><strong>Description</strong></p>
  *
  * <p>
- * Ce plugin <em>ne possède aucun port en propre</em> : il délègue toutes
- * ses opérations au port outbound {@code PublishingCI} possédé par le
- * {@link ClientRegistrationPlugin} associé. Il en va de même pour
- * {@code channelExist} / {@code channelAuthorised} qui passent par le
- * port {@code RegistrationCI} du plugin de registration.
+ * Ce plugin <em>possède son propre port outbound {@code PublishingCI}</em>
+ * (refactor soutenance §5.2). Le précédent design centralisait tous les
+ * ports outbound dans le {@link ClientRegistrationPlugin}, ce qui forçait
+ * un composant qui ne souscrit qu'à un seul rôle (par ex. un publieur pur)
+ * à instancier malgré tout les ports privilégiés et de souscription qu'il
+ * n'utilisera jamais. Conformément aux exemples
+ * {@code SimpleRingOverlayNetwork-CM9} (un greffon = un port) et
+ * {@code ProducerConsumer-13032026} (greffons producteur/consommateur
+ * disjoints), chaque greffon possède désormais le port qui sert son rôle.
  * </p>
  *
- * <p>
- * L'identité du client transmise au broker est l'URI du port
+ * <p>L'identité du client transmise au broker reste l'URI du port
  * {@code ReceivingCI} obtenue via
- * {@link ClientRegistrationPlugin#getReceptionPortURI()}.
- * </p>
+ * {@link ClientRegistrationPlugin#getReceptionPortURI()} : ce greffon ne
+ * possède pas de port inbound mais a besoin du
+ * {@link ClientRegistrationPlugin} pour récupérer cette identité ainsi
+ * que le port outbound {@code RegistrationCI} utilisé par
+ * {@link #channelExist(String)} et {@link #channelAuthorised(String)}.</p>
  *
- * <p>Cycle de vie BCM (cf. {@link AbstractPlugin}) :
- * {@link #installOn}, {@link #initialise}, {@link #finalise} et
- * {@link #uninstall} sont des appels {@code super} sans état
- * supplémentaire (toutes les ressources port sont gérées par le plugin
- * de registration).</p>
+ * <p>Cycle de vie BCM :</p>
+ * <ul>
+ *   <li>{@link #installOn} — déclare {@code PublishingCI} comme requise
+ *       (idempotent) ;</li>
+ *   <li>{@link #initialise} — publie le port et le connecte au port
+ *       inbound {@code PublishingCI} du broker, dont l'URI est dérivée
+ *       déterministement via {@link Broker#publishingPortURIFor(String)} ;</li>
+ *   <li>{@link #finalise} — déconnecte le port s'il l'est encore ;</li>
+ *   <li>{@link #uninstall} — déconnecte (défensif), dépublie et détruit
+ *       le port, retire l'interface requise.</li>
+ * </ul>
  *
  * <p>L'URI du plugin suit la convention
- * {@code <reflectionURI>-publication-plugin} fixée par
- * {@code PluginClient}.</p>
+ * {@code <reflectionURI>-publication-plugin}.</p>
  *
  * <p>Created on : 2026-02-04</p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class ClientPublicationPlugin extends AbstractPlugin implements ClientPublicationI
+public class		ClientPublicationPlugin
+extends		AbstractPlugin
+implements		ClientPublicationI
 {
 	private static final long serialVersionUID = 1L;
 
-	/** Plugin propriétaire des ports utilisés pour publier. */
+	/** Plugin de registration : fournit l'URI {@code ReceivingCI} (identité
+	 *  du client) et le port outbound {@code RegistrationCI} pour
+	 *  {@code channelExist} / {@code channelAuthorised}. */
 	protected final ClientRegistrationPlugin registrationPlugin;
+	/** URI de réflexion du broker, utilisée pour dériver l'URI du port
+	 *  inbound {@code PublishingCI} via
+	 *  {@link Broker#publishingPortURIFor(String)}. */
+	protected final String brokerReflectionURI;
+
+	/** Port outbound {@code PublishingCI} possédé par ce greffon. */
+	protected ClientPublishingOutboundPort publishingPortOUT;
+	/** {@code true} ssi {@link #installOn} a effectivement déclaré
+	 *  {@code PublishingCI} sur le composant ; sinon, l'interface était
+	 *  déjà déclarée (par exemple via une annotation {@code @RequiredInterfaces}
+	 *  sur le composant) et le greffon ne doit pas la retirer dans
+	 *  {@link #uninstall} sous peine de violer la postcondition BCM. */
+	private boolean addedRequiredInterface;
 
 	/**
-	 * Crée un plugin de publication adossé à un plugin de registration.
+	 * Crée un greffon de publication adossé à un greffon de registration.
 	 *
-	 * @param registrationPlugin	plugin propriétaire des ports
-	 *								{@code PublishingCI} et
-	 *								{@code RegistrationCI} ; non {@code null}.
+	 * @param registrationPlugin	greffon de registration (identité +
+	 *								canal {@code RegistrationCI}) ; non
+	 *								{@code null}.
+	 * @param brokerReflectionURI	URI de réflexion du broker auquel se
+	 *								connecter ; non {@code null} et non
+	 *								vide.
 	 */
+	public ClientPublicationPlugin(ClientRegistrationPlugin registrationPlugin,
+								   String brokerReflectionURI)
+	{
+		super();
+		this.registrationPlugin = Objects.requireNonNull(
+			registrationPlugin, "registrationPlugin");
+		this.brokerReflectionURI = Objects.requireNonNull(
+			brokerReflectionURI, "brokerReflectionURI");
+		if (brokerReflectionURI.isEmpty()) {
+			throw new IllegalArgumentException(
+				"brokerReflectionURI must not be empty");
+		}
+	}
+
+	/**
+	 * Constructeur héritage : utilisé par les tests qui ne fournissent pas
+	 * encore l'URI du broker. À éviter pour le code applicatif.
+	 *
+	 * @deprecated préférez {@link #ClientPublicationPlugin(ClientRegistrationPlugin, String)}.
+	 */
+	@Deprecated
 	public ClientPublicationPlugin(ClientRegistrationPlugin registrationPlugin)
 	{
 		super();
-		this.registrationPlugin = registrationPlugin;
+		this.registrationPlugin = Objects.requireNonNull(
+			registrationPlugin, "registrationPlugin");
+		this.brokerReflectionURI = null;
 	}
 
 	/**
-	 * Délègue à {@link AbstractPlugin#installOn}. Aucune interface
-	 * n'est ajoutée ici : elles sont déjà déclarées par le plugin de
-	 * registration qui possède les ports correspondants.
+	 * Déclare {@code PublishingCI} sur le composant propriétaire (idempotent).
 	 *
-	 * @param owner		composant propriétaire du plugin.
+	 * @param owner		composant sur lequel installer le greffon.
 	 * @throws Exception	si l'installation BCM échoue.
 	 */
-	// All required ports and interfaces are in the registration pluging
-	public void installOn(fr.sorbonne_u.components.ComponentI owner) throws Exception
+	@Override
+	public void installOn(ComponentI owner) throws Exception
 	{
 		super.installOn(owner);
+		if (!owner.isRequiredInterface(PublishingCI.class)) {
+			this.addRequiredInterface(PublishingCI.class);
+			this.addedRequiredInterface = true;
+		}
 	}
 
 	/**
-	 * Initialisation BCM par défaut ; aucune ressource locale à allouer.
+	 * Publie le port outbound {@code PublishingCI} et le connecte au port
+	 * inbound correspondant du broker (URI dérivée via
+	 * {@link Broker#publishingPortURIFor(String)}).
 	 *
-	 * @throws Exception	si {@link AbstractPlugin#initialise()} échoue.
+	 * <p>Le greffon se connecte avant tout appel à
+	 * {@link ClientRegistrationPlugin#register} : la connexion ne donne
+	 * <em>aucune</em> permission ; les permissions sont vérifiées par le
+	 * broker à chaque appel via {@code requireRegistered(rip)} et, si
+	 * besoin, {@code requireServiceClass(rip, …)}.</p>
+	 *
+	 * @throws Exception	si la publication ou la connexion d'un port
+	 *						échoue, ou si l'URI du broker n'a pas été
+	 *						fournie au constructeur.
 	 */
+	@Override
 	public void initialise() throws Exception
 	{
 		super.initialise();
+		if (this.brokerReflectionURI == null) {
+			throw new IllegalStateException(
+				"ClientPublicationPlugin requires a broker reflection inbound "
+				+ "port URI; use the (registrationPlugin, brokerReflectionURI) "
+				+ "constructor.");
+		}
+		this.publishingPortOUT =
+			new ClientPublishingOutboundPort(this.getOwner());
+		this.publishingPortOUT.publishPort();
+		this.getOwner().doPortConnection(
+			this.publishingPortOUT.getPortURI(),
+			Broker.publishingPortURIFor(this.brokerReflectionURI),
+			ClientBrokerPublishingConnector.class.getCanonicalName());
 	}
 
 	/**
-	 * Finalisation BCM par défaut ; aucune ressource locale à libérer.
+	 * Déconnecte le port outbound s'il l'est encore.
 	 *
-	 * @throws Exception	si {@link AbstractPlugin#finalise()} échoue.
+	 * @throws Exception	si la déconnexion BCM échoue.
 	 */
 	@Override
 	public void finalise() throws Exception
 	{
+		if (this.publishingPortOUT != null
+				&& this.publishingPortOUT.connected()) {
+			this.getOwner().doPortDisconnection(
+				this.publishingPortOUT.getPortURI());
+		}
 		super.finalise();
 	}
 
 	/**
-	 * Désinstallation BCM par défaut ; aucune ressource locale à
-	 * détruire.
+	 * Démantèle le greffon : déconnecte (défensif), dépublie et détruit
+	 * le port outbound, puis retire {@code PublishingCI} si elle a été
+	 * déclarée par {@link #installOn}.
 	 *
-	 * @throws Exception	si {@link AbstractPlugin#uninstall()} échoue.
+	 * @throws Exception	si une opération BCM échoue.
 	 */
 	@Override
 	public void uninstall() throws Exception
 	{
-
+		if (this.publishingPortOUT != null
+				&& this.publishingPortOUT.connected()) {
+			this.getOwner().doPortDisconnection(
+				this.publishingPortOUT.getPortURI());
+		}
+		if (this.publishingPortOUT != null
+				&& !this.publishingPortOUT.isDestroyed()) {
+			if (this.publishingPortOUT.isPublished()) {
+				this.publishingPortOUT.unpublishPort();
+			}
+			this.publishingPortOUT.destroyPort();
+		}
+		if (this.addedRequiredInterface
+				&& this.getOwner().isRequiredInterface(PublishingCI.class)) {
+			this.removeRequiredInterface(PublishingCI.class);
+			this.addedRequiredInterface = false;
+		}
 		super.uninstall();
 	}
 
+	// ------------------------------------------------------------------
+	// ClientPublicationI
+	// ------------------------------------------------------------------
 
 	/**
 	 * {@inheritDoc}
 	 *
-	 * <p>Délègue au port {@code RegistrationCI} du plugin de registration.</p>
+	 * <p>Délègue au port {@code RegistrationCI} du greffon de registration
+	 * (le canal {@code channelExist} fait partie de {@code RegistrationCI}
+	 * dans ce projet, voir l'interface frozen).</p>
 	 *
 	 * @param channel	nom du canal interrogé.
 	 * @return			{@code true} ssi le canal existe côté broker.
@@ -125,7 +236,7 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 	{
 		try {
 			return this.registrationPlugin
-					.getRegistrationPortOUT().channelExist(channel);
+				.getRegistrationPortOUT().channelExist(channel);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -141,13 +252,14 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 	 * @throws UnknownChannelException	si {@code channel} n'existe pas.
 	 */
 	@Override
-	public boolean channelAuthorised(String channel) throws UnknownClientException, UnknownChannelException
+	public boolean channelAuthorised(String channel)
+	throws UnknownClientException, UnknownChannelException
 	{
 		try {
 			return this.registrationPlugin
-					.getRegistrationPortOUT().channelAuthorised(
-							this.registrationPlugin.getReceptionPortURI(),
-							channel);
+				.getRegistrationPortOUT().channelAuthorised(
+					this.registrationPlugin.getReceptionPortURI(),
+					channel);
 		} catch (UnknownClientException | UnknownChannelException e) {
 			throw e;
 		} catch (Exception e) {
@@ -156,29 +268,27 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 	}
 
 	/**
-	 * Publie {@code message} sur {@code channel} via le port
-	 * {@code PublishingCI} du plugin de registration. L'appel est
-	 * synchrone côté client mais le broker traite la publication de
-	 * manière asynchrone (cf. pipeline réception → propagation →
-	 * livraison).
+	 * Publie {@code message} sur {@code channel} via le port outbound
+	 * {@code PublishingCI} possédé par ce greffon.
 	 *
 	 * @param channel	canal de publication.
 	 * @param message	message à publier.
 	 * @throws UnknownClientException		si le client n'est pas enregistré.
 	 * @throws UnknownChannelException		si {@code channel} n'existe pas.
-	 * @throws UnauthorisedClientException	si le client n'est pas autorisé
-	 *										à publier sur {@code channel}.
+	 * @throws UnauthorisedClientException	si le client n'est pas autorisé.
 	 */
 	@Override
 	public void publish(String channel, MessageI message)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
 	{
 		try {
-			this.registrationPlugin.getPublishingPortOUT().publish(
-					this.registrationPlugin.getReceptionPortURI(),
-					channel,
-					message);
-		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
+			this.publishingPortOUT.publish(
+				this.registrationPlugin.getReceptionPortURI(),
+				channel,
+				message);
+		} catch (UnknownClientException
+				| UnknownChannelException
+				| UnauthorisedClientException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -186,27 +296,26 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 	}
 
 	/**
-	 * Variante batch de {@link #publish(String, MessageI)} : publie une
-	 * liste de messages sur un même canal.
+	 * Variante batch de {@link #publish(String, MessageI)}.
 	 *
 	 * @param channel	canal de publication.
-	 * @param messages	liste de messages non vides ne contenant aucun
-	 *					élément {@code null}.
+	 * @param messages	liste de messages à publier.
 	 * @throws UnknownClientException		si le client n'est pas enregistré.
 	 * @throws UnknownChannelException		si {@code channel} n'existe pas.
-	 * @throws UnauthorisedClientException	si le client n'est pas autorisé
-	 *										à publier sur {@code channel}.
+	 * @throws UnauthorisedClientException	si le client n'est pas autorisé.
 	 */
 	@Override
 	public void publish(String channel, ArrayList<MessageI> messages)
 	throws UnknownClientException, UnknownChannelException, UnauthorisedClientException
 	{
 		try {
-			this.registrationPlugin.getPublishingPortOUT().publish(
-					this.registrationPlugin.getReceptionPortURI(),
-					channel,
-					messages);
-		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
+			this.publishingPortOUT.publish(
+				this.registrationPlugin.getReceptionPortURI(),
+				channel,
+				messages);
+		} catch (UnknownClientException
+				| UnknownChannelException
+				| UnauthorisedClientException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -217,15 +326,12 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 	 * Soumet la publication via {@code runTask} sur l'un des executors du
 	 * composant propriétaire pour ne pas bloquer le thread appelant.
 	 *
-	 * <p>Les exceptions levées par {@link #publish(String, MessageI)} sont
-	 * imprimées sur la sortie d'erreur (le contrat n'autorise pas leur
-	 * propagation par cette méthode asynchrone).</p>
-	 *
 	 * @param channel	canal de publication.
 	 * @param message	message à publier.
 	 */
 	@Override
-	public void asyncPublishAndNotify(String channel, MessageI message) {
+	public void asyncPublishAndNotify(String channel, MessageI message)
+	{
 		final ClientPublicationPlugin self = this;
 		this.getOwner().runTask(o -> {
 			try {
@@ -235,14 +341,14 @@ public class ClientPublicationPlugin extends AbstractPlugin implements ClientPub
 	}
 
 	/**
-	 * Variante batch de
-	 * {@link #asyncPublishAndNotify(String, MessageI)}.
+	 * Variante batch de {@link #asyncPublishAndNotify(String, MessageI)}.
 	 *
 	 * @param channel	canal de publication.
 	 * @param messages	liste de messages à publier.
 	 */
 	@Override
-	public void asyncPublishAndNotify(String channel, ArrayList<MessageI> messages) {
+	public void asyncPublishAndNotify(String channel, ArrayList<MessageI> messages)
+	{
 		final ClientPublicationPlugin self = this;
 		this.getOwner().runTask(o -> {
 			try {

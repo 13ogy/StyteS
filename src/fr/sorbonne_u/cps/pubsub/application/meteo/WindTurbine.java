@@ -49,7 +49,7 @@ import java.util.List;
  * @author Bogdan Styn, Setbel Mélissa
  */
 @OfferedInterfaces(offered = { ReceivingCI.class })
-@RequiredInterfaces(required = { RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class })
+@RequiredInterfaces(required = { RegistrationCI.class })
 public class WindTurbine extends AbstractComponent
 {
 	// Wind Turbine registers and subscribes to channels
