@@ -140,14 +140,14 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 
 	/** Registered clients: receptionPortURI -> registration class. */
-	private final Map<String, RegistrationClass> registeredClients = new HashMap<>();
+	final Map<String, RegistrationClass> registeredClients = new HashMap<>();
 	/** Per-client outbound port to deliver messages. */
 	private final Map<String, BrokerReceptionOutboundPort> receptionPortsOUT = new HashMap<>();
 	/** All channels (FREE + privileged). */
-	private final Set<String> channels = new HashSet<>();
+	final Set<String> channels = new HashSet<>();
 
 	/** Privileged channels metadata. */
-	private static class PrivilegedChannelInfo
+	static class PrivilegedChannelInfo
 	{
 		final String ownerReceptionPortURI;
 		Pattern authorisedUsersPattern;
@@ -160,10 +160,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/** Privileged channels: channel -> info (owner + authorisedUsers regex). */
-	private final Map<String, PrivilegedChannelInfo> privilegedChannels = new HashMap<>();
+	final Map<String, PrivilegedChannelInfo> privilegedChannels = new HashMap<>();
 
 	/** Per-client created privileged channels count. */
-	private final Map<String, Integer> createdPrivilegedChannelsCount = new HashMap<>();
+	final Map<String, Integer> createdPrivilegedChannelsCount = new HashMap<>();
 
 	/** Channel quotas */
 	private int standardQuota;
@@ -171,10 +171,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	private int nbFreeChannels;
 
 	/** Subscriptions: channel -> (client receptionPortURI -> filter). */
-	private final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
+	final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
 
 	/** Number of messages currently in-flight per channel. */
-	private final Map<String, Integer> inFlightPerChannel = new HashMap<>();
+	final Map<String, Integer> inFlightPerChannel = new HashMap<>();
 
 	// -------------------------------------------------------------------------
 	// Gossip data
@@ -628,7 +628,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	private boolean registeredLocked(String receptionPortURI){
 		return this.registeredClients.containsKey(receptionPortURI);
 	}
-	private boolean channelExistLocked(String channel)
+	boolean channelExistLocked(String channel)
 	{
 		return this.channels.contains(channel);
 	}
@@ -1421,7 +1421,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 	// Gossip methodes
 	// -------------------------------------------------------------------------
-
+/*
 	@Override
 	public void update(GossipMessageI[] fromSender) {
 		for (GossipMessageI msg : fromSender) {
@@ -1521,7 +1521,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			}
 
 			if (msg instanceof ModifyServiceClassGossipMessage) {
-				System.out.print("received modify service class gossip from "+ ((ModifyAuthorisedUsersGossipMessage) msg).getEmitterURI() +"\n");
+				System.out.print("received modify service class gossip from "+ ((ModifyServiceClassGossipMessage) msg).getEmitterURI() +"\n");
 
 				ModifyServiceClassGossipMessage mscMsg =
 						(ModifyServiceClassGossipMessage) msg;
@@ -1645,6 +1645,38 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			}
 		}
 	}
+*/
+	@Override
+	public void update(GossipMessageI[] fromSender){
+		BrokerGossipHandler handler = new BrokerGossipHandler(this);
+		for (GossipMessageI msg : fromSender) {
+			if (markAsProcessed(msg)) {
+				if (msg instanceof AbstractGossipMessage) {
+					((AbstractGossipMessage)msg).accept(handler);
+				} else {
+					logMessage("[Broker] unhandled gossip type: " + msg.getClass());
+				}
+				// Propager aux voisins avec nouvel émetteur
+				GossipMessageI forwarded = msg.copyWithNewEmitterURI(this.getReflectionInboundPortURI());
+				for (GossipSenderOutboundPort sender : this.gossipSenders) {
+					try {
+						this.runTask(this.esGossipIndex, o -> {
+							System.out.println("[FORWARD TASK] " + ((Broker) o).getReflectionInboundPortURI()
+									+ " forwarding " + forwarded.getClass().getSimpleName());
+							try {
+								sender.send(new GossipMessageI[]{forwarded});
+								System.out.println("[FORWARD TASK] SUCCESS");
+							} catch (Exception e) {
+								System.out.println("[FORWARD TASK] FAILED: " + e);
+							}
+						});
+					} catch (Exception e) {
+						System.out.println("[FORWARD SUBMIT FAILED] " + e);
+					}
+				}
+			}
+		}
+	}
 
 	@Override
 	public void receive(GossipMessageI[] gossipMessages) throws Exception {
@@ -1670,7 +1702,16 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			});
 		}
 	}
-
+	private boolean markAsProcessed(GossipMessageI msg) {
+		this.gossipLock.writeLock().lock();
+		try {
+			if (this.processedGossipURIs.containsKey(msg.gossipMessageURI())) return false;
+			this.processedGossipURIs.put(msg.gossipMessageURI(), msg.timestamp());
+			return true;
+		} finally {
+			this.gossipLock.writeLock().unlock();
+		}
+	}
 	private void cleanupGossipMemory() {
 		Instant threshold = Instant.now().minusSeconds(120);
 		this.gossipLock.writeLock().lock();

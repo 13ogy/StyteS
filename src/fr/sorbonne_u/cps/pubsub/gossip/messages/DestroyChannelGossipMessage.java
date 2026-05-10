@@ -1,5 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.gossip.messages;
 
+import fr.sorbonne_u.cps.pubsub.base.components.GossipMessageVisitor;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 
 import java.time.Instant;
@@ -10,7 +11,7 @@ import java.time.Instant;
  *
  * Chaque courtier qui reçoit ce message détruit sa copie locale du canal.
  */
-public class DestroyChannelGossipMessage implements GossipMessageI {
+public class DestroyChannelGossipMessage extends AbstractGossipMessage{
 
     private static final long serialVersionUID = 1L;
 
@@ -54,4 +55,11 @@ public class DestroyChannelGossipMessage implements GossipMessageI {
     public String getChannel()               { return this.channel; }
     public String getOwnerReceptionPortURI() { return this.ownerReceptionPortURI; }
     public String getEmitterURI()            { return this.emitterURI; }
+
+    // Visitor pattern
+    @Override
+    public void accept(GossipMessageVisitor visitor) {
+        visitor.visit(this);
+    }
+
 }

@@ -1,5 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.gossip.messages;
 
+import fr.sorbonne_u.cps.pubsub.base.components.GossipMessageVisitor;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
@@ -14,7 +15,7 @@ import java.time.Instant;
  * ce canal localement.
  * @author Melissa Setbel
  */
-public class CreateChannelGossipMessage implements GossipMessageI {
+public class CreateChannelGossipMessage extends AbstractGossipMessage{
 
     private static final long serialVersionUID = 1L;
 
@@ -69,4 +70,10 @@ public class CreateChannelGossipMessage implements GossipMessageI {
     public String getAuthorisedUsers()       { return this.authorisedUsers; }
     public String getEmitterURI()            { return this.emitterURI; }
     public RegistrationClass getOwnerClass() { return this.ownerClass; }
+
+    // Visitor pattern
+    @Override
+    public void accept(GossipMessageVisitor visitor) {
+        visitor.visit(this);
+    }
 }
