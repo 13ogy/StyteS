@@ -67,7 +67,6 @@ DEMOS=(
   DemoPluginsClient
   DemoSeparatedPlugin
   DemoMidSemComplexTimedScenario
-  DemoMeteoAudit1
   DemoMeteoTimedTestTool
   DemoAudit2SecondVersion
   DemoAudit2TimedScenario
