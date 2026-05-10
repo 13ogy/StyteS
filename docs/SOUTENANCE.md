@@ -1,7 +1,7 @@
 # SOUTENANCE — feuille de route 30 minutes
 
 > Bogdan Styn — Setbel Mélissa.
-> Branche : `final-iteration` (24 commits ahead de `origin/partie4`).
+> Branche : `final-iteration` (41 commits ahead de `origin/partie4`).
 > À lire en complément de `docs/MUTEX.md`, `docs/PIPELINE.md`, `docs/GOSSIP.md`.
 
 ---
@@ -225,12 +225,44 @@ pré-compilé. La compilation manuelle (`javac -d out -cp "libs/*" ...`)
 reproduit exactement ce que fait IntelliJ.
 
 ### Q10. Pourquoi mettre tant d'`assert` plutôt que des tests JUnit ?
-Les deux : 86 tests JUnit + 37 `assert` dans `Broker.java`. Les asserts
+Les deux : 102 tests JUnit + 37 `assert` dans `Broker.java`. Les asserts
 documentent les **invariants internes** (post-mutation, lock
 hold-count) qu'un test JUnit ne peut pas observer sans casser
 l'encapsulation. Sous `-ea`, ils transforment toute régression
 silencieuse en `AssertionError` traçable, pendant les démos comme
 pendant les tests. Cf. `MUTEX.md` §7.
+
+### Q11. Pourquoi un *Visitor pattern* pour `Broker.update(...)` ?
+Réponse directe au conseil donné par M. Malenfant en soutenance :
+remplacer la chaîne `if (msg instanceof X) { ... } else if (msg instanceof Y)
+{ ... }` par un dispatch typé via double-dispatch. Trois nouveaux types :
+
+- `AbstractGossipMessage` : super-classe abstraite + contrat
+  `accept(GossipMessageVisitor)`. Elle implémente
+  `EmitterAwareGossipMessageI` donc toutes les sous-classes héritent
+  *aussi* du contrat skip-echo (le compilateur l'enforce).
+- `GossipMessageVisitor` : interface avec une surcharge
+  `visit(<TypeConcret>)` par message, soit 7 méthodes.
+- `BrokerGossipHandler` : implémentation concrète qui mute l'état du
+  broker. Lit, écrit dans `registeredClients`, `channels`, etc.,
+  exactement comme l'ancien `update()` mais avec dispatch typé.
+
+Conséquences :
+- **Substituabilité** : ajouter un nouveau gossip type = ajouter la
+  classe + la méthode `visit(...)` ; le compilateur signale tout oubli.
+- **Pas de cast unsafe** : chaque `visit(T)` reçoit `T` typé. L'ancien
+  code faisait `(ModifyServiceClassGossipMessage) msg` après
+  `instanceof` — on a déjà payé un bug de cast à cause de cela
+  (commit `e1efca9`, copie qui retournait le mauvais sous-type).
+- **Séparation des responsabilités** : `Broker.update()` reste
+  responsable de la dédup atomique + du skip-echo + du fan-out, et
+  délègue toute la mutation d'état à `BrokerGossipHandler`. Les deux
+  préoccupations se lisent indépendamment.
+
+L'unique `instanceof` résiduel dans `update()` est défensif : si un
+test injecte un `GossipMessageI` brut hors de notre hiérarchie
+(typiquement un mock), le code le journalise puis continue le
+fan-out, sans planter. Cf. `GOSSIP.md` §Q4 + §Q5.
 
 ---
 
@@ -260,6 +292,9 @@ résolution en une ligne.
 | Inbound/outbound exception wrapping incohérent | `d727a55` (D.5) | Convention uniforme : exceptions métier propagées verbatim, autres `Exception` wrappées en `RemoteException`. |
 | Réception gossip bloquait le pool RMI | partie 4 + `6d767fc` (D.3) | `GossipReceiverInboundPort.receive` -> `runTask(esGossip, ...)`. |
 | Pas de hook quand le broker tombe | `af3757e` (E.5) | `onBrokerDisconnect` ajouté à `ClientRegistrationI`. |
+| `Broker.update()` utilisait une chaîne `if (msg instanceof X)` (≈ 7 branches), conseil prof | `17435bb` (merge `origin/partie4` + polish) | Pattern *Visitor* : `AbstractGossipMessage` (implements `EmitterAwareGossipMessageI`) + `GossipMessageVisitor` + `BrokerGossipHandler`. Cf. `GOSSIP.md` §Q5 et tests `GossipMessageVisitorTest`. |
+| Quotas `STANDARD/PREMIUM` constants `2`/`5` | `dd97b16` (G prep) | Argumentés au constructeur Broker : `standardQuota` / `premiumQuota` / `nbFreeChannels`. |
+| Encapsulation : `publishingPortURIFor` / `privilegedPortURIFor` étaient `public static` | `<polish>` | Rabaissés à package-private — seul `register(...)` peut décider quel URI exposer au client en fonction de sa classe de service. |
 
 ---
 
@@ -271,7 +306,7 @@ résolution en une ligne.
   notify/wait, mais le code actuel reste un Thread.sleep(10) — c'est
   pragmatique, pas optimal, ça serait la prochaine itération ». M.
   Malenfant aime les étudiants lucides sur leur code.
-- **Si une démo plante** : montrer les 86 tests JUnit verts (cf. §2e)
+- **Si une démo plante** : montrer les 102 tests JUnit verts (cf. §2e)
   et lire les `assert` du `Broker.java` pour prouver les invariants.
 
 Bon courage.

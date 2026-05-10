@@ -995,15 +995,23 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		return brokerReflectionURI + REGISTRATION_PORT_URI_SUFFIX;
 	}
 
-	/** Deterministic publishing inbound port URI for the given broker. */
-	public static String publishingPortURIFor(String brokerReflectionURI)
+	/** Deterministic publishing inbound port URI for the given broker.
+	 *  Package-private: external code goes through {@link #register(String,
+	 *  RegistrationCI.RegistrationClass) register(...)} which returns the
+	 *  appropriate port URI per service class (encapsulation per soutenance
+	 *  comment 2.4). */
+	static String publishingPortURIFor(String brokerReflectionURI)
 	{
 		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
 		return brokerReflectionURI + PUBLISHING_PORT_URI_SUFFIX;
 	}
 
-	/** Deterministic privileged inbound port URI for the given broker. */
-	public static String privilegedPortURIFor(String brokerReflectionURI)
+	/** Deterministic privileged inbound port URI for the given broker.
+	 *  Package-private: only privileged clients ever see this URI, and they
+	 *  obtain it via {@link #register(String, RegistrationCI.RegistrationClass)
+	 *  register(...)} (CDC §3.5 — the server decides who can use the
+	 *  privileged port, not the client). */
+	static String privilegedPortURIFor(String brokerReflectionURI)
 	{
 		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
 		return brokerReflectionURI + PRIVILEGED_PORT_URI_SUFFIX;
