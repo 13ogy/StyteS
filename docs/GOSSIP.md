@@ -390,8 +390,59 @@ Trois facteurs :
 ### Q4 (bonus) — Pourquoi `EmitterAwareGossipMessageI` plutôt que d'ajouter `getEmitterURI` à `GossipMessageI` ?
 Parce que `GossipMessageI` est une interface **figée** par le sujet —
 on ne peut pas la modifier. L'extension locale ajoute la méthode tout
-en restant compatible avec le reste de l'API. Le `instanceof` dans
-`update()` (`Broker.java:1948`) est une sécurité défensive : si un test
-fournit un `GossipMessageI` brut (non Emitter-aware), le code se
-contente de ne pas faire de skip-echo (c'est-à-dire qu'il re-diffuse à
-*tous* les voisins) — la dédup empêchera les boucles infinies.
+en restant compatible avec le reste de l'API. Le `instanceof` résiduel
+dans `update()` est une sécurité défensive : si un test fournit un
+`GossipMessageI` brut (non Emitter-aware), le code se contente de ne
+pas faire de skip-echo (c'est-à-dire qu'il re-diffuse à *tous* les
+voisins) — la dédup empêchera les boucles infinies.
+
+### Q5 (bonus) — Pourquoi un *Visitor* pour `update()` ?
+
+À la soutenance intermédiaire, l'examinateur a demandé de remplacer la
+chaîne `if (msg instanceof X) { ... } else if (msg instanceof Y) { ... }`
+par un dispatch typé. Réponse : pattern *Visitor* à double-dispatch.
+
+```text
+                ┌──────────────────────────────────┐
+                │ AbstractGossipMessage            │
+                │  abstract accept(Visitor v)      │   implements EmitterAwareGossipMessageI
+                └──────────────────────────────────┘
+                  ▲           ▲            ▲
+                  │           │            │
+        RegisterGossipMessage  PublishGossipMessage  …
+        accept(v) { v.visit(this); }       accept(v) { v.visit(this); }
+
+                ┌──────────────────────────────────┐
+                │ GossipMessageVisitor             │
+                │  visit(RegisterGossipMessage)    │
+                │  visit(PublishGossipMessage)     │
+                │  visit(...)                      │
+                └──────────────────────────────────┘
+                                ▲
+                                │
+                ┌──────────────────────────────────┐
+                │ BrokerGossipHandler              │
+                │  appliquer la mutation locale    │
+                │  pour chaque type concret        │
+                └──────────────────────────────────┘
+```
+
+Bénéfices, par rapport à la chaîne `instanceof` :
+
+* **Substituabilité** — ajouter un nouveau type de gossip = ajouter
+  une sous-classe de `AbstractGossipMessage` + une nouvelle méthode
+  `visit(...)` au visiteur. Le compilateur signale les visiteurs
+  oubliés (jamais d'oubli silencieux, contrairement à un `switch`
+  sans `default` strict).
+* **Pas de cast unsafe** dans `update()` — chaque `visit(...)` reçoit
+  le type concret, donc tous les accesseurs (`getChannel`,
+  `getOwnerReceptionPortURI`, etc.) sont typés.
+* **Séparation des responsabilités** — `Broker.update()` reste
+  responsable de la dédup atomique + du skip-echo + du fan-out ;
+  `BrokerGossipHandler` est responsable de la mutation d'état locale.
+  Les deux préoccupations se lisent indépendamment.
+
+Le code reste à un seul `instanceof` défensif :
+`if (msg instanceof AbstractGossipMessage) { ((AbstractGossipMessage) msg).accept(handler); }`.
+Cette unique vérification est une garde côté sécurité (cf. Q4) qui ne
+s'applique qu'aux messages tiers extérieurs à notre hiérarchie.
