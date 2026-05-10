@@ -10,7 +10,7 @@ import fr.sorbonne_u.utils.aclocks.ClocksServer;
  * {@link TestScenario} BCM4Java une fois le composant démarré. Utilisé comme
  * « participant exécuteur » dans les démos qui ne veulent pas attribuer le
  * scénario à un client métier (par exemple
- * {@link DemoMidSemComplexTimedScenario}).
+ * {@link fr.sorbonne_u.cps.pubsub.demo.DemoMidSemComplexTimedScenario}).
  *
  * <p>
  * Pattern du composant : initialise l'horloge accélérée

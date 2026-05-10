@@ -44,8 +44,8 @@ classes/
 *.swo
 *~
 
-# Generated documentation
-doc/
+# Generated documentation kept in submission per CDC requirement
+# (doc/ committed; intermediate javadoc work files ignored below)
 
 # Archives
 *.jar

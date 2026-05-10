@@ -38,31 +38,6 @@ import java.util.concurrent.TimeUnit;
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoDistributed extends AbstractDistributedCVM {
-    /**
-     * instantiate the DCVM object.
-     *
-     * <p><strong>Description</strong></p>
-     * <p>
-     * The constructor gets from the command line arguments the logical
-     * name of the current JVM in the assembly and the name of an XML
-     * configuration file giving a mapping between the URI of hosts to their
-     * IP addresses in the current deployment.  This JVM URI must be in the
-     * static array JVM_URIs and all of the hosts URI in the array HOSTS_URIs
-     * and only these ones must appear in the XML configuration file
-     *
-     * <p><strong>Contract</strong></p>
-     *
-     * <pre>
-     * pre	{@code args != null && args.length > 1}
-     * post	{@code true}	// TODO
-     * </pre>
-     *
-     * @param args command line arguments from the main method.
-     * @throws Exception <i>todo</i>.
-     */
-
-
-
     public static final String BROKER1_JVM_URI = "broker1-jvm";
     public static final String BROKER2_JVM_URI = "broker2-jvm";
 
