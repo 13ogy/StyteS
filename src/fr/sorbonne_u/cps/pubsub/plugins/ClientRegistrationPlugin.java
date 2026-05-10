@@ -2,13 +2,13 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 
 import fr.sorbonne_u.components.AbstractPlugin;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
-import fr.sorbonne_u.cps.pubsub.base.connectors.PrivilegedClientConnector;
-import fr.sorbonne_u.cps.pubsub.base.connectors.PublishingConnector;
-import fr.sorbonne_u.cps.pubsub.base.connectors.RegistrationConnector;
-import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingInboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientOutboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.PublishingOutboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.RegistrationOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientInboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.*;
@@ -31,14 +31,14 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
  *
  * <p>Ports possédés :</p>
  * <ul>
- *   <li>{@link ReceivingInboundPort} — port inbound offrant
+ *   <li>{@link ClientInboundPort} — port inbound offrant
  *       {@code ReceivingCI}, utilisé par le broker pour livrer les
  *       messages ; son URI sert d'identité du client ;</li>
- *   <li>{@link RegistrationOutboundPort} — port outbound vers
+ *   <li>{@link ClientRegistrationOutboundPort} — port outbound vers
  *       {@code RegistrationCI} (register / unregister / subscribe / …) ;</li>
- *   <li>{@link PublishingOutboundPort} — port outbound vers
+ *   <li>{@link ClientPublishingOutboundPort} — port outbound vers
  *       {@code PublishingCI}, connecté au moment de {@link #register} ;</li>
- *   <li>{@link PrivilegedClientOutboundPort} — port outbound vers
+ *   <li>{@link ClientPrivilegedOutboundPort} — port outbound vers
  *       {@code PrivilegedClientCI}, connecté en plus pour les classes
  *       STANDARD et PREMIUM (DUAL-CONNECT, voir {@link #register}).</li>
  * </ul>
@@ -83,13 +83,13 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	private static final long serialVersionUID = 1L;
 
 	/** Port inbound {@code ReceivingCI} ; son URI sert d'identité du client. */
-	protected ReceivingInboundPort receptionPortIN;
+	protected ClientInboundPort receptionPortIN;
 	/** Port outbound vers {@code RegistrationCI} du broker. */
-	protected RegistrationOutboundPort registrationPortOUT;
+	protected ClientRegistrationOutboundPort registrationPortOUT;
 	/** Port outbound vers {@code PublishingCI} (connecté lors du {@link #register}). */
-	protected PublishingOutboundPort publishingPortOUT;
+	protected ClientPublishingOutboundPort publishingPortOUT;
 	/** Port outbound vers {@code PrivilegedClientCI} (connecté pour STANDARD/PREMIUM). */
-	protected PrivilegedClientOutboundPort privilegedPortOUT;
+	protected ClientPrivilegedOutboundPort privilegedPortOUT;
 
 	/** Plugin de souscription destinataire des messages reçus (peut être {@code null}). */
 	private ClientSubscriptionPlugin subscriptionPlugin;
@@ -198,23 +198,23 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 				+ "the deprecated no-arg variant (Phase C.3).");
 		}
 		// Publish ports
-		this.receptionPortIN = new ReceivingInboundPort(this.getOwner(), this.getPluginURI());
+		this.receptionPortIN = new ClientInboundPort(this.getOwner(), this.getPluginURI());
 		this.receptionPortIN.publishPort();
 
-		this.registrationPortOUT = new RegistrationOutboundPort(this.getOwner());
+		this.registrationPortOUT = new ClientRegistrationOutboundPort(this.getOwner());
 		this.registrationPortOUT.publishPort();
 
-		this.publishingPortOUT = new PublishingOutboundPort(this.getOwner());
+		this.publishingPortOUT = new ClientPublishingOutboundPort(this.getOwner());
 		this.publishingPortOUT.publishPort();
 
-		this.privilegedPortOUT = new PrivilegedClientOutboundPort(this.getOwner());
+		this.privilegedPortOUT = new ClientPrivilegedOutboundPort(this.getOwner());
 		this.privilegedPortOUT.publishPort();
 
 		// Connect ports
 		this.getOwner().doPortConnection(
 				this.registrationPortOUT.getPortURI(),
 				Broker.registrationPortURIFor(this.brokerReflectionURI),
-				RegistrationConnector.class.getCanonicalName());
+				ClientBrokerRegistrationConnector.class.getCanonicalName());
 	}
 	/**
 	 * Déconnecte les ports outbound encore connectés. Les ports sont
@@ -329,7 +329,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	 * @return le port outbound {@code RegistrationCI} possédé par ce plugin,
 	 *         partagé avec les autres plugins clients.
 	 */
-	public RegistrationOutboundPort getRegistrationPortOUT()
+	public ClientRegistrationOutboundPort getRegistrationPortOUT()
 	{
 		return this.registrationPortOUT;
 	}
@@ -338,7 +338,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	 * @return le port outbound {@code PublishingCI} possédé par ce plugin,
 	 *         connecté au broker dès l'appel à {@link #register}.
 	 */
-	public PublishingOutboundPort getPublishingPortOUT()
+	public ClientPublishingOutboundPort getPublishingPortOUT()
 	{
 		return this.publishingPortOUT;
 	}
@@ -349,7 +349,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 	 *         {@link RegistrationClass#STANDARD} et
 	 *         {@link RegistrationClass#PREMIUM}.
 	 */
-	public PrivilegedClientOutboundPort getPrivilegedPortOUT()
+	public ClientPrivilegedOutboundPort getPrivilegedPortOUT()
 	{
 		return this.privilegedPortOUT;
 	}
@@ -423,7 +423,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 				this.getOwner().doPortConnection(
 						this.publishingPortOUT.getPortURI(),
 						brokerPortURI,
-						PublishingConnector.class.getCanonicalName());
+						ClientBrokerPublishingConnector.class.getCanonicalName());
 			} else {
 				// STANDARD/PREMIUM get privileged (which also covers publishing
 				// because PrivilegedClientCI extends PublishingCI). Connect
@@ -433,11 +433,11 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 				this.getOwner().doPortConnection(
 						this.privilegedPortOUT.getPortURI(),
 						brokerPortURI,
-						PrivilegedClientConnector.class.getCanonicalName());
+						ClientBrokerPrivilegedConnector.class.getCanonicalName());
 				this.getOwner().doPortConnection(
 						this.publishingPortOUT.getPortURI(),
 						brokerPortURI,
-						PublishingConnector.class.getCanonicalName());
+						ClientBrokerPublishingConnector.class.getCanonicalName());
 			}
 			this.currentRC = rc;
 			this.registered=true;
@@ -483,16 +483,16 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 				this.getOwner().doPortConnection(
 						this.publishingPortOUT.getPortURI(),
 						brokerPortURI,
-						PublishingConnector.class.getCanonicalName());
+						ClientBrokerPublishingConnector.class.getCanonicalName());
 			} else {
 				this.getOwner().doPortConnection(
 						this.privilegedPortOUT.getPortURI(),
 						brokerPortURI,
-						PrivilegedClientConnector.class.getCanonicalName());
+						ClientBrokerPrivilegedConnector.class.getCanonicalName());
 				this.getOwner().doPortConnection(
 						this.publishingPortOUT.getPortURI(),
 						brokerPortURI,
-						PublishingConnector.class.getCanonicalName());
+						ClientBrokerPublishingConnector.class.getCanonicalName());
 			}
 
 			this.currentRC = rc;
@@ -526,7 +526,7 @@ public class ClientRegistrationPlugin extends AbstractPlugin implements ClientRe
 
 
 	/**
-	 * Point d'entrée invoqué par le port {@link ReceivingInboundPort} de ce
+	 * Point d'entrée invoqué par le port {@link ClientInboundPort} de ce
 	 * plugin lors de la livraison d'un message par le broker. Re-route
 	 * vers le {@link ClientSubscriptionPlugin} associé (si présent) qui
 	 * applique la livraison passive (callback handler) et notifie les

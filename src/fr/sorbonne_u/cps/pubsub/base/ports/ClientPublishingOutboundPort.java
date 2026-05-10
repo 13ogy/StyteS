@@ -1,37 +1,51 @@
-package fr.sorbonne_u.cps.pubsub.base.connectors;
-
+package fr.sorbonne_u.cps.pubsub.base.ports;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
-
-import fr.sorbonne_u.components.connectors.AbstractConnector;
+import fr.sorbonne_u.components.ComponentI;
+import fr.sorbonne_u.components.ports.AbstractOutboundPort;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
 
 /**
- * Connecteur reliant un port outbound client {@link PublishingCI} au
- * port inbound {@link PublishingCI} du broker.
+ * Port outbound utilisé par un composant client pour appeler le service de
+ * publication du broker (interface {@link PublishingCI}).
  *
- * <p><strong>Sens du raccordement</strong> : la référence {@link #offering}
- * pointe vers le port inbound du broker qui offre {@link PublishingCI}.</p>
+ * <p><strong>Propriétaire</strong> : composant client (par exemple
+ * {@link fr.sorbonne_u.cps.pubsub.base.components.Client} ou un porteur du
+ * {@link fr.sorbonne_u.cps.pubsub.plugins.ClientPublicationPlugin}).</p>
  *
  * <p>
- * Phase D.5 : les exceptions techniques levées côté offering sont
- * encapsulées dans {@link RemoteException} (la CI ne déclare que
- * {@code throws Exception} et {@link PublishingCI} ne porte aucune
- * exception métier).
+ * Phase D.5 : les exceptions techniques levées par le connecteur sont
+ * encapsulées dans une {@link RemoteException} ; {@link PublishingCI} ne
+ * déclare aucune exception métier sur ses méthodes, le wrap-tout suffit.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class PublishingConnector extends AbstractConnector implements PublishingCI {
+public class ClientPublishingOutboundPort extends AbstractOutboundPort implements PublishingCI {
+
+	/** Constructeur utilisé par les composants clients. */
+	public ClientPublishingOutboundPort(ComponentI owner)
+			throws Exception {
+		super(PublishingCI.class, owner);
+	}
+
+	/**
+	 * Constructeur exposant une CI plus spécifique (utilisé par les
+	 * sous-classes comme {@link ClientPrivilegedOutboundPort}).
+	 */
+	public ClientPublishingOutboundPort(Class c, ComponentI owner) throws Exception{
+		super(c, owner);
+	}
+
 
 	/** @see PublishingCI#publish(String, String, MessageI) */
 	@Override
 	public void publish(String receptionPortURI, String channel, MessageI message) throws Exception {
 		try {
-			((PublishingCI) this.offering).publish(receptionPortURI, channel, message);
+			((PublishingCI) this.getConnector()).publish(receptionPortURI, channel, message);
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -41,7 +55,7 @@ public class PublishingConnector extends AbstractConnector implements Publishing
 	@Override
 	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception {
 		try {
-			((PublishingCI) this.offering).publish(receptionPortURI, channel, messages);
+			((PublishingCI) this.getConnector()).publish(receptionPortURI, channel, messages);
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -61,7 +75,7 @@ public class PublishingConnector extends AbstractConnector implements Publishing
 		) throws Exception
 	{
 		try {
-			((PublishingCI) this.offering).asyncPublishAndNotify(
+			((PublishingCI) this.getConnector()).asyncPublishAndNotify(
 					receptionPortURI, channel, message, notificationInbounhdPortURI);
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
@@ -78,7 +92,7 @@ public class PublishingConnector extends AbstractConnector implements Publishing
 		) throws Exception
 	{
 		try {
-			((PublishingCI) this.offering).asyncPublishAndNotify(
+			((PublishingCI) this.getConnector()).asyncPublishAndNotify(
 					receptionPortURI, channel, messages, notificationInbounhdPortURI);
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);

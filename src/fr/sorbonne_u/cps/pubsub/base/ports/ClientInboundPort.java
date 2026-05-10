@@ -37,10 +37,10 @@ import fr.sorbonne_u.cps.pubsub.plugins.ClientRegistrationPlugin;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class ReceivingInboundPort extends AbstractInboundPort implements ReceivingCI {
+public class ClientInboundPort extends AbstractInboundPort implements ReceivingCI {
 
 	/** Constructeur sans plugin (cas {@link Client}). */
-	public ReceivingInboundPort(ComponentI owner) throws Exception {
+	public ClientInboundPort(ComponentI owner) throws Exception {
 		super(ReceivingCI.class, owner);
         this.pluginUri = null;
     }
@@ -48,7 +48,7 @@ public class ReceivingInboundPort extends AbstractInboundPort implements Receivi
 	 * Constructeur utilisé en mode plugin : l'URI du port est aussi l'URI
 	 * du {@link ClientRegistrationPlugin} qui en est propriétaire logique.
 	 */
-	public ReceivingInboundPort(ComponentI owner, String pluginURI) throws Exception {
+	public ClientInboundPort(ComponentI owner, String pluginURI) throws Exception {
 		super(pluginURI, ReceivingCI.class, owner);
 		this.pluginUri =pluginURI;
 	}
@@ -74,7 +74,7 @@ public class ReceivingInboundPort extends AbstractInboundPort implements Receivi
 											.receive(channel, message);
 								} catch (Exception e) {
 									((AbstractComponent) this.getTaskOwner()).logMessage(
-											"[ReceivingInboundPort plugin async] " + e);
+											"[ClientInboundPort plugin async] " + e);
 								}
 							}
 						});
@@ -84,7 +84,7 @@ public class ReceivingInboundPort extends AbstractInboundPort implements Receivi
 						((Client) o).receive(channel, message);
 					} catch (Exception e) {
 						((AbstractComponent) o).logMessage(
-								"[ReceivingInboundPort client async] " + e);
+								"[ClientInboundPort client async] " + e);
 					}
 				});
 			}

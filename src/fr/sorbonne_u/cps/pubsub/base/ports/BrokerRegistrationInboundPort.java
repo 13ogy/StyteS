@@ -34,14 +34,14 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class RegistrationInboundPort extends AbstractInboundPort implements RegistrationCI{
+public class BrokerRegistrationInboundPort extends AbstractInboundPort implements RegistrationCI{
 
 	/**
 	 * Constructeur sans URI explicite (BCM4Java en génère une).
 	 *
 	 * @param owner composant propriétaire — doit être un {@link Broker}.
 	 */
-	public RegistrationInboundPort( ComponentI owner) throws Exception {
+	public BrokerRegistrationInboundPort( ComponentI owner) throws Exception {
 		super(RegistrationCI.class, owner);
 
 	}
@@ -54,7 +54,7 @@ public class RegistrationInboundPort extends AbstractInboundPort implements Regi
 	 * @param uri   URI à publier pour ce port.
 	 * @param owner composant propriétaire — doit être un {@link Broker}.
 	 */
-	public RegistrationInboundPort(String uri, ComponentI owner) throws Exception {
+	public BrokerRegistrationInboundPort(String uri, ComponentI owner) throws Exception {
 		super(uri, RegistrationCI.class, owner);
 	}
 

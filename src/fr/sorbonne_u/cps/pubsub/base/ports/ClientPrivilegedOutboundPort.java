@@ -20,7 +20,7 @@ import java.rmi.RemoteException;
  * <p>
  * Les méthodes délèguent au connecteur via {@link #getConnector()}.
  * Les opérations de publication ({@code publish}, {@code asyncPublishAndNotify})
- * sont héritées de {@link PublishingOutboundPort} (Phase D.2) :
+ * sont héritées de {@link ClientPublishingOutboundPort} (Phase D.2) :
  * {@link PrivilegedClientCI} étend
  * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, donc le port
  * outbound privilégié est-un port outbound de publication.
@@ -34,10 +34,10 @@ import java.rmi.RemoteException;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class PrivilegedClientOutboundPort extends PublishingOutboundPort implements PrivilegedClientCI
+public class ClientPrivilegedOutboundPort extends ClientPublishingOutboundPort implements PrivilegedClientCI
 {
 	/** Constructeur utilisé par les composants clients. */
-	public PrivilegedClientOutboundPort(ComponentI owner) throws Exception
+	public ClientPrivilegedOutboundPort(ComponentI owner) throws Exception
 	{
 		super(PrivilegedClientCI.class, owner);
 	}
@@ -113,7 +113,7 @@ public class PrivilegedClientOutboundPort extends PublishingOutboundPort impleme
 
 	// -------------------------------------------------------------------------
 	// PublishingCI publish/asyncPublishAndNotify are inherited from
-	// PublishingOutboundPort (Phase D.2): PrivilegedClientCI extends PublishingCI
+	// ClientPublishingOutboundPort (Phase D.2): PrivilegedClientCI extends PublishingCI
 	// so the privileged outbound port is-a publishing outbound port.
 	// -------------------------------------------------------------------------
 }

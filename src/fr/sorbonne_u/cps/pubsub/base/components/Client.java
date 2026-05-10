@@ -4,14 +4,14 @@ import java.rmi.RemoteException;
 
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.cps.pubsub.base.connectors.PublishingConnector;
-import fr.sorbonne_u.cps.pubsub.base.connectors.RegistrationConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
 
-import fr.sorbonne_u.cps.pubsub.base.connectors.PrivilegedClientConnector;
-import fr.sorbonne_u.cps.pubsub.base.ports.ReceivingInboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.PrivilegedClientOutboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.PublishingOutboundPort;
-import fr.sorbonne_u.cps.pubsub.base.ports.RegistrationOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientInboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
+import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
 
 
 import fr.sorbonne_u.components.AbstractComponent;
@@ -43,7 +43,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
  */
 public class Client extends AbstractComponent {
 
-	private ReceivingInboundPort receptionPortIN;
+	private ClientInboundPort receptionPortIN;
 
 	/**
 	 * URI du port inbound {@link fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI}
@@ -58,9 +58,9 @@ public class Client extends AbstractComponent {
 		}
 	}
 
-	private PublishingOutboundPort publishingPortOUT;
-	private RegistrationOutboundPort registrationPortOUT;
-	private PrivilegedClientOutboundPort privilegedPortOUT;
+	private ClientPublishingOutboundPort publishingPortOUT;
+	private ClientRegistrationOutboundPort registrationPortOUT;
+	private ClientPrivilegedOutboundPort privilegedPortOUT;
 
 	private RegistrationClass rcCurrent;
 
@@ -92,16 +92,16 @@ public class Client extends AbstractComponent {
 		super(nbThreads, nbSchedulableThreads);
 		this.brokerReflectionURI = brokerReflectionURI;
 		this.registered = false;
-		this.receptionPortIN = new ReceivingInboundPort(this);
+		this.receptionPortIN = new ClientInboundPort(this);
 		this.receptionPortIN.publishPort();
 
-		this.publishingPortOUT = new PublishingOutboundPort(this);
+		this.publishingPortOUT = new ClientPublishingOutboundPort(this);
 		this.publishingPortOUT.publishPort();
 
-		this.registrationPortOUT = new RegistrationOutboundPort(this);
+		this.registrationPortOUT = new ClientRegistrationOutboundPort(this);
 		this.registrationPortOUT.publishPort();
 
-		this.privilegedPortOUT = new PrivilegedClientOutboundPort(this);
+		this.privilegedPortOUT = new ClientPrivilegedOutboundPort(this);
 		this.privilegedPortOUT.publishPort();
 
 	}
@@ -119,7 +119,7 @@ public class Client extends AbstractComponent {
 			this.doPortConnection(
 					this.registrationPortOUT.getPortURI(),
 					Broker.registrationPortURIFor(this.brokerReflectionURI),
-					RegistrationConnector.class.getCanonicalName());
+					ClientBrokerRegistrationConnector.class.getCanonicalName());
 		}catch (Exception e) { throw new ComponentStartException(e);}
 	}
 	@Override
@@ -175,13 +175,13 @@ public class Client extends AbstractComponent {
 			this.doPortConnection(
 					this.publishingPortOUT.getPortURI(),
 					portINURI,
-					PublishingConnector.class.getCanonicalName());
+					ClientBrokerPublishingConnector.class.getCanonicalName());
 		} else {
 			// STANDARD/PREMIUM get privileged (which also covers publishing)
 			this.doPortConnection(
 					this.privilegedPortOUT.getPortURI(),
 					portINURI,
-					PrivilegedClientConnector.class.getCanonicalName());
+					ClientBrokerPrivilegedConnector.class.getCanonicalName());
 		}
 		this.rcCurrent = rc;
 
@@ -217,12 +217,12 @@ public class Client extends AbstractComponent {
 			this.doPortConnection(
 					this.publishingPortOUT.getPortURI(),
 					portINURI,
-					PublishingConnector.class.getCanonicalName());
+					ClientBrokerPublishingConnector.class.getCanonicalName());
 		} else {
 			this.doPortConnection(
 					this.privilegedPortOUT.getPortURI(),
 					portINURI,
-					PrivilegedClientConnector.class.getCanonicalName());
+					ClientBrokerPrivilegedConnector.class.getCanonicalName());
 		}
 		this.rcCurrent = rc;
 		this.logMessage("Client service class modified (audit1 minimal).");
@@ -289,7 +289,7 @@ public class Client extends AbstractComponent {
 
 
 	/**
-	 * Callback de livraison appelé par {@code ReceivingInboundPort} pour
+	 * Callback de livraison appelé par {@code ClientInboundPort} pour
 	 * chaque message reçu (mode unitaire). Implémentation par défaut :
 	 * trace pour audit.
 	 */

@@ -22,7 +22,7 @@ import fr.sorbonne_u.cps.pubsub.base.components.Broker;
  * Comme {@link PrivilegedClientCI} étend
  * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, ce port hérite
  * également des opérations {@code publish} / {@code asyncPublishAndNotify}
- * via {@link PublishingInboundPort} (Phase D.2 — la spécialisation des CIs
+ * via {@link BrokerPublishingInboundPort} (Phase D.2 — la spécialisation des CIs
  * est miroitée par la hiérarchie OO des ports).
  * </p>
  *
@@ -42,10 +42,10 @@ import fr.sorbonne_u.cps.pubsub.base.components.Broker;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class PrivilegedClientInboundPort extends PublishingInboundPort implements PrivilegedClientCI
+public class BrokerPrivilegedInboundPort extends BrokerPublishingInboundPort implements PrivilegedClientCI
 {
 	/** Constructeur sans URI explicite — owner doit être un {@link Broker}. */
-	public PrivilegedClientInboundPort(ComponentI owner) throws Exception
+	public BrokerPrivilegedInboundPort(ComponentI owner) throws Exception
 	{
 		super(PrivilegedClientCI.class, owner);
 	}
@@ -54,7 +54,7 @@ public class PrivilegedClientInboundPort extends PublishingInboundPort implement
 	 * Constructeur à URI explicite (Phase C.3) — le broker dérive cette URI
 	 * depuis son URI de réflexion.
 	 */
-	public PrivilegedClientInboundPort(String uri, ComponentI owner) throws Exception
+	public BrokerPrivilegedInboundPort(String uri, ComponentI owner) throws Exception
 	{
 		super(uri, PrivilegedClientCI.class, owner);
 	}

@@ -22,10 +22,10 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class ReceivingOutboundPort extends AbstractOutboundPort implements ReceivingCI {
+public class BrokerReceptionOutboundPort extends AbstractOutboundPort implements ReceivingCI {
 
 	/** Constructeur — owner = broker qui pousse les messages vers les clients. */
-	public ReceivingOutboundPort(ComponentI owner) throws Exception {
+	public BrokerReceptionOutboundPort(ComponentI owner) throws Exception {
 		super(ReceivingCI.class, owner);
 	}
 

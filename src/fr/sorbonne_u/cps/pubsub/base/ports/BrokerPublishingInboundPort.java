@@ -36,18 +36,18 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class PublishingInboundPort extends AbstractInboundPort implements PublishingCI {
+public class BrokerPublishingInboundPort extends AbstractInboundPort implements PublishingCI {
 
 	/** Constructeur sans URI explicite — owner doit être un {@link Broker}. */
-	public PublishingInboundPort(ComponentI owner) throws Exception {
+	public BrokerPublishingInboundPort(ComponentI owner) throws Exception {
 		super(PublishingCI.class, owner);
 
 	}
 	/**
 	 * Constructeur exposant une CI plus spécifique (utilisé par les
-	 * sous-classes comme {@link PrivilegedClientInboundPort}).
+	 * sous-classes comme {@link BrokerPrivilegedInboundPort}).
 	 */
-	public PublishingInboundPort(Class c, ComponentI owner) throws Exception{
+	public BrokerPublishingInboundPort(Class c, ComponentI owner) throws Exception{
 		super (c, owner);
 	}
 
@@ -55,16 +55,16 @@ public class PublishingInboundPort extends AbstractInboundPort implements Publis
 	 * Constructeur à URI explicite (Phase C.3) : permet au broker de choisir
 	 * une URI déterministe dérivée de son URI de réflexion.
 	 */
-	public PublishingInboundPort(String uri, ComponentI owner) throws Exception {
+	public BrokerPublishingInboundPort(String uri, ComponentI owner) throws Exception {
 		super(uri, PublishingCI.class, owner);
 	}
 
 	/**
 	 * Constructeur à URI explicite + interface (Phase C.3) utilisé par les
-	 * sous-classes (par exemple {@link PrivilegedClientInboundPort}) qui
+	 * sous-classes (par exemple {@link BrokerPrivilegedInboundPort}) qui
 	 * souhaitent une URI déterministe tout en déclarant une CI plus spécifique.
 	 */
-	public PublishingInboundPort(String uri, Class c, ComponentI owner) throws Exception {
+	public BrokerPublishingInboundPort(String uri, Class c, ComponentI owner) throws Exception {
 		super(uri, c, owner);
 	}
 
