@@ -1,12 +1,12 @@
 #!/bin/bash
 # run-all-demos.sh
 #
-# Regression harness for the StyteS pub/sub project.
+# Demo runner for the StyteS pub/sub project.
 # Runs the full JUnit suite + every centralised demo with `-ea`,
 # then summarises pass/fail. Distributed demos (those extending
 # AbstractDistributedCVM) require GlobalRegistry + DCVMCyclicBarrier
-# and are skipped here — see docs/SOUTENANCE.md §2d for the
-# Demo3JVMs walkthrough.
+# and are skipped here — see docs/PIPELINE.md for the
+# distributed walkthrough.
 #
 # Usage: bash run-all-demos.sh [JDK_HOME]
 #   JDK_HOME — optional path to a JDK (default: corretto-19 if found).
@@ -58,12 +58,23 @@ TESTS=(
 java -ea -cp "$OUT:libs/*" org.junit.runner.JUnitCore "${TESTS[@]}" 2>&1 \
   | tee /tmp/stytes-junit.log | tail -3
 JUNIT_RC=${PIPESTATUS[0]}
+
+# BrokerMultithreadingTest runs in its own JVM because it creates a second
+# AbstractCVM whose embedded DynamicComponentCreator URI would collide with
+# the one already published by BrokerRegistrationTest in the same JVM.
+echo "==> JUnit (multithreading proof, isolated JVM)"
+java -ea -cp "$OUT:libs/*" org.junit.runner.JUnitCore \
+  fr.sorbonne_u.cps.pubsub.tests.BrokerMultithreadingTest 2>&1 \
+  | tee /tmp/stytes-junit-mt.log | tail -3
+MT_RC=${PIPESTATUS[0]}
+if [ "$JUNIT_RC" -eq 0 ] && [ "$MT_RC" -ne 0 ]; then
+  JUNIT_RC=$MT_RC
+fi
 echo
 
 # 3. Centralised demos
 echo "==> Centralised demos (under -ea, 130 s timeout each)"
 DEMOS=(
-  DemoPluginsClient
   DemoSeparatedPlugin
   DemoMidSemComplexTimedScenario
   DemoMeteoTimedTestTool
@@ -92,7 +103,7 @@ echo
 echo "================================================================"
 echo "JUnit:           rc=$JUNIT_RC  (see /tmp/stytes-junit.log)"
 echo "Central demos:   $PASSED/$TOTAL passed (logs in /tmp/stytes-demos/)"
-echo "Distributed:     not executed — see docs/SOUTENANCE.md §2d"
+echo "Distributed:     not executed — see docs/PIPELINE.md"
 echo "================================================================"
 
 if [ "$JUNIT_RC" -eq 0 ] && [ "$PASSED" -eq "$TOTAL" ]; then

@@ -30,7 +30,7 @@ import fr.sorbonne_u.utils.aclocks.ClocksServer;
  *
  * <p>
  * Les démos centralisées passent en plus un {@link TestScenario} ; en
- * déploiement distribué (cf. {@link fr.sorbonne_u.cps.pubsub.demo.Demo3JVMs}, {@link fr.sorbonne_u.cps.pubsub.demo.DemoFinal}) le
+ * déploiement distribué (cf. {@link fr.sorbonne_u.cps.pubsub.demo.DemoFinal}, {@link fr.sorbonne_u.cps.pubsub.demo.DemoTimedDistributed}) le
  * scénario peut être {@code null}.
  * </p>
  *
@@ -88,7 +88,7 @@ public class SubscriberClient extends AbstractComponent {
     }
     /**
      * Constructeur sans scénario, pour les déploiements répartis (cf.
-     * {@link fr.sorbonne_u.cps.pubsub.demo.DemoDistributed} / {@link fr.sorbonne_u.cps.pubsub.demo.Demo3JVMs}).
+     * {@link fr.sorbonne_u.cps.pubsub.demo.DemoTimedDistributed}).
      *
      * @param uri                 URI de port de réflexion / identifiant.
      * @param brokerReflectionURI URI de réflexion du broker cible.

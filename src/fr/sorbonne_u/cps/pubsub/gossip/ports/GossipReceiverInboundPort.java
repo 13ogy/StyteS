@@ -32,7 +32,7 @@ import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipReceiverCI;
  *
  * <p>
  * Cette dissociation a été introduite après la régression « 3 OK / 4 random
- * failure » observée sur {@code Demo3JVMs} : un {@code receive()} synchrone
+ * failure » observée en exécution distribuée : un {@code receive()} synchrone
  * gardait la thread RMI immobilisée pendant tout le {@code update()} d'un
  * broker (verrous écriture, fan-out gossip sortant, livraison locale), ce
  * qui saturait le pool RMI sur les noeuds intermédiaires de la fédération.
