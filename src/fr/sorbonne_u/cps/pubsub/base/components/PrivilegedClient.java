@@ -1,9 +1,7 @@
 package fr.sorbonne_u.cps.pubsub.base.components;
 
 
-import fr.sorbonne_u.cps.pubsub.base.util.PortCleanupUtil;
 import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.components.utils.tests.TestScenario;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
@@ -173,16 +171,5 @@ public class PrivilegedClient extends AbstractComponent {
  */
  public void publish(String channel, MessageI message) throws Exception {
  this.privPlugin.publish(channel, message);
- }
-
- /**
- * Hook d'arrêt BCM : déconnecte d'abord les ports sortants encore actifs.
- *
- * @throws ComponentShutdownException si le shutdown parent échoue.
- */
- @Override
- public synchronized void shutdown() throws ComponentShutdownException {
- PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
- super.shutdown();
  }
 }

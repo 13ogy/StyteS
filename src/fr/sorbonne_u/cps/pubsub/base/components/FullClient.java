@@ -1,9 +1,7 @@
 package fr.sorbonne_u.cps.pubsub.base.components;
 
 
-import fr.sorbonne_u.cps.pubsub.base.util.PortCleanupUtil;
 import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.components.utils.tests.TestScenario;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
@@ -213,16 +211,5 @@ public class FullClient extends AbstractComponent {
  */
  public MessageI waitForNextMessage(String channel, Duration d) {
  return this.subPlugin.waitForNextMessage(channel, d);
- }
-
- /**
- * Hook d'arrêt BCM : déconnecte d'abord les ports sortants encore actifs.
- *
- * @throws ComponentShutdownException si le shutdown parent échoue.
- */
- @Override
- public synchronized void shutdown() throws ComponentShutdownException {
- PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
- super.shutdown();
  }
 }

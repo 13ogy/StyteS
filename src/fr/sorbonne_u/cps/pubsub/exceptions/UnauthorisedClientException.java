@@ -54,13 +54,13 @@ import fr.sorbonne_u.components.exceptions.BCMException;
  * <p><strong>Implementation Invariants</strong></p>
  * 
  * <pre>
- * invariant	{@code true}	// TODO	// no more invariant
+ * invariant	{@code true}	// no more invariant
  * </pre>
  * 
  * <p><strong>Invariants</strong></p>
  * 
  * <pre>
- * invariant	{@code true}	// TODO	// no more invariant
+ * invariant	{@code true}	// no more invariant
  * </pre>
  * 
  * <p>Created on : 2026-02-04</p>

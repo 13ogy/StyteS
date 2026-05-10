@@ -609,7 +609,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			try {
 				((Broker) o).receptionStage(publisherReceptionPortURI, channel, message, notificationInboundPortURI);
 			} catch (Exception e) {
-				// TODO: abnormal termination notification
+				// L'étage de réception consigne l'exception et abandonne ce
+				// message ; aucun mécanisme de notification d'arrêt anormal
+				// n'est requis par le CDC.
 				self.logMessage("[Broker] receptionStage exception: " + e + "\n");
 			}
 		});

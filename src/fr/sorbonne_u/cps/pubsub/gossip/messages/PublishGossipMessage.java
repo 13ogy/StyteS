@@ -34,6 +34,8 @@ import java.time.Instant;
  */
 public class PublishGossipMessage extends AbstractGossipMessage {
 
+ private static final long serialVersionUID = 1L;
+
  /** URI unique et immuable du message gossip (clef de dédup). */
  private final String gossipMessageURI; // URI unique du message gossip
  /** Horodatage de création (utilisé par {@code cleanupGossipMemory}). */

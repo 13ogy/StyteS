@@ -3,7 +3,6 @@ fr.sorbonne_u.cps.pubsub.application.meteo.filters
 fr.sorbonne_u.cps.pubsub.base.components
 fr.sorbonne_u.cps.pubsub.base.connectors
 fr.sorbonne_u.cps.pubsub.base.ports
-fr.sorbonne_u.cps.pubsub.base.util
 fr.sorbonne_u.cps.pubsub.demo
 fr.sorbonne_u.cps.pubsub.exceptions
 fr.sorbonne_u.cps.pubsub.gossip.connectors

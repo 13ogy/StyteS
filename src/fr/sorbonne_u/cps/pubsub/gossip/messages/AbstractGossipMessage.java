@@ -40,6 +40,8 @@ import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
  */
 public abstract class AbstractGossipMessage implements EmitterAwareGossipMessageI {
 
+ private static final long serialVersionUID = 1L;
+
  /**
  * Accepte un {@link GossipMessageVisitor} et dispatche le traitement vers
  * la méthode {@code visit} appropriée selon le type concret de ce message.
