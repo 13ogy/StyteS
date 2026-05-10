@@ -1,6 +1,6 @@
 # GOSSIP — pilier 3 / 3
 
-> Référence soutenance — Bogdan Styn, Setbel Mélissa.
+> Référence interne — Bogdan Styn, Setbel Mélissa.
 > Code cité : `src/fr/sorbonne_u/cps/pubsub/base/components/Broker.java`,
 > `src/fr/sorbonne_u/cps/pubsub/gossip/`,
 > `src/fr/sorbonne_u/cps/pubsub/demo/Demo3JVMs.java`.
@@ -161,7 +161,7 @@ Trois nuances importantes :
   `update()` ne bloque pas sur la latence réseau — c'est le pipeline
   gossip §5 ci-dessous.
 
-Source soutenance §6.2 + §6.6 commenté inline dans le code
+Voir commentaires inline dans le code (skip-echo + propagation lock-free)
 (`Broker.java:1929, 1942-1950, 2123-2145`).
 
 ---
@@ -398,7 +398,7 @@ voisins) — la dédup empêchera les boucles infinies.
 
 ### Q5 (bonus) — Pourquoi un *Visitor* pour `update()` ?
 
-À la soutenance intermédiaire, l'examinateur a demandé de remplacer la
+Au cours du développement, on a remplacé la
 chaîne `if (msg instanceof X) { ... } else if (msg instanceof Y) { ... }`
 par un dispatch typé. Réponse : pattern *Visitor* à double-dispatch.
 

@@ -33,7 +33,7 @@ import java.util.Objects;
  * </ul>
  *
  * <p>
- * Refactor soutenance §5.2 : ce greffon ne possède plus les ports
+ * Choix de conception : ce greffon ne possède plus les ports
  * {@code PublishingCI} et {@code PrivilegedClientCI}. Chaque rôle est
  * implanté par un greffon dédié ({@link ClientPublicationPlugin},
  * {@link ClientPrivilegedPlugin}) qui possède son propre port outbound.
@@ -318,7 +318,7 @@ implements		ClientRegistrationI
 	 * {@code rc}.
 	 *
 	 * <p>
-	 * Refactor soutenance §5.2 : la connexion des ports outbound de
+	 * Choix de conception : la connexion des ports outbound de
 	 * publication / privilégié est désormais réalisée par les greffons
 	 * dédiés ({@link ClientPublicationPlugin},
 	 * {@link ClientPrivilegedPlugin}) à leur {@code initialise()}, et non
@@ -357,7 +357,7 @@ implements		ClientRegistrationI
 	 * Modifie la classe de service du client côté broker.
 	 *
 	 * <p>
-	 * Refactor soutenance §5.2 : aucune reconfiguration des ports outbound
+	 * Choix de conception : aucune reconfiguration des ports outbound
 	 * client n'est nécessaire. Les ports {@code PublishingCI} et
 	 * {@code PrivilegedClientCI} sont déjà connectés à leurs ports inbound
 	 * dédiés du broker (via leurs greffons respectifs). Le broker autorise

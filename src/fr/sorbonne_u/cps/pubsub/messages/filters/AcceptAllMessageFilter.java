@@ -9,7 +9,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
  * Singleton {@link MessageFilterI} accepting every message.
  *
  * <p>
- * Per the soutenance review, the previous implementation built a heavyweight
+ * Optimisation : la version composite construisait un
  * {@link fr.sorbonne_u.cps.pubsub.messages.MessageFilter} with empty filter
  * arrays. This class replaces it: {@link #match(MessageI)} simply returns
  * {@code true} without allocating or scanning any property.

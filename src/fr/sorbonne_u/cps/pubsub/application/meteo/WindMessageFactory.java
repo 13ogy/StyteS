@@ -7,13 +7,14 @@ import fr.sorbonne_u.cps.pubsub.messages.Message;
 import fr.sorbonne_u.cps.pubsub.meteo.WindDataI;
 
 /**
- * Factory building wind {@link MessageI} instances populated with the
- * properties expected by {@link MeteoFilters}.
+ * Fabrique construisant les messages de mesure de vent {@link MessageI} avec
+ * les propriétés attendues par {@link MeteoFilters}.
  *
  * <p>
- * Per the soutenance review (1.10), wind message construction must not be
- * scattered as inline literal-property assignments. Every wind message used by
- * the system goes through this factory.
+ * Toute construction de message vent passe par cette fabrique : les noms de
+ * propriétés sont centralisés dans {@link MeteoProperties} et aucun composant
+ * applicatif ne manipule de littéraux chaînes lors de la fabrication d'un
+ * message.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa

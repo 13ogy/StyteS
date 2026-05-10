@@ -24,7 +24,7 @@ import static org.junit.Assert.assertSame;
  * Unit tests for the {@link GossipMessageVisitor} double-dispatch
  * mechanism (Visitor design pattern adopted in commit {@code 17435bb}
  * to replace the {@code instanceof} chain in {@code Broker.update(...)}
- * — change explicitly recommended by the professor in soutenance).
+ * — pour bénéficier du dispatch dynamique sans {@code instanceof}).
  *
  * <p>Each test posts one concrete gossip message to a recording visitor
  * and asserts that the dispatch resolves to the type-correct

@@ -1,6 +1,6 @@
 # PIPELINE — pilier 2 / 3
 
-> Référence soutenance — Bogdan Styn, Setbel Mélissa.
+> Référence interne — Bogdan Styn, Setbel Mélissa.
 > Code cité : `src/fr/sorbonne_u/cps/pubsub/base/components/Broker.java`,
 > `src/fr/sorbonne_u/cps/pubsub/base/ports/*InboundPort.java`,
 > `src/fr/sorbonne_u/cps/pubsub/gossip/ports/GossipReceiverInboundPort.java`.

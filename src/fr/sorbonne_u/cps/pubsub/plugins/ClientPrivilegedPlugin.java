@@ -24,7 +24,7 @@ import java.util.Objects;
  *
  * <p>
  * Ce greffon <em>possède son propre port outbound
- * {@code PrivilegedClientCI}</em> (refactor soutenance §5.2). Il
+ * {@code PrivilegedClientCI}</em>. Il
  * n'hérite plus de {@link ClientPublicationPlugin} : la composition est
  * désormais explicite côté composant (les composants
  * STANDARD/PREMIUM peuvent installer ce greffon seul ; comme

@@ -37,7 +37,7 @@ import java.util.List;
  * Le composant reçoit des observations de vent ({@link WindDataI}) et des
  * alertes ({@link MeteoAlertI}). Les observations de vent sont filtrées par
  * distance côté courtier via {@link MeteoFilters#windWithinDistance(PositionI, double)}
- * (offload du filtrage géographique vers le pub/sub, cf. revue soutenance §1.10).
+ * (offload du filtrage géographique vers le pub/sub).
  * </p>
  *
  * <p>
@@ -336,7 +336,8 @@ public class WindTurbine extends AbstractComponent
 
 	private double distanceFromTurbine(PositionI other)
 	{
-		// Encapsulated geometry; cf. soutenance review 1.8.
+		// Calcul délégué à Position2D pour respecter l'encapsulation OO :
+		// la géométrie est dans la classe qui possède les coordonnées.
 		if (this.position instanceof Position2D) {
 			return ((Position2D) this.position).distanceTo(other);
 		}

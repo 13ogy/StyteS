@@ -100,7 +100,7 @@ public class MessageFilter implements MessageFilterI
 	 * Return a singleton message filter that accepts every message.
 	 *
 	 * <p>
-	 * Implements the soutenance recommendation: rather than building a
+	 * Optimisation : plutôt que construire à chaque appel une
 	 * {@link MessageFilter} with empty arrays — whose {@link #match(MessageI)}
 	 * still allocates and iterates — we return a singleton implementing
 	 * {@link MessageFilterI} directly with a trivial {@code match} that returns
@@ -144,7 +144,7 @@ public class MessageFilter implements MessageFilterI
 		}
 
 		// Reuse the immutable view exposed by Message rather than rebuild a
-		// HashMap on every call (cf. soutenance review). Fall back to a linear
+		// HashMap auxiliaire (allocations inutiles). On revient à un balayage linéaire
 		// scan over getProperties() if the message is some other MessageI impl.
 		if (message instanceof Message) {
 			final Map<String, PropertyI> byName = ((Message) message).getPropertiesMap();

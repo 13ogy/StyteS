@@ -11,12 +11,12 @@ import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
 import fr.sorbonne_u.cps.pubsub.meteo.PositionI;
 
 /**
- * Builders for the {@link MessageFilterI} instances used by meteo subscribers.
+ * Constructeurs des {@link MessageFilterI} utilisés par les abonnés météo.
  *
  * <p>
- * Per the soutenance review (1.10), filter construction must not duplicate
- * raw property-name string literals across components and demos. Every
- * domain-specific filter goes through this helper.
+ * Centraliser ici la composition des filtres applicatifs respecte le principe
+ * DRY : les noms de propriétés ne sont jamais dupliqués comme littéraux dans
+ * les composants ou les démos, et tout filtre métier passe par cette fabrique.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa

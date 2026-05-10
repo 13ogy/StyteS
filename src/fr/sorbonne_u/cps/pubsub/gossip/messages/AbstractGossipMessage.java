@@ -17,7 +17,7 @@ import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
  *   <li>elle introduit le double-dispatch via {@link #accept(GossipMessageVisitor)}
  *   pour le {@link GossipMessageVisitor} (pattern Visitor — évite les chaînes
  *   {@code instanceof} dans {@code Broker.update(...)}, conformément au
- *   conseil donné en soutenance) ;</li>
+ *   dispatch dynamique sans test de type) ;</li>
  *   <li>elle propage le contrat {@link EmitterAwareGossipMessageI} à toutes
  *   les sous-classes concrètes, garantissant que chaque message gossip
  *   expose son {@code emitterURI} (clef du skip-echo, cf. {@code docs/GOSSIP.md} §4).</li>

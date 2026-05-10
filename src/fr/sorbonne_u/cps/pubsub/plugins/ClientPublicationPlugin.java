@@ -21,7 +21,7 @@ import java.util.Objects;
  *
  * <p>
  * Ce plugin <em>possède son propre port outbound {@code PublishingCI}</em>
- * (refactor soutenance §5.2). Le précédent design centralisait tous les
+ * . Le design précédent centralisait tous les
  * ports outbound dans le {@link ClientRegistrationPlugin}, ce qui forçait
  * un composant qui ne souscrit qu'à un seul rôle (par ex. un publieur pur)
  * à instancier malgré tout les ports privilégiés et de souscription qu'il

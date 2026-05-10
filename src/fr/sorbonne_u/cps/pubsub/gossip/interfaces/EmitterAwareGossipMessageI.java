@@ -8,7 +8,7 @@ package fr.sorbonne_u.cps.pubsub.gossip.interfaces;
  * declare {@code getEmitterURI()} but every concrete gossip message in this
  * project carries an emitter URI: the reflection inbound port URI of the
  * broker that just put the message on the wire. The broker uses it to skip
- * sending a re-emission back to the immediate sender (soutenance §6.2 /
+ * sending a re-emission back to the immediate sender (skip-echo /
  * Phase F.2). Rather than relying on reflection or a long instanceof chain,
  * we declare this single sub-interface and let every concrete message
  * implement it.</p>

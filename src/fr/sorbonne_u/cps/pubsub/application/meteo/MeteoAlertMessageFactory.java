@@ -7,13 +7,14 @@ import fr.sorbonne_u.cps.pubsub.messages.Message;
 import fr.sorbonne_u.cps.pubsub.meteo.MeteoAlertI;
 
 /**
- * Factory building meteo alert {@link MessageI} instances populated with the
- * properties expected by {@link MeteoFilters}.
+ * Fabrique construisant les messages d'alerte météo {@link MessageI} avec les
+ * propriétés attendues par {@link MeteoFilters}.
  *
  * <p>
- * Per the soutenance review (1.10), alert message construction must not be
- * scattered as inline literal-property assignments. Every alert message used
- * by the system goes through this factory.
+ * Les noms de propriétés et le type de message sont centralisés ici afin de
+ * respecter le principe DRY : aucun composant applicatif ne manipule de
+ * littéraux chaînes pour fabriquer un message d'alerte. Un éventuel
+ * renommage de propriété s'effectue alors en un seul point.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa

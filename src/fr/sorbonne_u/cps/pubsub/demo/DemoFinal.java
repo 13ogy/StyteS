@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Final soutenance distributed integration test — 4 JVMs, 4 brokers,
+ * Test d'intégration distribué final — 4 JVMs, 4 brokers,
  * gossip protocol fully exercised.
  *
  * <p><strong>Topology</strong></p>

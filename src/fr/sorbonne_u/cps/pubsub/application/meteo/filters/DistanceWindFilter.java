@@ -8,25 +8,27 @@ import fr.sorbonne_u.cps.pubsub.meteo.impl.Position2D;
 import java.io.Serializable;
 
 /**
- * Application-specific {@link MessageFilterI.ValueFilterI} that accepts a
- * {@link WindDataI} payload only when its {@link WindDataI#getPosition()} is
- * within {@code maxDistance} of a reference position.
+ * Filtre {@link MessageFilterI.ValueFilterI} spécifique à l'application qui
+ * accepte une donnée {@link WindDataI} uniquement lorsque sa
+ * {@link WindDataI#getPosition()} est à une distance inférieure ou égale à
+ * {@code maxDistance} d'une position de référence.
  *
  * <p>
- * Per soutenance §1 (separation of concerns): this filter belongs to the
- * <em>wind application</em>, not to the generic publish/subscribe system.
- * It therefore lives under {@code fr.sorbonne_u.cps.pubsub.application.meteo
- * .filters}, alongside the other meteo-specific abstractions
+ * Principe de séparation des préoccupations : ce filtre fait partie de
+ * l'<em>application éolienne</em>, pas du système publish/subscribe
+ * générique. Il vit donc sous {@code fr.sorbonne_u.cps.pubsub.application
+ * .meteo.filters}, aux côtés des autres abstractions du domaine météo
  * ({@code MeteoFilters}, {@code MeteoProperties},
  * {@code WindMessageFactory}, {@code MeteoAlertMessageFactory}).
- * The generic {@code messages.filters} package no longer imports anything
- * from {@code meteo}.
+ * Le paquetage générique {@code messages.filters} ne dépend ainsi
+ * d'aucune classe du paquetage {@code meteo}.
  * </p>
  *
  * <p>
- * Distance computation is delegated to {@link Position2D#distanceTo(PositionI)}
- * (cf. soutenance §1.8): no caller may reach into the private coordinates
- * of a {@link Position2D}.
+ * Le calcul de la distance est délégué à
+ * {@link Position2D#distanceTo(PositionI)} pour respecter l'encapsulation
+ * objet : aucun code appelant n'a à atteindre les coordonnées privées d'une
+ * {@link Position2D} pour mesurer une distance.
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa

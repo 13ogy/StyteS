@@ -82,7 +82,7 @@ import java.util.regex.Pattern;
  *       (paramètres {@code standardQuota}, {@code premiumQuota}).</li>
  *   <li><strong>Gossip</strong> : déduplication atomique
  *       ({@link #processedGossipURIs}), filtrage de l'émetteur immédiat
- *       (cf. soutenance §6.2) et nettoyage périodique.</li>
+ *       (skip-echo) et nettoyage périodique.</li>
  * </ul>
  *
  * <h2>Concurrence — verrous</h2>
@@ -357,7 +357,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 *
 	 * <p>This map exists so that {@link #update(GossipMessageI[])} can identify
 	 * which sender corresponds to the broker that just delivered a message and
-	 * <strong>skip it</strong> when re-emitting (soutenance §6.2). Sending a
+	 * <strong>skip it</strong> when re-emitting (skip-echo). Renvoyer a
 	 * gossip back to its immediate sender is wasteful: dedup will catch it,
 	 * but only after a full round-trip RMI call. Skipping at the source
 	 * removes the wasted work.</p>
@@ -373,7 +373,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 *
 	 * <p>{@link ConcurrentHashMap} so that {@link #update(GossipMessageI[])}
 	 * can dedup with a single atomic {@code putIfAbsent} call instead of
-	 * lock + check + put (soutenance §6.6 / Phase F.5). The previous
+	 * lock + check + put. La précédente
 	 * lock-based dedup had a window where two threads could both observe
 	 * "not processed" and both proceed to forward the same message.</p>
 	 */
@@ -570,7 +570,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * Cible de livraison pré-calculée par {@link #snapshotTargets} : associe
 	 * l'URI d'un abonné, son port outbound de livraison et son filtre courant.
 	 * Permet d'évaluer le filtre puis d'appeler {@code receive} sans toucher
-	 * aux structures partagées (cf. soutenance §4.3).
+	 * aux structures partagées.
 	 */
 	protected static class DeliveryTarget
 	{
@@ -849,7 +849,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * {@link GossipSenderOutboundPort} vers chaque voisin gossip configuré
 	 * dans le constructeur. Les ports sont indexés dans
 	 * {@link #sendersByNeighbour} par l'URI de réflexion du voisin afin de
-	 * pouvoir filtrer l'émetteur immédiat dans {@link #update} (soutenance §6.2).
+	 * pouvoir filtrer l'émetteur immédiat dans {@link #update} (skip-echo).
 	 */
 	@Override
 	public void start() throws ComponentStartException {
@@ -858,7 +858,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		// On indexe les sender par URI de port d'écoute du voisin
 		// (e.g. "broker-1-gossip-in") afin de pouvoir, dans update(),
 		// retrouver à l'envers le voisin qui vient de nous transmettre
-		// un message et l'exclure de la re-diffusion (soutenance §6.2).
+		// un message et l'exclure de la re-diffusion (skip-echo).
 		try {
 			for (String neighbourGossipInURI : this.gossipURIs) {
 				GossipSenderOutboundPort out = new GossipSenderOutboundPort(this);
@@ -1000,7 +1000,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 *
 	 * <p>Public visibility is intentional and complementary to
 	 * {@link #registrationPortURIFor(String)} / {@link #gossipPortURIFor(String)}.
-	 * The soutenance §2.4 concern about "encapsulation" was raised against
+	 * Le souci d'"encapsulation" pourrait être soulevé contre
 	 * the broker exposing port <em>instances</em> via public field accessors
 	 * ({@code Broker.publishingPortIN}/{@code Broker.privilegedPortIN}), not
 	 * against deterministic URI derivation: knowing the URI of a port does
@@ -1008,7 +1008,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * each call ({@code requireRegistered(rip)} +
 	 * {@code requireServiceClass(rip, expected)}). Exposing the URI here
 	 * lets each role-specific plugin (Phase E.1) own its own outbound port
-	 * and connect at {@code initialise()} time, which is what the soutenance
+	 * and connect at {@code initialise()} time, ce qui est l'approche
 	 * §5.2 review explicitly asked for.</p>
 	 */
 	public static String publishingPortURIFor(String brokerReflectionURI)
@@ -1086,7 +1086,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * registered under the requested service class {@code rc}.
 	 *
 	 * <p>If the client is not registered under any class, this method must
-	 * raise {@link UnknownClientException} (soutenance §2.4) — silently
+	 * raise {@link UnknownClientException} — silently
 	 * returning {@code false} would hide the difference between
 	 * "registered but in another class" and "not registered at all".</p>
 	 *
@@ -1207,7 +1207,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 		this.gossipToNeighbours(new GossipMessageI[]{ gossip }); //initiation de la propagation
 
-		// Soutenance §2.5 : retourner l'URI du port adapté à la classe de service.
+		// Retourner l'URI du port entrant adapté à la classe de service.
 		// FREE : seulement publish ; STANDARD/PREMIUM : privileged
 		// (qui hérite de PublishingCI, donc couvre publish également).
 		if (rc == RegistrationClass.FREE) {
@@ -2285,13 +2285,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * <p>Pour chaque message :</p>
 	 * <ol>
 	 *   <li>Déduplication atomique via {@link #markAsProcessed(GossipMessageI)}
-	 *       (CHM {@code putIfAbsent}, sans verrou — soutenance §6.6 / Phase F.5).</li>
+	 *       (CHM {@code putIfAbsent}, sans verrou — propagation lock-free).</li>
 	 *   <li>Application locale via le pattern <em>Visitor</em> :
 	 *       {@code ((AbstractGossipMessage) msg).accept(handler)} dispatche vers
 	 *       {@link BrokerGossipHandler#visit} typé (remplace les chaînes
-	 *       {@code instanceof}, conformément au conseil donné en soutenance).</li>
+	 *       {@code instanceof} pour bénéficier du dispatch dynamique).</li>
 	 *   <li>Réémission filtrée vers tous les voisins <strong>sauf l'émetteur
-	 *       immédiat</strong> (skip-echo, soutenance §6.2) — chaque envoi est
+	 *       immédiat</strong> (skip-echo) — chaque envoi est
 	 *       dispatché sur l'ES gossip pour ne pas bloquer l'appelant RMI.</li>
 	 * </ol>
 	 *
@@ -2380,7 +2380,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * (utilisé pour les messages générés localement, donc sans émetteur
 	 * immédiat à exclure). Pour les retransmissions à partir de {@code update},
 	 * voir le filtrage explicite dans {@link #update(GossipMessageI[])}
-	 * (soutenance §6.2).
+	 * (skip-echo).
 	 */
 	public void gossipToNeighbours(GossipMessageI[] messages) {
 		for (GossipSenderOutboundPort sender : this.sendersByNeighbour.values()) {
@@ -2396,7 +2396,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 	/**
 	 * Déduplication atomique d'un message gossip via {@link #processedGossipURIs}
-	 * (soutenance §6.6 / Phase F.5). Aucun verrou nécessaire :
+	 * . Aucun verrou nécessaire :
 	 * {@link java.util.concurrent.ConcurrentHashMap#putIfAbsent putIfAbsent}
 	 * fournit la garantie atomique « première-occurrence ».
 	 *

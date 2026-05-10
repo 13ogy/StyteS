@@ -36,7 +36,7 @@ import static org.junit.Assert.*;
  * </p>
  *
  * <p>
- * What is being tested (CDC §3.5 / soutenance §2.4):
+ * Ce qui est testé (CDC §3.5) :
  * </p>
  * <ul>
  *   <li>{@code register(uri, FREE)} returns the publishing port URI;

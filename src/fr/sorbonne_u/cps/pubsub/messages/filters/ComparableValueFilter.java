@@ -9,7 +9,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
  * Abstract base class for value filters comparing the value against bounds.
  *
  * <p>
- * Per the soutenance review (1.6 + 1.7) we replaced the {@code Operator} enum
+ * Choix de conception : on remplace l'enum {@code Operator}
  * + {@code switch} construction with a class hierarchy: each comparison kind
  * is its own concrete subclass. Adding a new comparison only requires adding
  * a new subclass; no existing code (in particular, no {@code switch} clause)

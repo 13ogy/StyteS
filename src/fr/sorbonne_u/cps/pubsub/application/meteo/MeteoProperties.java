@@ -1,20 +1,21 @@
 package fr.sorbonne_u.cps.pubsub.application.meteo;
 
 /**
- * Centralised property names used by the meteo application messages.
+ * Noms de propriétés centralisés pour les messages de l'application météo.
  *
  * <p>
- * The soutenance review (1.10) flagged that wind/alert messages were created
- * using inline string literals scattered across {@link WeatherStation},
- * {@link WeatherOffice}, {@link WindTurbine} and the demo subscriptions. This
- * class collects every property name in one place so a future rename only
- * requires editing this file.
+ * Cette classe collecte en un seul endroit tous les noms de propriétés
+ * utilisés par les messages vent et alerte, conformément au principe DRY :
+ * un futur renommage ne nécessite qu'une seule édition. Les composants
+ * applicatifs ({@link WeatherStation}, {@link WeatherOffice},
+ * {@link WindTurbine}) et les démos ne manipulent jamais ces littéraux
+ * directement.
  * </p>
  *
  * <p>
- * Every constant is also referenced by the dedicated message factories
- * ({@link WindMessageFactory}, {@link MeteoAlertMessageFactory}) and by the
- * dedicated filter helpers ({@link MeteoFilters}).
+ * Chaque constante est également référencée par les fabriques de messages
+ * dédiées ({@link WindMessageFactory}, {@link MeteoAlertMessageFactory}) et
+ * par les constructeurs de filtres dédiés ({@link MeteoFilters}).
  * </p>
  *
  * @author Bogdan Styn, Setbel Mélissa

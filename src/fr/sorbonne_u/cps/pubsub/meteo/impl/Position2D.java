@@ -9,7 +9,7 @@ import java.util.Objects;
  * A 2D position implementation (CDC §3.4).
  *
  * <p>
- * Per the soutenance review (1.8 + 1.9), distance and inclusion logic
+ * Pour respecter l'encapsulation OO, la logique de distance et d'inclusion
  * involving 2D positions are now methods of this class rather than callers
  * pulling out raw {@code x}/{@code y} coordinates. This restores the
  * encapsulation of the position state.

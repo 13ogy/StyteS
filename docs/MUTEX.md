@@ -1,6 +1,6 @@
 # MUTEX — pilier 1 / 3
 
-> Référence soutenance — Bogdan Styn, Setbel Mélissa.
+> Référence interne — Bogdan Styn, Setbel Mélissa.
 > Code cité : `src/fr/sorbonne_u/cps/pubsub/base/components/Broker.java`
 > (toutes les lignes ci-dessous sont à jour de la branche `final-iteration`).
 
