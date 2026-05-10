@@ -42,6 +42,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 	public boolean registered(String receptionPortURI) throws Exception {
 		try {
 			return ((RegistrationCI) this.getConnector()).registered(receptionPortURI);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -52,6 +54,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 	public boolean registered(String receptionPortURI, RegistrationClass rc) throws Exception {
 		try {
 			return ((RegistrationCI) this.getConnector()).registered(receptionPortURI, rc);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -63,6 +67,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 		try {
 			return ((RegistrationCI) this.getConnector()).register(receptionPortURI, rc);
 		} catch (AlreadyRegisteredException e) {
+			throw e;
+		} catch (RemoteException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
@@ -76,6 +82,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 			return ((RegistrationCI) this.getConnector()).modifyServiceClass(receptionPortURI, rc);
 		} catch (UnknownClientException | AlreadyRegisteredException e) {
 			throw e;
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -88,6 +96,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 			((RegistrationCI) this.getConnector()).unregister(receptionPortURI);
 		} catch (UnknownClientException e) {
 			throw e;
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -98,6 +108,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 	public boolean channelExist(String channel) throws Exception {
 		try {
 			return ((RegistrationCI) this.getConnector()).channelExist(channel);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -109,6 +121,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 		try {
 			return ((RegistrationCI) this.getConnector()).channelAuthorised(receptionPortURI, channel);
 		} catch (UnknownClientException | UnknownChannelException e) {
+			throw e;
+		} catch (RemoteException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
@@ -122,6 +136,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 			return ((RegistrationCI) this.getConnector()).subscribed(receptionPortURI, channel);
 		} catch (UnknownClientException | UnknownChannelException e) {
 			throw e;
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -133,6 +149,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 		try {
 			((RegistrationCI) this.getConnector()).subscribe(receptionPortURI, channel, filter);
 		} catch (UnknownClientException | UnknownChannelException e) {
+			throw e;
+		} catch (RemoteException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
@@ -146,6 +164,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 			((RegistrationCI) this.getConnector()).unsubscribe(receptionPortURI, channel);
 		} catch (UnknownClientException | UnknownChannelException | NotSubscribedChannelException e) {
 			throw e;
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -157,6 +177,8 @@ public class ClientRegistrationOutboundPort extends AbstractOutboundPort impleme
 		try {
 			return ((RegistrationCI) this.getConnector()).modifyFilter(receptionPortURI, channel, filter);
 		} catch (UnknownClientException | UnknownChannelException | NotSubscribedChannelException e) {
+			throw e;
+		} catch (RemoteException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);

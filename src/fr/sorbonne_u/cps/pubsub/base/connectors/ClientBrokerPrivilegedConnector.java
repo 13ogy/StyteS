@@ -38,6 +38,8 @@ public class ClientBrokerPrivilegedConnector extends ClientBrokerPublishingConne
 			return ((PrivilegedClientCI) this.offering).hasCreatedChannel(receptionPortURI, channel);
 		} catch (UnknownClientException e) {
 			throw e;
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -49,6 +51,8 @@ public class ClientBrokerPrivilegedConnector extends ClientBrokerPublishingConne
 		try {
 			return ((PrivilegedClientCI) this.offering).channelQuotaReached(receptionPortURI);
 		} catch (UnknownClientException e) {
+			throw e;
+		} catch (RemoteException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
@@ -64,6 +68,8 @@ public class ClientBrokerPrivilegedConnector extends ClientBrokerPublishingConne
 		} catch (UnknownClientException | AlreadyExistingChannelException
 				| ChannelQuotaExceededException | UnauthorisedClientException e) {
 			throw e;
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -75,6 +81,8 @@ public class ClientBrokerPrivilegedConnector extends ClientBrokerPublishingConne
 			throws Exception {
 		try {
 			((PrivilegedClientCI) this.offering).modifyAuthorisedUsers(receptionPortURI, channel, autorisedUsers);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -85,6 +93,8 @@ public class ClientBrokerPrivilegedConnector extends ClientBrokerPublishingConne
 	public void destroyChannel(String receptionPortURI, String channel) throws Exception {
 		try {
 			((PrivilegedClientCI) this.offering).destroyChannel(receptionPortURI, channel);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -97,6 +107,8 @@ public class ClientBrokerPrivilegedConnector extends ClientBrokerPublishingConne
 			((PrivilegedClientCI) this.offering).destroyChannelNow(receptionPortURI, channel);
 		} catch (UnknownClientException | UnknownChannelException
 				| UnauthorisedClientException e) {
+			throw e;
+		} catch (RemoteException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);

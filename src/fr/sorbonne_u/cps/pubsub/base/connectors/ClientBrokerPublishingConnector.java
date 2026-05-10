@@ -32,6 +32,8 @@ public class ClientBrokerPublishingConnector extends AbstractConnector implement
 	public void publish(String receptionPortURI, String channel, MessageI message) throws Exception {
 		try {
 			((PublishingCI) this.offering).publish(receptionPortURI, channel, message);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -42,6 +44,8 @@ public class ClientBrokerPublishingConnector extends AbstractConnector implement
 	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception {
 		try {
 			((PublishingCI) this.offering).publish(receptionPortURI, channel, messages);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -63,6 +67,8 @@ public class ClientBrokerPublishingConnector extends AbstractConnector implement
 		try {
 			((PublishingCI) this.offering).asyncPublishAndNotify(
 					receptionPortURI, channel, message, notificationInbounhdPortURI);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -80,6 +86,8 @@ public class ClientBrokerPublishingConnector extends AbstractConnector implement
 		try {
 			((PublishingCI) this.offering).asyncPublishAndNotify(
 					receptionPortURI, channel, messages, notificationInbounhdPortURI);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}

@@ -28,6 +28,8 @@ public class BrokerClientReceivingConnector extends AbstractConnector implements
 	public void receive(String channel, MessageI message) throws Exception {
 		try {
 			((ReceivingCI) this.offering).receive(channel, message);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -38,6 +40,8 @@ public class BrokerClientReceivingConnector extends AbstractConnector implements
 	public void receive(String channel, MessageI[] messages) throws Exception {
 		try {
 			((ReceivingCI) this.offering).receive(channel, messages);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}

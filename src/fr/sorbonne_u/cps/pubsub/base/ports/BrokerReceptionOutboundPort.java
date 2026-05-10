@@ -34,6 +34,8 @@ public class BrokerReceptionOutboundPort extends AbstractOutboundPort implements
 	public void receive(String channel, MessageI message) throws Exception {
 		try {
 			((ReceivingCI) this.getConnector()).receive(channel, message);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -44,6 +46,8 @@ public class BrokerReceptionOutboundPort extends AbstractOutboundPort implements
 	public void receive(String channel, MessageI[] messages) throws Exception {
 		try {
 			((ReceivingCI) this.getConnector()).receive(channel, messages);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}

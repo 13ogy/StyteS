@@ -48,6 +48,8 @@ public class ClientPrivilegedOutboundPort extends ClientPublishingOutboundPort i
 	{
 		try {
 			return ((PrivilegedClientCI) this.getConnector()).hasCreatedChannel(receptionPortURI, channel);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -59,6 +61,8 @@ public class ClientPrivilegedOutboundPort extends ClientPublishingOutboundPort i
 	{
 		try {
 			return ((PrivilegedClientCI) this.getConnector()).channelQuotaReached(receptionPortURI);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -73,6 +77,8 @@ public class ClientPrivilegedOutboundPort extends ClientPublishingOutboundPort i
 			((PrivilegedClientCI) this.getConnector()).createChannel(receptionPortURI, channel, autorisedUsers);
 		} catch (AlreadyExistingChannelException | ChannelQuotaExceededException e) {
 			throw e;
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -84,6 +90,8 @@ public class ClientPrivilegedOutboundPort extends ClientPublishingOutboundPort i
 	{
 		try {
 			((PrivilegedClientCI) this.getConnector()).modifyAuthorisedUsers(receptionPortURI, channel, autorisedUsers);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -95,6 +103,8 @@ public class ClientPrivilegedOutboundPort extends ClientPublishingOutboundPort i
 	{
 		try {
 			((PrivilegedClientCI) this.getConnector()).destroyChannel(receptionPortURI, channel);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -106,6 +116,8 @@ public class ClientPrivilegedOutboundPort extends ClientPublishingOutboundPort i
 	{
 		try {
 			((PrivilegedClientCI) this.getConnector()).destroyChannelNow(receptionPortURI, channel);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}

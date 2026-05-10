@@ -46,6 +46,8 @@ public class ClientPublishingOutboundPort extends AbstractOutboundPort implement
 	public void publish(String receptionPortURI, String channel, MessageI message) throws Exception {
 		try {
 			((PublishingCI) this.getConnector()).publish(receptionPortURI, channel, message);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -56,6 +58,8 @@ public class ClientPublishingOutboundPort extends AbstractOutboundPort implement
 	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception {
 		try {
 			((PublishingCI) this.getConnector()).publish(receptionPortURI, channel, messages);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -77,6 +81,8 @@ public class ClientPublishingOutboundPort extends AbstractOutboundPort implement
 		try {
 			((PublishingCI) this.getConnector()).asyncPublishAndNotify(
 					receptionPortURI, channel, message, notificationInbounhdPortURI);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}
@@ -94,6 +100,8 @@ public class ClientPublishingOutboundPort extends AbstractOutboundPort implement
 		try {
 			((PublishingCI) this.getConnector()).asyncPublishAndNotify(
 					receptionPortURI, channel, messages, notificationInbounhdPortURI);
+		} catch (RemoteException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RemoteException(e.getMessage(), e);
 		}

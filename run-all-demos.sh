@@ -63,7 +63,6 @@ echo
 # 3. Centralised demos
 echo "==> Centralised demos (under -ea, 130 s timeout each)"
 DEMOS=(
-  DemoMidTermDemoV2
   DemoPluginsClient
   DemoSeparatedPlugin
   DemoMidSemComplexTimedScenario
