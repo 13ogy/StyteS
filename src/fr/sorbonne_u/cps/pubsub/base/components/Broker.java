@@ -299,14 +299,14 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 
 	/** Registered clients: receptionPortURI -> registration class. */
-	private final Map<String, RegistrationClass> registeredClients = new HashMap<>();
+	final Map<String, RegistrationClass> registeredClients = new HashMap<>();
 	/** Per-client outbound port to deliver messages. */
 	private final Map<String, BrokerReceptionOutboundPort> receptionPortsOUT = new HashMap<>();
 	/** All channels (FREE + privileged). */
-	private final Set<String> channels = new HashSet<>();
+	final Set<String> channels = new HashSet<>();
 
 	/** Privileged channels metadata. */
-	private static class PrivilegedChannelInfo
+	static class PrivilegedChannelInfo
 	{
 		final String ownerReceptionPortURI;
 		Pattern authorisedUsersPattern;
@@ -319,11 +319,11 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/** Privileged channels: channel -> info (owner + authorisedUsers regex). */
-	private final Map<String, PrivilegedChannelInfo> privilegedChannels = new HashMap<>();
+	final Map<String, PrivilegedChannelInfo> privilegedChannels = new HashMap<>();
 
 	/** Per-client created privileged channels count. ConcurrentHashMap so
 	 *  callers can use atomic compute/merge without holding extra locks. */
-	private final java.util.concurrent.ConcurrentHashMap<String, Integer> createdPrivilegedChannelsCount =
+	final java.util.concurrent.ConcurrentHashMap<String, Integer> createdPrivilegedChannelsCount =
 			new java.util.concurrent.ConcurrentHashMap<>();
 
 	/** Channel quotas */
@@ -332,12 +332,12 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	private int nbFreeChannels;
 
 	/** Subscriptions: channel -> (client receptionPortURI -> filter). */
-	private final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
+	final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
 
 	/** Number of messages currently in-flight per channel. ConcurrentHashMap
 	 *  so beginInFlight/finishInFlight use atomic compute() rather than
 	 *  synchronized blocks. */
-	private final java.util.concurrent.ConcurrentHashMap<String, Integer> inFlightPerChannel =
+	final java.util.concurrent.ConcurrentHashMap<String, Integer> inFlightPerChannel =
 			new java.util.concurrent.ConcurrentHashMap<>();
 
 	/** C.8-find-3: per-channel mutex used by destroyChannel to wait for
@@ -1027,7 +1027,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				: "registrationLock (read or write) must be held by current thread";
 		return this.registeredClients.containsKey(receptionPortURI);
 	}
-	private boolean channelExistLocked(String channel)
+	boolean channelExistLocked(String channel)
 	{
 		// Internal contract: caller must hold channelsLock (read or write).
 		assert this.channelsLock.getReadHoldCount() > 0
@@ -2254,272 +2254,89 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 	// Gossip methodes
 	// -------------------------------------------------------------------------
-
 	/**
 	 * Réception d'un lot de messages gossip d'un voisin
 	 * (cf. {@code docs/GOSSIP.md}).
 	 *
 	 * <p>Pour chaque message :</p>
 	 * <ol>
-	 *   <li>Déduplication atomique via
-	 *       {@code processedGossipURIs.putIfAbsent}.</li>
-	 *   <li>Mémorisation de l'émetteur immédiat pour ne pas lui réémettre
-	 *       le message (soutenance §6.2).</li>
-	 *   <li>Application locale (création/destruction de canal, mise à jour
-	 *       de classe, propagation aux abonnés locaux, …).</li>
-	 *   <li>Réémission filtrée vers tous les voisins sauf l'émetteur immédiat
-	 *       avec une URI émetteur réécrite à la nôtre.</li>
+	 *   <li>Déduplication atomique via {@link #markAsProcessed(GossipMessageI)}
+	 *       (CHM {@code putIfAbsent}, sans verrou — soutenance §6.6 / Phase F.5).</li>
+	 *   <li>Application locale via le pattern <em>Visitor</em> :
+	 *       {@code ((AbstractGossipMessage) msg).accept(handler)} dispatche vers
+	 *       {@link BrokerGossipHandler#visit} typé (remplace les chaînes
+	 *       {@code instanceof}, conformément au conseil donné en soutenance).</li>
+	 *   <li>Réémission filtrée vers tous les voisins <strong>sauf l'émetteur
+	 *       immédiat</strong> (skip-echo, soutenance §6.2) — chaque envoi est
+	 *       dispatché sur l'ES gossip pour ne pas bloquer l'appelant RMI.</li>
 	 * </ol>
+	 *
+	 * <p><strong>Pré : </strong>tous les messages gossip applicatifs étendent
+	 * {@link AbstractGossipMessage} qui implémente
+	 * {@link EmitterAwareGossipMessageI}. Un message tiers sans visitor est
+	 * journalisé puis ignoré localement, mais reste relayé pour ne pas casser
+	 * la fédération en cas d'extension future.</p>
 	 */
 	@Override
 	public void update(GossipMessageI[] fromSender) {
 		assert fromSender != null : "gossip array must not be null";
+		final BrokerGossipHandler handler = new BrokerGossipHandler(this);
 		for (GossipMessageI msg : fromSender) {
-			// Soutenance §6.6 / Phase F.5 : déduplication atomique.
-			// putIfAbsent renvoie l'ancienne valeur si la clé existait déjà
-			// (donc déjà traité). Aucun verrou nécessaire : ConcurrentHashMap.
-			if (this.processedGossipURIs.putIfAbsent(
-					msg.gossipMessageURI(), msg.timestamp()) != null) {
+			// 1. Déduplication atomique (sans verrou).
+			if (!markAsProcessed(msg)) {
 				continue;
 			}
-			// Post-dedup invariant: the URI is now memoised so that any
-			// subsequent putIfAbsent for the same key is a no-op.
 			assert this.processedGossipURIs.containsKey(msg.gossipMessageURI())
-					: "gossip URI must be memoised after successful putIfAbsent: "
+					: "gossip URI must be memoised after markAsProcessed: "
 					+ msg.gossipMessageURI();
 
-			// Mémoriser l'émetteur immédiat AVANT de remplacer son URI :
-			// soutenance §6.2 — il ne faut pas renvoyer le message au broker
-			// qui vient de nous le transmettre. Tous nos messages gossip
-			// implémentent EmitterAwareGossipMessageI ; le test instanceof
-			// reste défensif au cas où un test fournirait un message tiers.
+			// 2. Skip-echo : mémoriser l'émetteur immédiat AVANT toute réécriture.
+			//    Tous nos messages applicatifs étendent AbstractGossipMessage
+			//    (qui implémente EmitterAwareGossipMessageI) ; le test reste
+			//    défensif au cas où un test fournirait un message tiers.
 			final String immediateSenderReflectionURI =
 					(msg instanceof EmitterAwareGossipMessageI)
 							? ((EmitterAwareGossipMessageI) msg).getEmitterURI()
 							: null;
 
-			// Appliquer le message localement
-			if (msg instanceof RegisterGossipMessage) {
-				RegisterGossipMessage regMsg = (RegisterGossipMessage) msg;
-				// Mémoriser localement — sans créer de port outbound
-				// car ce client n'est PAS enregistré chez nous, juste connu
-				this.registrationLock.writeLock().lock();
+			// 3. Application locale via Visitor (double-dispatch typé).
+			if (msg instanceof AbstractGossipMessage) {
 				try {
-					this.registeredClients.putIfAbsent(
-							regMsg.getClientReceptionPortURI(),
-							regMsg.getRegistrationClass());
-					this.createdPrivilegedChannelsCount.putIfAbsent(regMsg.getClientReceptionPortURI(), 0);
-				} finally {
-					this.registrationLock.writeLock().unlock();
+					((AbstractGossipMessage) msg).accept(handler);
+				} catch (Exception e) {
+					this.logMessage("[Broker] gossip handler failed for "
+							+ msg.getClass().getSimpleName() + ": " + e + "\n");
 				}
-			}
-			if (msg instanceof PublishGossipMessage) {
-				PublishGossipMessage pubMsg = (PublishGossipMessage) msg;
-				this.beginInFlight(pubMsg.getChannel());
-				this.runTask(this.esPropagationIndex, o -> {
-					try {
-						((Broker) o).propagationStage(
-								pubMsg.getChannel(),
-								pubMsg.getPubMessage());
-					} catch (Exception e) {
-						this.logMessage("[Broker] gossip propagation failed: " + e + "\n");
-						((Broker) o).finishInFlight(pubMsg.getChannel());
-					}
-				});
-			}
-			if (msg instanceof CreateChannelGossipMessage) {
-				CreateChannelGossipMessage ccMsg = (CreateChannelGossipMessage) msg;
-				Pattern p = null;
-				if (ccMsg.getAuthorisedUsers() != null && !ccMsg.getAuthorisedUsers().isEmpty()) {
-					p = Pattern.compile(ccMsg.getAuthorisedUsers());
-				}
-				final Pattern pattern = p;
-
-				this.registrationLock.writeLock().lock();
-				try {
-					// S'assurer que le propriétaire est connu localement
-					this.registeredClients.putIfAbsent(
-							ccMsg.getOwnerReceptionPortURI(),
-							ccMsg.getOwnerClass());
-
-					this.channelsLock.writeLock().lock();
-					try {
-						// C.8-find-2: atomic compute() for the owner's
-						// quota counter. The previous "+1 then maybe -1"
-						// pattern transiently inflated the count, which
-						// a concurrent gossip arrival could observe and
-						// reject as quota-exceeded. compute() makes the
-						// existence check + count update + channel
-						// installation a single critical section under
-						// channelsLock.writeLock().
-						this.createdPrivilegedChannelsCount.compute(
-								ccMsg.getOwnerReceptionPortURI(),
-								(k, v) -> {
-									int current = (v == null) ? 0 : v;
-									if (this.channelExistLocked(ccMsg.getChannel())) {
-										return current;
-									}
-									int maxQuota = (ccMsg.getOwnerClass() == RegistrationClass.PREMIUM)
-											? this.premiumQuota : this.standardQuota;
-									if (current >= maxQuota) {
-										this.logMessage(
-												"[Broker] gossip CreateChannel dropped:"
-												+ " quota " + maxQuota + " reached for "
-												+ ccMsg.getOwnerReceptionPortURI()
-												+ ", channel=" + ccMsg.getChannel() + "\n");
-										return current;
-									}
-									this.subscriptionsLock.writeLock().lock();
-									try {
-										this.channels.add(ccMsg.getChannel());
-										this.privilegedChannels.put(ccMsg.getChannel(),
-												new PrivilegedChannelInfo(
-														ccMsg.getOwnerReceptionPortURI(), pattern));
-										this.subscriptions.put(ccMsg.getChannel(), new HashMap<>());
-										this.inFlightPerChannel.put(ccMsg.getChannel(), 0);
-									} finally {
-										this.subscriptionsLock.writeLock().unlock();
-									}
-									return current + 1;
-								});
-					} finally {
-						this.channelsLock.writeLock().unlock();
-					}
-				} finally {
-					this.registrationLock.writeLock().unlock();
-				}
+			} else {
+				this.logMessage("[Broker] unhandled gossip type (no visitor): "
+						+ msg.getClass().getName() + "\n");
 			}
 
-			if (msg instanceof ModifyServiceClassGossipMessage) {
-				ModifyServiceClassGossipMessage mscMsg =
-						(ModifyServiceClassGossipMessage) msg;
-
-				this.registrationLock.writeLock().lock();
-				try {
-					//Mettre à jour la classe de service localement
-					this.registeredClients.put(
-							mscMsg.getClientReceptionPortURI(),
-							mscMsg.getNewRegistrationClass());
-
-					// Si downgrade vers FREE — supprimer le quota
-					if (mscMsg.getNewRegistrationClass() == RegistrationClass.FREE) {
-						this.createdPrivilegedChannelsCount.remove(
-								mscMsg.getClientReceptionPortURI());
-					} else {
-						// Si upgrade — initialiser le quota si pas encore présent
-						this.createdPrivilegedChannelsCount.putIfAbsent(
-								mscMsg.getClientReceptionPortURI(), 0);
-					}
-				} finally {
-					this.registrationLock.writeLock().unlock();
-				}
-			}
-			if (msg instanceof DestroyChannelGossipMessage) {
-				DestroyChannelGossipMessage dcMsg = (DestroyChannelGossipMessage) msg;
-
-				// Détruire la copie locale directement
-				this.registrationLock.writeLock().lock();
-				try {
-					this.channelsLock.writeLock().lock();
-					try {
-						// Ne détruire que si le canal existe localement
-						if (this.channelExistLocked(dcMsg.getChannel())) {
-							this.subscriptionsLock.writeLock().lock();
-							try {
-								this.subscriptions.remove(dcMsg.getChannel());
-							} finally {
-								this.subscriptionsLock.writeLock().unlock();
-							}
-							this.channels.remove(dcMsg.getChannel());
-							this.privilegedChannels.remove(dcMsg.getChannel());
-							this.inFlightPerChannel.remove(dcMsg.getChannel());
-							// Décrémenter le quota du propriétaire
-							this.createdPrivilegedChannelsCount.merge(
-									dcMsg.getOwnerReceptionPortURI(), -1, Integer::sum);
-						}
-					} finally {
-						this.channelsLock.writeLock().unlock();
-					}
-				} finally {
-					this.registrationLock.writeLock().unlock();
-				}
-			}
-            if (msg instanceof ModifyAuthorisedUsersGossipMessage) {
-                ModifyAuthorisedUsersGossipMessage mauMsg =
-                        (ModifyAuthorisedUsersGossipMessage) msg;
-                Pattern newPattern = Pattern.compile(mauMsg.getAuthorisedUsers());
-                // C.8-find-4: align with local modifyAuthorisedUsers, which
-                // takes registrationLock.readLock() then channelsLock.writeLock().
-                // The gossip handler previously took only channelsLock.writeLock(),
-                // creating an inconsistent lock order versus other paths
-                // (e.g. unregister) that hold registrationLock.writeLock()
-                // and then need channelsLock — under contention this could
-                // deadlock. Acquire in the same order, release in reverse.
-                this.registrationLock.readLock().lock();
-                try {
-                    this.channelsLock.writeLock().lock();
-                    try {
-                        PrivilegedChannelInfo info =
-                                this.privilegedChannels.get(mauMsg.getChannel());
-                        if (info != null) {
-                            info.authorisedUsersPattern = newPattern;
-                        }
-                    } finally {
-                        this.channelsLock.writeLock().unlock();
-                    }
-                } finally {
-                    this.registrationLock.readLock().unlock();
-                }
-            }
-
-			if (msg instanceof UnregisterGossipMessage){
-				UnregisterGossipMessage unregMsg = (UnregisterGossipMessage) msg;
-
-
-				// retirer subscriptions
-				this.subscriptionsLock.writeLock().lock();
-				try {
-					for (Map<String, MessageFilterI> subs : this.subscriptions.values()) {
-						subs.remove(unregMsg.getClientReceptionPortURI());
-					}
-				} finally {
-					this.subscriptionsLock.writeLock().unlock();
-				}
-
-				// maintenant retirer le client
-				BrokerReceptionOutboundPort out;
-				this.registrationLock.writeLock().lock();
-				try {
-					this.registeredClients.remove(unregMsg.getClientReceptionPortURI());
-					this.createdPrivilegedChannelsCount.remove(unregMsg.getClientReceptionPortURI());
-				} finally {
-					this.registrationLock.writeLock().unlock();
-				}
-
-
-			}
-
-			// Propager aux voisins avec nouvel émetteur — sauf au voisin
-			// qui vient de nous transmettre le message (soutenance §6.2).
-			GossipMessageI forwarded = msg.copyWithNewEmitterURI(this.getReflectionInboundPortURI());
+			// 4. Réémission aux voisins, en sautant l'émetteur immédiat.
+			//    On réécrit l'émetteur courant à la nôtre.
+			final GossipMessageI forwarded =
+					msg.copyWithNewEmitterURI(this.getReflectionInboundPortURI());
 			for (Map.Entry<String, GossipSenderOutboundPort> e
 					: this.sendersByNeighbour.entrySet()) {
-				if (immediateSenderReflectionURI != null
-						&& e.getKey().equals(immediateSenderReflectionURI)) {
-					continue; // skip echo
-				}
+				final String neighbourReflectionURI = e.getKey();
 				final GossipSenderOutboundPort sender = e.getValue();
+				// Skip-echo : ne pas renvoyer au broker qui vient de nous transmettre.
+				if (immediateSenderReflectionURI != null
+						&& immediateSenderReflectionURI.equals(neighbourReflectionURI)) {
+					continue;
+				}
 				try {
-					this.runTask(this.esGossipIndex, o -> {
+					this.runTask(this.esGossipIndex, owner -> {
 						try {
-							sender.send(new GossipMessageI[]{forwarded});
+							sender.send(new GossipMessageI[] { forwarded });
 						} catch (Exception ex) {
-							((Broker) o).logMessage(
+							((Broker) owner).logMessage(
 									"[Broker] gossip forward failed: " + ex + "\n");
 						}
 					});
 				} catch (Exception ex) {
-					this.logMessage("[Broker] gossip forward submit failed: " + ex + "\n");
+					this.logMessage("[Broker] gossip forward submit failed: "
+							+ ex + "\n");
 				}
 			}
 		}
@@ -2552,6 +2369,20 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				}
 			});
 		}
+	}
+	/**
+	 * Déduplication atomique d'un message gossip via {@link #processedGossipURIs}
+	 * (soutenance §6.6 / Phase F.5). Aucun verrou nécessaire :
+	 * {@link java.util.concurrent.ConcurrentHashMap#putIfAbsent putIfAbsent}
+	 * fournit la garantie atomique « première-occurrence ».
+	 *
+	 * @param msg le message gossip à déduper.
+	 * @return {@code true} si c'est la première fois qu'on voit cette URI
+	 *         (donc à traiter), {@code false} s'il a déjà été traité.
+	 */
+	boolean markAsProcessed(GossipMessageI msg) {
+		return this.processedGossipURIs.putIfAbsent(
+				msg.gossipMessageURI(), msg.timestamp()) == null;
 	}
 
 	/**

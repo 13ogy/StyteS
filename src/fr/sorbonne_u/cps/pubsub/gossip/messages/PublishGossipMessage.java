@@ -1,5 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.gossip.messages;
 
+import fr.sorbonne_u.cps.pubsub.base.components.GossipMessageVisitor;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.EmitterAwareGossipMessageI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
@@ -31,7 +32,7 @@ import java.time.Instant;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class PublishGossipMessage implements EmitterAwareGossipMessageI {
+public class PublishGossipMessage extends AbstractGossipMessage {
 
     /** URI unique et immuable du message gossip (clef de dédup). */
     private final String gossipMessageURI;     // URI unique du message gossip
@@ -102,5 +103,12 @@ public class PublishGossipMessage implements EmitterAwareGossipMessageI {
                 this.pubMessage,
                 this.channel,
                 this.publisherReceptionPortURI);
+    }
+
+
+    // Visitor pattern
+    @Override
+    public void accept(GossipMessageVisitor visitor) {
+        visitor.visit(this);
     }
 }

@@ -1,5 +1,6 @@
 package fr.sorbonne_u.cps.pubsub.gossip.messages;
 
+import fr.sorbonne_u.cps.pubsub.base.components.GossipMessageVisitor;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.EmitterAwareGossipMessageI;
 import fr.sorbonne_u.cps.pubsub.gossip.interfaces.GossipMessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
@@ -30,7 +31,7 @@ import java.time.Instant;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class ModifyAuthorisedUsersGossipMessage implements EmitterAwareGossipMessageI {
+public class ModifyAuthorisedUsersGossipMessage extends AbstractGossipMessage {
 
     private static final long serialVersionUID = 1L;
 
@@ -113,4 +114,11 @@ public class ModifyAuthorisedUsersGossipMessage implements EmitterAwareGossipMes
     public String getEmitterURI()            { return this.emitterURI; }
     /** @return classe de service du propriétaire. */
     public RegistrationClass getOwnerClass() { return this.ownerClass; }
+
+
+    // Visitor pattern
+    @Override
+    public void accept(GossipMessageVisitor visitor) {
+        visitor.visit(this);
+    }
 }
