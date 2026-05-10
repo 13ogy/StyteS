@@ -2,18 +2,79 @@ package fr.sorbonne_u.cps.pubsub.demo;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
+import fr.sorbonne_u.components.utils.tests.TestScenario;
+import fr.sorbonne_u.components.utils.tests.TestStep;
+import fr.sorbonne_u.components.utils.tests.TestStepI;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
-import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
+import fr.sorbonne_u.cps.pubsub.messages.Message;
+import fr.sorbonne_u.cps.pubsub.messages.MessageFilter;
+import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
+import fr.sorbonne_u.utils.aclocks.ClocksServer;
+
+import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Minimal demo for CDC §3.5: client operations implemented using plugins.
+ * Démonstration minimale de l'API plugin (CDC §3.5) : un publieur et un
+ * souscripteur échangent un message via deux greffons composés sur des
+ * composants client dédiés à leur rôle.
  *
+ * <p>
+ * <strong>Pourquoi cette refonte&nbsp;?</strong> La version précédente
+ * pilotait les composants depuis {@code executeComponent(...)} en accédant
+ * directement à la table interne {@code uri2component} de BCM4Java pour
+ * caster en {@code PluginClient} et appeler des méthodes Java directement
+ * sur l'instance. C'est exactement l'anti-patron pointé par le jury :
+ * <em>« très mal organisé avec des accès directs aux structures de données
+ * internes de BCM4Java pour ensuite faire des appels Java directement sur
+ * les objets représentant les composants »</em>. Cette nouvelle version
+ * utilise le mécanisme canonique BCM4Java de scénario temporisé
+ * ({@link TestScenario} + {@link TestStep} + {@link ClocksServer}) déjà
+ * employé par {@link DemoSeparatedPlugin}, {@link DemoMidSemComplexTimedScenario}
+ * et {@link DemoMeteoTimedTestTool}.
+ * </p>
+ *
+ * <h2>Composants instanciés</h2>
+ * <ul>
+ *   <li>un {@link Broker} centralisé ;</li>
+ *   <li>un {@link ClocksServer} fournissant l'horloge accélérée commune ;</li>
+ *   <li>un {@link PublisherClient} (composant cliennt jouant le rôle
+ *       publieur, ne charge que les greffons {@code Registration} et
+ *       {@code Publication}) ;</li>
+ *   <li>un {@link SubscriberClient} (rôle souscripteur, ne charge que les
+ *       greffons {@code Registration} et {@code Subscription}).</li>
+ * </ul>
+ *
+ * <h2>Scénario</h2>
+ * <ol>
+ *   <li>{@code t = +1s} : le souscripteur s'abonne à {@code channel0} avec
+ *       un filtre acceptant tout ;</li>
+ *   <li>{@code t = +2s} : le publieur publie un message
+ *       {@code "hello-from-plugin-client"} sur {@code channel0} ;</li>
+ *   <li>la livraison déclenche {@link SubscriberClient#onReceive(String, MessageI)}
+ *       qui trace la réception en console.</li>
+ * </ol>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class DemoPluginsClient extends AbstractCVM
 {
+	public static final String  BROKER_URI            = "broker";
+	public static final String  PUBLISHER_URI         = "plugin-client-publisher";
+	public static final String  SUBSCRIBER_URI        = "plugin-client-subscriber";
+	public static final String  CHANNEL               = "channel0";
+
+	public static final String  CLOCK_URI             = "demo-plugins-clock";
+	public static final String  START_INSTANT_STR     = "2026-04-22T09:00:00.00Z";
+	public static final double  ACCELERATION_FACTOR   = 1.0;
+	/** Délai (ms) entre le démarrage du CVM et l'instant de départ de
+	 *  l'horloge accélérée ; doit couvrir la phase {@code start()} de tous
+	 *  les composants avant que les étapes du scénario ne soient déclenchées. */
+	protected static final long DELAY_TO_START_MS     = 8_000L;
+
 	/**
 	 * Construit ce CVM ; la création réelle des composants se produit dans
 	 * {@link #deploy()}.
@@ -25,100 +86,127 @@ public class DemoPluginsClient extends AbstractCVM
 		super();
 	}
 
-	public static final String BROKER_URI = "broker";
-	public static final String C1_URI = "plugin-client-1";
-	public static final String C2_URI = "plugin-client-2";
-	public static final String CHANNEL = "channel0";
+	// =========================================================================
+	// Scenario
+	// =========================================================================
+
 	/**
-	 * Crée et publie tous les composants du scénario, puis active le tracing
-	 * sur les participants pertinents.
+	 * Construit le scénario temporisé partagé : un pas de souscription, un
+	 * pas de publication. Aucune étape n'invoque {@code register(...)} :
+	 * l'enregistrement reste dans {@link PublisherClient#execute()} /
+	 * {@link SubscriberClient#execute()}, conformément à la convention
+	 * « register dans execute(), pas dans les étapes du scénario ».
+	 *
+	 * @return le scénario prêt à être passé aux composants participants.
+	 */
+	private TestScenario buildScenario()
+	{
+		Instant start = Instant.parse(START_INSTANT_STR);
+		Instant tSub  = start.plusSeconds(1);
+		Instant tPub  = start.plusSeconds(2);
+		Instant end   = start.plusSeconds(3);
+
+		MessageFilterI acceptAll = new MessageFilter(
+				new MessageFilterI.PropertyFilterI[0],
+				new MessageFilterI.PropertiesFilterI[0],
+				new AcceptAllTimeFilter());
+
+		return new TestScenario(
+				"[BEGIN] DemoPluginsClient — minimal plugin exchange",
+				"[END]   DemoPluginsClient — exchange complete",
+				CLOCK_URI,
+				start, end,
+				new TestStepI[] {
+					new TestStep(CLOCK_URI, SUBSCRIBER_URI, tSub, owner -> {
+						try {
+							((SubscriberClient) owner).subscribe(CHANNEL, acceptAll);
+							((SubscriberClient) owner).traceMessage(
+									"subscribed to " + CHANNEL + " ✓\n");
+						} catch (Exception e) {
+							((SubscriberClient) owner).logMessage(
+									"subscribe failed: " + e + "\n");
+						}
+					}),
+					new TestStep(CLOCK_URI, PUBLISHER_URI, tPub, owner -> {
+						try {
+							MessageI m = new Message("hello-from-plugin-client");
+							((PublisherClient) owner).publish(CHANNEL, m);
+							((PublisherClient) owner).traceMessage(
+									"published on " + CHANNEL + " ✓\n");
+						} catch (Exception e) {
+							((PublisherClient) owner).logMessage(
+									"publish failed: " + e + "\n");
+						}
+					}),
+				});
+	}
+
+	// =========================================================================
+	// Lifecycle
+	// =========================================================================
+
+	/**
+	 * Crée le broker, le {@link ClocksServer} et les deux clients basés
+	 * plugin. Active le tracing sur les participants pour rendre visible
+	 * l'échange en console.
 	 *
 	 * @throws Exception si la création / publication d'un composant échoue.
 	 */
-
 	@Override
 	public void deploy() throws Exception
 	{
-		AbstractComponent.createComponent(Broker.class.getCanonicalName(),
-			new Object[] { BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8 });
+		TestScenario.VERBOSE = true;
+		TestScenario.DEBUG   = true;
+
+		TestScenario ts = buildScenario();
 
 		AbstractComponent.createComponent(
-			PluginClient.class.getCanonicalName(),
-			new Object[] { C1_URI, 1, 0, BROKER_URI });
+				Broker.class.getCanonicalName(),
+				new Object[] { BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8 });
+
+		long current = System.currentTimeMillis();
+		long unixEpochStartTimeInNanos =
+				TimeUnit.MILLISECONDS.toNanos(current + DELAY_TO_START_MS);
+		Instant startInstant = Instant.parse(START_INSTANT_STR);
 		AbstractComponent.createComponent(
-			PluginClient.class.getCanonicalName(),
-			new Object[] { C2_URI, 1, 0, BROKER_URI });
+				ClocksServer.class.getCanonicalName(),
+				new Object[] {
+						CLOCK_URI,
+						unixEpochStartTimeInNanos,
+						startInstant,
+						ACCELERATION_FACTOR
+				});
+
+		AbstractComponent.createComponent(
+				PublisherClient.class.getCanonicalName(),
+				new Object[] { PUBLISHER_URI, BROKER_URI, ts, RegistrationClass.FREE });
+
+		AbstractComponent.createComponent(
+				SubscriberClient.class.getCanonicalName(),
+				new Object[] { SUBSCRIBER_URI, BROKER_URI, ts, RegistrationClass.FREE });
 
 		super.deploy();
 
-		// Drive a simple exchange using component tasks.
-		this.toggleTracing(C2_URI);
-		this.toggleTracing(C1_URI);
-		this.toggleLogging(C2_URI);
-		this.toggleLogging(C1_URI);
-	}
-	/**
-	 * Lance la phase d'exécution du CVM ; appelé par le cycle de vie BCM
-	 * après {@link #deploy()}.
-	 *
-	 * @throws Exception si l'exécution échoue.
-	 */
-
-	@Override
-	public void execute() throws Exception
-	{
-		super.execute();
-		// Drive a deterministic scenario from the CVM.
-		this.executeComponent(C2_URI); // make sure C2 is executed first
-		this.executeComponent(C1_URI);
+		this.toggleTracing(PUBLISHER_URI);
+		this.toggleTracing(SUBSCRIBER_URI);
+		this.toggleLogging(PUBLISHER_URI);
+		this.toggleLogging(SUBSCRIBER_URI);
 	}
 
-	@Override
-	public void executeComponent(String componentURI) throws Exception
-	{
-		// Override execution of PluginClient components with our scenario.
-		if (C2_URI.equals(componentURI)) {
-			this.uri2component.get(C2_URI).runTask(o -> {
-				try {
-					PluginClient c2 = (PluginClient) o;
-					c2.register(RegistrationClass.FREE);
-					Thread.sleep(1500);
-					c2.subscribe(CHANNEL,
-						new fr.sorbonne_u.cps.pubsub.messages.MessageFilter(
-							new fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.PropertyFilterI[0],
-							new fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.PropertiesFilterI[0],
-							new fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter()));
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			});
-		} else if (C1_URI.equals(componentURI)) {
-			this.uri2component.get(C1_URI).runTask(o -> {
-				try {
-					PluginClient c1 = (PluginClient) o;
-					c1.register(RegistrationClass.FREE);
-					Thread.sleep(2500);
-					c1.publish(CHANNEL, new fr.sorbonne_u.cps.pubsub.messages.Message("hello-from-plugin-client"));
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			});
-		} else {
-			super.executeComponent(componentURI);
-		}
-	}
 	/**
 	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
 	 * pendant la durée codée en dur, puis termine la JVM.
 	 *
 	 * @param args ignorés.
 	 */
-
 	public static void main(String[] args)
 	{
 		try {
 			DemoPluginsClient cvm = new DemoPluginsClient();
-			cvm.startStandardLifeCycle(4000L);
+			// DELAY_TO_START_MS (8 s) + scenario virtual duration (3 s) / ACCEL
+			// + safety margin.
+			cvm.startStandardLifeCycle(20_000L);
+			System.out.println("ending...");
 			System.exit(0);
 		} catch (Exception e) {
 			e.printStackTrace();
