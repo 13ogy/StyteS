@@ -21,7 +21,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class BrokerClientReceivingConnector extends AbstractConnector implements ReceivingCI {
+public class ReceivingConnector extends AbstractConnector implements ReceivingCI {
 
 	/** @see ReceivingCI#receive(String, MessageI) */
 	@Override

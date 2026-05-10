@@ -3,7 +3,7 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 import fr.sorbonne_u.components.AbstractPlugin;
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPublishingConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.PublishingConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPublishingOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
@@ -168,7 +168,7 @@ implements		ClientPublicationI
 		this.getOwner().doPortConnection(
 			this.publishingPortOUT.getPortURI(),
 			Broker.publishingPortURIFor(this.brokerReflectionURI),
-			ClientBrokerPublishingConnector.class.getCanonicalName());
+			PublishingConnector.class.getCanonicalName());
 	}
 
 	/**

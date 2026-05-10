@@ -25,7 +25,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class ClientBrokerPublishingConnector extends AbstractConnector implements PublishingCI {
+public class PublishingConnector extends AbstractConnector implements PublishingCI {
 
 	/** @see PublishingCI#publish(String, String, MessageI) */
 	@Override

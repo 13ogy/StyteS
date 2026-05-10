@@ -3,7 +3,7 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 import fr.sorbonne_u.components.AbstractPlugin;
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerPrivilegedConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.PrivilegedConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientPrivilegedOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
@@ -165,7 +165,7 @@ implements		PrivilegedClientI
 		this.getOwner().doPortConnection(
 			this.privilegedPortOUT.getPortURI(),
 			Broker.privilegedPortURIFor(this.brokerReflectionURI),
-			ClientBrokerPrivilegedConnector.class.getCanonicalName());
+			PrivilegedConnector.class.getCanonicalName());
 	}
 
 	/**

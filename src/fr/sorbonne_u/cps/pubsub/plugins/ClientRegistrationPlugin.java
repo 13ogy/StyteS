@@ -3,7 +3,7 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 import fr.sorbonne_u.components.AbstractPlugin;
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
-import fr.sorbonne_u.cps.pubsub.base.connectors.ClientBrokerRegistrationConnector;
+import fr.sorbonne_u.cps.pubsub.base.connectors.RegistrationConnector;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientInboundPort;
 import fr.sorbonne_u.cps.pubsub.base.ports.ClientRegistrationOutboundPort;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
@@ -193,7 +193,7 @@ implements		ClientRegistrationI
 		this.getOwner().doPortConnection(
 			this.registrationPortOUT.getPortURI(),
 			Broker.registrationPortURIFor(this.brokerReflectionURI),
-			ClientBrokerRegistrationConnector.class.getCanonicalName());
+			RegistrationConnector.class.getCanonicalName());
 	}
 
 	/**

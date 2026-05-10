@@ -28,7 +28,7 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class ClientBrokerRegistrationConnector extends AbstractConnector implements RegistrationCI {
+public class RegistrationConnector extends AbstractConnector implements RegistrationCI {
 
 	/** @see RegistrationCI#registered(String) */
 	@Override
