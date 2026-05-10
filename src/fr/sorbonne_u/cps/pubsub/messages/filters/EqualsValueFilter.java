@@ -1,18 +1,16 @@
 package fr.sorbonne_u.cps.pubsub.messages.filters;
 
-import java.io.Serializable;
-
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
 
+import java.io.Serializable;
+
 /**
- * Filtre de valeur acceptant uniquement les valeurs égales à une valeur attendue
- * (comparaison via {@link Object#equals(Object)}).
- *
+ * Filtre de valeur acceptant uniquement les valeurs égales à une valeur attendue (comparaison via
+ * {@link Object#equals(Object)}).
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class EqualsValueFilter implements ValueFilterI
-{
+public class EqualsValueFilter implements ValueFilterI {
 	private static final long serialVersionUID = 1L;
 
 	/** Valeur attendue. */
@@ -23,20 +21,17 @@ public class EqualsValueFilter implements ValueFilterI
 	 *
 	 * @param expected valeur attendue (peut être null).
 	 */
-	public EqualsValueFilter(Serializable expected)
-	{
+	public EqualsValueFilter(Serializable expected) {
 		this.expected = expected;
 	}
 
 	/**
 	 * @param value valeur candidate (peut être {@code null}).
-	 * @return {@code true} ssi {@code value} est égale à la valeur attendue
-	 * au sens de {@link Object#equals(Object)} (deux {@code null} sont
-	 * considérés égaux).
+	 * @return {@code true} ssi {@code value} est égale à la valeur attendue au sens de {@link
+	 *     Object#equals(Object)} (deux {@code null} sont considérés égaux).
 	 */
 	@Override
-	public boolean match(Serializable value)
-	{
+	public boolean match(Serializable value) {
 		if (this.expected == null) {
 			return value == null;
 		}

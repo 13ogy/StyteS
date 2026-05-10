@@ -7,12 +7,10 @@ import java.util.Objects;
 
 /**
  * Simple wind data implementation for CDC §3.4.
- 
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class WindData implements WindDataI
-{
+public class WindData implements WindDataI {
 	private static final long serialVersionUID = 1L;
 
 	private final PositionI position;
@@ -27,8 +25,7 @@ public class WindData implements WindDataI
 	 * @param y composante verticale du vecteur vent.
 	 * @throws IllegalArgumentException si {@code position} est {@code null}.
 	 */
-	public WindData(PositionI position, double x, double y)
-	{
+	public WindData(PositionI position, double x, double y) {
 		if (position == null) {
 			throw new IllegalArgumentException("position cannot be null");
 		}
@@ -37,62 +34,64 @@ public class WindData implements WindDataI
 		this.y = y;
 	}
 
-	/** @return la position d'observation. */
+	/**
+	 * @return la position d'observation.
+	 */
 	@Override
-	public PositionI getPosition()
-	{
+	public PositionI getPosition() {
 		return position;
 	}
 
-	/** @return la composante horizontale du vecteur vent. */
+	/**
+	 * @return la composante horizontale du vecteur vent.
+	 */
 	@Override
-	public double xComponent()
-	{
+	public double xComponent() {
 		return x;
 	}
 
-	/** @return la composante verticale du vecteur vent. */
+	/**
+	 * @return la composante verticale du vecteur vent.
+	 */
 	@Override
-	public double yComponent()
-	{
+	public double yComponent() {
 		return y;
 	}
 
 	/**
-	 * @return la norme euclidienne du vecteur vent
-	 * ({@code sqrt(x*x + y*y)}, en m/s).
+	 * @return la norme euclidienne du vecteur vent ({@code sqrt(x*x + y*y)}, en m/s).
 	 */
 	@Override
-	public double force()
-	{
+	public double force() {
 		return Math.sqrt(x * x + y * y);
 	}
 
 	@Override
-	public boolean equals(Object o)
-	{
+	public boolean equals(Object o) {
 		if (this == o) return true;
 		if (!(o instanceof WindData)) return false;
 		WindData windData = (WindData) o;
-		return Double.compare(x, windData.x) == 0 &&
-			Double.compare(y, windData.y) == 0 &&
-			position.equals(windData.position);
+		return Double.compare(x, windData.x) == 0
+				&& Double.compare(y, windData.y) == 0
+				&& position.equals(windData.position);
 	}
 
 	@Override
-	public int hashCode()
-	{
+	public int hashCode() {
 		return Objects.hash(position, x, y);
 	}
 
 	@Override
-	public String toString()
-	{
-		return "WindData{" +
-			"position=" + position +
-			", x=" + x +
-			", y=" + y +
-			", force=" + force() +
-			'}';
+	public String toString() {
+		return "WindData{"
+				+ "position="
+				+ position
+				+ ", x="
+				+ x
+				+ ", y="
+				+ y
+				+ ", force="
+				+ force()
+				+ '}';
 	}
 }

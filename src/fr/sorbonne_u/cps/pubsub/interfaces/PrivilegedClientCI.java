@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.interfaces;
 // modify and redistribute granted by the license, users are provided only
 // with a limited warranty and the software's author, the holder of the
 // economic rights, and the successive licensors have only limited
-// liability. 
+// liability.
 //
 // In this respect, the user's attention is drawn to the risks associated
 // with loading, using, modifying and/or developing or reproducing the
@@ -26,83 +26,78 @@ package fr.sorbonne_u.cps.pubsub.interfaces;
 // therefore means that it is reserved for developers and experienced
 // professionals having in-depth computer knowledge. Users are therefore
 // encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and, more generally, to use and operate it in the 
-// same conditions as regards security. 
+// requirements in conditions enabling the security of their systems and/or
+// data to be ensured and, more generally, to use and operate it in the
+// same conditions as regards security.
 //
 // The fact that you are presently reading this means that you have had
 // knowledge of the CeCILL-C license and that you accept its terms.
 
 // -----------------------------------------------------------------------------
 /**
- * The component interface <code>PrivilegedClientCI</code> declares the methods
- * to be offered by a publication/subscription system to its privileged clients
- * to manage the channels.
+ * The component interface <code>PrivilegedClientCI</code> declares the methods to be offered by a
+ * publication/subscription system to its privileged clients to manage the channels.
  *
- * <p><strong>Description</strong></p>
- * 
- * <p><strong>Invariants</strong></p>
- * 
+ * <p><strong>Description</strong>
+ *
+ * <p><strong>Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p>Created on : 2026-01-20</p>
- * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ *
+ * <p>Created on : 2026-01-20
+ *
+ * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  */
-public interface		PrivilegedClientCI
-extends		PublishingCI
-{
+public interface PrivilegedClientCI extends PublishingCI {
 	// -------------------------------------------------------------------------
 	// Signature and default methods
 	// -------------------------------------------------------------------------
 
 	/**
 	 * return true if the component has created {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * pre	{@code channel != null && !channel.isEmpty()}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI	URI of the inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel			channel to be tested.
-	 * @return					true if the component has created {@code channel}.
-	 * @throws Exception		<i>to do</i>.
+	 * @param receptionPortURI URI of the inbound port offering the component interface {@code
+	 *     ReceivingCI}.
+	 * @param channel channel to be tested.
+	 * @return true if the component has created {@code channel}.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public boolean		hasCreatedChannel(
-		String receptionPortURI,
-		String channel
-		) throws Exception;
-			
+	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws Exception;
+
 	/**
-	 * return true if the component registered under {@code receptionPortURI}
-	 * has reached its channel quota.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * return true if the component registered under {@code receptionPortURI} has reached its
+	 * channel quota.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI	URI of the inbound port offering the component interface {@code ReceivingCI}.
-	 * @return					true if the component registered under {@code receptionPortURI} has reached its channel quota.
-	 * @throws Exception		<i>to do</i>.
+	 * @param receptionPortURI URI of the inbound port offering the component interface {@code
+	 *     ReceivingCI}.
+	 * @return true if the component registered under {@code receptionPortURI} has reached its
+	 *     channel quota.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public boolean		channelQuotaReached(String receptionPortURI)
-	throws	Exception;
+	public boolean channelQuotaReached(String receptionPortURI) throws Exception;
 
 	/**
-	 * create a new channel of the given name with a set of users authorised to
-	 * use it.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * create a new channel of the given name with a set of users authorised to use it.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * pre	{@code channel != null && !channel.isEmpty()}
@@ -110,22 +105,21 @@ extends		PublishingCI
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI	identifier of the requesting component <i>i.e.</i>, URI of its inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel			name of the channel to be created.
-	 * @param autorisedUsers	regular expression that matches the URIs of components that must be authorised to use the new channel.
-	 * @throws Exception		<i>to do</i>.
+	 * @param receptionPortURI identifier of the requesting component <i>i.e.</i>, URI of its
+	 *     inbound port offering the component interface {@code ReceivingCI}.
+	 * @param channel name of the channel to be created.
+	 * @param autorisedUsers regular expression that matches the URIs of components that must be
+	 *     authorised to use the new channel.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public void			createChannel(
-		String receptionPortURI,
-		String channel,
-		String autorisedUsers
-		) throws Exception;
+	public void createChannel(String receptionPortURI, String channel, String autorisedUsers)
+			throws Exception;
 
 	/**
 	 * replace the users authorised to use {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * pre	{@code channel != null && !channel.isEmpty()}
@@ -133,55 +127,51 @@ extends		PublishingCI
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI	identifier of the requesting component <i>i.e.</i>, URI of its inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel			name of the channel.
-	 * @param autorisedUsers	regular expression that matches the URIs of components that must be authorised to use the new channel.
-	 * @throws Exception		<i>to do</i>.
+	 * @param receptionPortURI identifier of the requesting component <i>i.e.</i>, URI of its
+	 *     inbound port offering the component interface {@code ReceivingCI}.
+	 * @param channel name of the channel.
+	 * @param autorisedUsers regular expression that matches the URIs of components that must be
+	 *     authorised to use the new channel.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public void			modifyAuthorisedUsers(
-		String receptionPortURI,
-		String channel,
-		String autorisedUsers
-		) throws Exception;
+	public void modifyAuthorisedUsers(
+			String receptionPortURI, String channel, String autorisedUsers) throws Exception;
 
 	/**
-	 * destroy the given channel when no more messages are currently waiting
-	 * to be transmitted.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * destroy the given channel when no more messages are currently waiting to be transmitted.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * pre	{@code channel != null && !channel.isEmpty()}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI				URI of the inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel						name of the channel to be destroyed.
-	 * @throws Exception					<i>to do</i>.
+	 * @param receptionPortURI URI of the inbound port offering the component interface {@code
+	 *     ReceivingCI}.
+	 * @param channel name of the channel to be destroyed.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public void			destroyChannel(String receptionPortURI, String channel)
-	throws Exception;
+	public void destroyChannel(String receptionPortURI, String channel) throws Exception;
 
 	/**
-	 * destroy the given channel immediately, even if the channel has still
-	 * messages to be transmitted..
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * destroy the given channel immediately, even if the channel has still messages to be
+	 * transmitted..
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * pre	{@code channel != null && !channel.isEmpty()}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI				URI of the inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel						name of the channel to be destroyed.
-	 * @throws Exception					<i>to do</i>.
+	 * @param receptionPortURI URI of the inbound port offering the component interface {@code
+	 *     ReceivingCI}.
+	 * @param channel name of the channel to be destroyed.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public void			destroyChannelNow(
-		String receptionPortURI,
-		String channel
-		) throws Exception;
+	public void destroyChannelNow(String receptionPortURI, String channel) throws Exception;
 }
 // -----------------------------------------------------------------------------

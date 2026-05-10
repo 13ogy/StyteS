@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.interfaces;
 // modify and redistribute granted by the license, users are provided only
 // with a limited warranty and the software's author, the holder of the
 // economic rights, and the successive licensors have only limited
-// liability. 
+// liability.
 //
 // In this respect, the user's attention is drawn to the risks associated
 // with loading, using, modifying and/or developing or reproducing the
@@ -26,88 +26,84 @@ package fr.sorbonne_u.cps.pubsub.interfaces;
 // therefore means that it is reserved for developers and experienced
 // professionals having in-depth computer knowledge. Users are therefore
 // encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and, more generally, to use and operate it in the 
-// same conditions as regards security. 
+// requirements in conditions enabling the security of their systems and/or
+// data to be ensured and, more generally, to use and operate it in the
+// same conditions as regards security.
 //
 // The fact that you are presently reading this means that you have had
 // knowledge of the CeCILL-C license and that you accept its terms.
 
+import fr.sorbonne_u.cps.pubsub.exceptions.UnknownPropertyException;
+
 import java.io.Serializable;
 import java.time.Instant;
-import fr.sorbonne_u.cps.pubsub.exceptions.UnknownPropertyException;
 
 // -----------------------------------------------------------------------------
 /**
- * The interface <code>MessageI</code> declares the signatures of methods to be
- * implemented by messages transmitted through the publication/subscription
- * system.
+ * The interface <code>MessageI</code> declares the signatures of methods to be implemented by
+ * messages transmitted through the publication/subscription system.
  *
- * <p><strong>Description</strong></p>
- * 
- * <p><strong>Invariants</strong></p>
- * 
+ * <p><strong>Description</strong>
+ *
+ * <p><strong>Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p>Created on : 2026-01-20</p>
- * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ *
+ * <p>Created on : 2026-01-20
+ *
+ * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  */
-public interface		MessageI
-extends		Serializable
-{
+public interface MessageI extends Serializable {
 	// -------------------------------------------------------------------------
 	// Inner types and classes
 	// -------------------------------------------------------------------------
 
 	/**
-	 * The interface <code>PropertyI</code> declares the signatures of methods
-	 * to be implemented by properties objects put on messages.
+	 * The interface <code>PropertyI</code> declares the signatures of methods to be implemented by
+	 * properties objects put on messages.
 	 *
-	 * <p><strong>Description</strong></p>
-	 * 
-	 * <p><strong>Invariants</strong></p>
-	 * 
+	 * <p><strong>Description</strong>
+	 *
+	 * <p><strong>Invariants</strong>
+	 *
 	 * <pre>
 	 * invariant	{@code true}	// no more invariant
 	 * </pre>
-	 * 
-	 * <p>Created on : 2026-01-20</p>
-	 * 
-	 * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+	 *
+	 * <p>Created on : 2026-01-20
+	 *
+	 * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
 	 */
-	public interface	PropertyI
-	extends		Serializable
-	{
+	public interface PropertyI extends Serializable {
 		/**
 		 * return the property name.
-		 * 
-		 * <p><strong>Contract</strong></p>
-		 * 
+		 *
+		 * <p><strong>Contract</strong>
+		 *
 		 * <pre>
 		 * pre	{@code true}	// no precondition.
 		 * post	{@code return != null && !return.isEmpty()}
 		 * </pre>
 		 *
-		 * @return	the property name.
+		 * @return the property name.
 		 */
-		public String		getName();
+		public String getName();
 
 		/**
 		 * return the value of the property.
-		 * 
-		 * <p><strong>Contract</strong></p>
-		 * 
+		 *
+		 * <p><strong>Contract</strong>
+		 *
 		 * <pre>
 		 * pre	{@code true}	// no precondition.
 		 * post	{@code true}	// no postcondition.
 		 * </pre>
 		 *
-		 * @return	the value of the property.
+		 * @return the value of the property.
 		 */
-		public Serializable	getValue();
+		public Serializable getValue();
 	}
 
 	// -------------------------------------------------------------------------
@@ -115,140 +111,138 @@ extends		Serializable
 	// -------------------------------------------------------------------------
 
 	/**
-	 * return true if {@code name} is the name of an existing property on the
-	 * message.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * return true if {@code name} is the name of an existing property on the message.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code name != null && !name.isEmpty()}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param name	a potential property name to be tested.
-	 * @return		true if {@code name} is the name of an existing property on the message.
+	 * @param name a potential property name to be tested.
+	 * @return true if {@code name} is the name of an existing property on the message.
 	 */
-	public boolean		propertyExists(String name);
+	public boolean propertyExists(String name);
 
 	/**
 	 * add the property on this message.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code name != null && !name.isEmpty()}
 	 * pre	{@code !propertyExists(name)}
 	 * post	{@code propertyExists(name)}
 	 * </pre>
 	 *
-	 * @param name	the name of the property to be added.
-	 * @param value	the value of the property to be added.
+	 * @param name the name of the property to be added.
+	 * @param value the value of the property to be added.
 	 */
-	public void			putProperty(String name, Serializable value);
+	public void putProperty(String name, Serializable value);
 
 	/**
 	 * remove the property {@code name} from the message.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code name != null && !name.isEmpty()}
 	 * post	{@code !propertyExists(name)}
 	 * </pre>
 	 *
-	 * @param name						the name of a property to be removed.
-	 * @throws UnknownPropertyException	when {@code name} does not correspond to an existing property of this message.
+	 * @param name the name of a property to be removed.
+	 * @throws UnknownPropertyException when {@code name} does not correspond to an existing
+	 *     property of this message.
 	 */
-	public void			removeProperty(String name)
-	throws	UnknownPropertyException;
+	public void removeProperty(String name) throws UnknownPropertyException;
 
 	/**
 	 * return the value associated with {@code name} in this message.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code name != null && !name.isEmpty()}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param name						the name of a property which value must be retrieved.
-	 * @return							the value associated with {@code name} in this message.
-	 * @throws UnknownPropertyException when {@code name} does not correspond to an existing property of this message.
+	 * @param name the name of a property which value must be retrieved.
+	 * @return the value associated with {@code name} in this message.
+	 * @throws UnknownPropertyException when {@code name} does not correspond to an existing
+	 *     property of this message.
 	 */
-	public Serializable	getPropertyValue(String name)
-	throws	UnknownPropertyException;
+	public Serializable getPropertyValue(String name) throws UnknownPropertyException;
 
 	/**
 	 * return the array of properties defined by this message.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code return != null}
 	 * </pre>
 	 *
-	 * @return	the array of properties defined by this message.
+	 * @return the array of properties defined by this message.
 	 */
-	public PropertyI[]	getProperties();
+	public PropertyI[] getProperties();
 
 	/**
-	 * copy the message <i>i.e.</i>, make a deep copy of the message up to the
-	 * properties values and the payload that is not copied but simply
-	 * referenced by the new message.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * copy the message <i>i.e.</i>, make a deep copy of the message up to the properties values and
+	 * the payload that is not copied but simply referenced by the new message.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code return != null}
 	 * </pre>
 	 *
-	 * @return	a copy of this message, with the same properties and the same payload.
+	 * @return a copy of this message, with the same properties and the same payload.
 	 */
-	public MessageI		copy();
+	public MessageI copy();
 
 	/**
 	 * set the payload of this message.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param payload	payload to be set.
+	 * @param payload payload to be set.
 	 */
-	public void			setPayload(Serializable payload);
+	public void setPayload(Serializable payload);
 
 	/**
 	 * return the payload of this message.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @return	the payload of this message.
+	 * @return the payload of this message.
 	 */
-	public Serializable	getPayload();
+	public Serializable getPayload();
 
 	/**
 	 * return the time stamp of this message.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code return != null}
 	 * </pre>
 	 *
-	 * @return	the time stamp of this message.
+	 * @return the time stamp of this message.
 	 */
-	public Instant		getTimeStamp();
+	public Instant getTimeStamp();
 }
 // -----------------------------------------------------------------------------

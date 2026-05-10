@@ -1,62 +1,52 @@
 package fr.sorbonne_u.cps.pubsub.tests;
 
+import static org.junit.Assert.*;
+
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.cps.pubsub.base.components.Broker;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import static org.junit.Assert.*;
-
 /**
  * Component-level unit tests for the Broker's registration API (CDC §3.5).
  *
- * <p>
- * Because {@link Broker} is a BCM component, it requires the BCM lifecycle to
- * be running (RMI registry, executor services, port publication). This test
- * uses a minimal {@link AbstractCVM} fixture ({@link BrokerRegistrationCVM})
- * that is started <em>once per class</em> via {@link BeforeClass}. All
- * assertions are executed synchronously inside {@code execute()} and stored in
- * a static results map; each {@code @Test} method then checks the stored result
- * without needing BCM.
- * </p>
+ * <p>Because {@link Broker} is a BCM component, it requires the BCM lifecycle to be running (RMI
+ * registry, executor services, port publication). This test uses a minimal {@link AbstractCVM}
+ * fixture ({@link BrokerRegistrationCVM}) that is started <em>once per class</em> via {@link
+ * BeforeClass}. All assertions are executed synchronously inside {@code execute()} and stored in a
+ * static results map; each {@code @Test} method then checks the stored result without needing BCM.
  *
- * <p>
- * The stub client component ({@link StubReceiverComponent}) publishes a
- * {@link fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI} inbound port so the
- * Broker's {@code register()} can do its port connection without the
- * {@code -ea} BCM precondition conflict that occurs when using
- * {@link fr.sorbonne_u.cps.pubsub.base.components.PluginClient}.
- * </p>
+ * <p>The stub client component ({@link StubReceiverComponent}) publishes a {@link
+ * fr.sorbonne_u.cps.pubsub.interfaces.ReceivingCI} inbound port so the Broker's {@code register()}
+ * can do its port connection without the {@code -ea} BCM precondition conflict that occurs when
+ * using {@link fr.sorbonne_u.cps.pubsub.base.components.PluginClient}.
  *
- * <p>
- * Ce qui est testé (CDC §3.5) :
- * </p>
+ * <p>Ce qui est testé (CDC §3.5) :
+ *
  * <ul>
- * <li>{@code register(uri, FREE)} returns the publishing port URI;
- * {@code registered(uri)} is subsequently {@code true}.</li>
- * <li>A second {@code register} with the same URI throws
- * {@link AlreadyRegisteredException}.</li>
- * <li>{@code register(uri, STANDARD)} returns the privileged port URI,
- * which differs from the FREE publishing URI.</li>
- * <li>{@code registered(uri, rc)} throws {@link UnknownClientException}
- * for an unknown URI (new C.1 contract).</li>
- * <li>{@code registered(uri, FREE)} is {@code true} when the class matches,
- * {@code false} when it does not.</li>
- * <li>{@code unregister} removes the client; a second call throws
- * {@link UnknownClientException}.</li>
+ *   <li>{@code register(uri, FREE)} returns the publishing port URI; {@code registered(uri)} is
+ *       subsequently {@code true}.
+ *   <li>A second {@code register} with the same URI throws {@link AlreadyRegisteredException}.
+ *   <li>{@code register(uri, STANDARD)} returns the privileged port URI, which differs from the
+ *       FREE publishing URI.
+ *   <li>{@code registered(uri, rc)} throws {@link UnknownClientException} for an unknown URI (new
+ *       C.1 contract).
+ *   <li>{@code registered(uri, FREE)} is {@code true} when the class matches, {@code false} when it
+ *       does not.
+ *   <li>{@code unregister} removes the client; a second call throws {@link UnknownClientException}.
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class BrokerRegistrationTest
-{
+public class BrokerRegistrationTest {
 	// -------------------------------------------------------------------------
 	// Test result storage (populated by the CVM fixture, read by @Test methods)
 	// -------------------------------------------------------------------------
@@ -71,71 +61,67 @@ public class BrokerRegistrationTest
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Minimal BCM deployment that drives all registration tests inside
-	 * {@link #execute()} and stores results in {@link BrokerRegistrationTest#results}.
+	 * Minimal BCM deployment that drives all registration tests inside {@link #execute()} and
+	 * stores results in {@link BrokerRegistrationTest#results}.
 	 */
-	public static class BrokerRegistrationCVM extends AbstractCVM
-	{
+	public static class BrokerRegistrationCVM extends AbstractCVM {
 		private String brokerUri;
 		private String stubAUri;
 		private String stubBUri;
 
 		/** Crée la CVM (rien d'autre à faire — le déploiement est dans {@link #deploy}). */
-		public BrokerRegistrationCVM() throws Exception
-		{
+		public BrokerRegistrationCVM() throws Exception {
 			super();
 		}
 
 		/**
-		 * Crée le {@link Broker} et deux {@link StubReceiverComponent}, puis
-		 * délègue à {@code super.deploy()}.
+		 * Crée le {@link Broker} et deux {@link StubReceiverComponent}, puis délègue à {@code
+		 * super.deploy()}.
 		 */
 		@Override
-		public void deploy() throws Exception
-		{
+		public void deploy() throws Exception {
 			// Broker with nbSchedulableThreads=1 (avoids a BCM precondition at 0).
-			this.brokerUri = AbstractComponent.createComponent(
-				Broker.class.getCanonicalName(),
-				new Object[] {
-					2, // nbThreads
-					1, // nbSchedulableThreads
-					3, // nbFreeChannels
-					2, // standardQuota
-					5, // premiumQuota
-					1, // nbReceptionThreads
-					1, // nbPropagationThreads
-					1 // nbDeliveryThreads
-				});
+			this.brokerUri =
+					AbstractComponent.createComponent(
+							Broker.class.getCanonicalName(),
+							new Object[] {
+								2, // nbThreads
+								1, // nbSchedulableThreads
+								3, // nbFreeChannels
+								2, // standardQuota
+								5, // premiumQuota
+								1, // nbReceptionThreads
+								1, // nbPropagationThreads
+								1 // nbDeliveryThreads
+							});
 
 			// Two stub ReceivingCI components (one for FREE, one for STANDARD).
-			this.stubAUri = AbstractComponent.createComponent(
-				StubReceiverComponent.class.getCanonicalName(),
-				new Object[] {});
+			this.stubAUri =
+					AbstractComponent.createComponent(
+							StubReceiverComponent.class.getCanonicalName(), new Object[] {});
 
-			this.stubBUri = AbstractComponent.createComponent(
-				StubReceiverComponent.class.getCanonicalName(),
-				new Object[] {});
+			this.stubBUri =
+					AbstractComponent.createComponent(
+							StubReceiverComponent.class.getCanonicalName(), new Object[] {});
 
 			super.deploy();
 		}
 
 		/**
-		 * Exécute synchroniquement les six tests de registration du broker et
-		 * stocke chaque résultat (valeur ou exception) dans
-		 * {@link BrokerRegistrationTest#results}, sous une clé {@code Tn_*}
-		 * lue par les @{@link Test} méthodes.
+		 * Exécute synchroniquement les six tests de registration du broker et stocke chaque
+		 * résultat (valeur ou exception) dans {@link BrokerRegistrationTest#results}, sous une clé
+		 * {@code Tn_*} lue par les @{@link Test} méthodes.
 		 */
 		@Override
-		public void execute() throws Exception
-		{
+		public void execute() throws Exception {
 			super.execute();
 
 			// Retrieve component references from the CVM map.
 			Broker broker = (Broker) this.uri2component.get(this.brokerUri);
 			StubReceiverComponent stubA =
-				(StubReceiverComponent) this.uri2component.get(this.stubAUri);
+					(StubReceiverComponent) this.uri2component.get(this.stubAUri);
 			StubReceiverComponent stubB =
-				(StubReceiverComponent) this.uri2component.get(this.stubBUri);
+					(StubReceiverComponent) this.uri2component.get(this.stubBUri);
 
 			if (broker == null || stubA == null || stubB == null) {
 				results.put("fixture_setup_failed", true);
@@ -175,8 +161,8 @@ public class BrokerRegistrationTest
 				String returnedUri = broker.register(uriB, RegistrationClass.STANDARD);
 				results.put("T3_returnedUri", returnedUri);
 				// The privileged URI for STANDARD must differ from the FREE publishing URI.
-				results.put("T3_differentFromFree",
-					!returnedUri.equals(results.get("T1_returnedUri")));
+				results.put(
+						"T3_differentFromFree", !returnedUri.equals(results.get("T1_returnedUri")));
 			} catch (Exception e) {
 				results.put("T3_error", e);
 			}
@@ -216,8 +202,8 @@ public class BrokerRegistrationTest
 					broker.unregister(uriA);
 					results.put("T6_secondUnregister", NO_THROW);
 				} catch (UnknownClientException e) {
-					results.put("T6_secondUnregister",
-						UnknownClientException.class.getSimpleName());
+					results.put(
+							"T6_secondUnregister", UnknownClientException.class.getSimpleName());
 				}
 			} catch (Exception e) {
 				results.put("T6_error", e);
@@ -230,15 +216,14 @@ public class BrokerRegistrationTest
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Démarre une fois la fixture BCM avant l'ensemble des @{@link Test} de cette
-	 * classe. La méthode {@link BrokerRegistrationCVM#execute()} exécute tous les
-	 * scénarios synchrones et stocke leurs résultats dans {@link #results}.
+	 * Démarre une fois la fixture BCM avant l'ensemble des @{@link Test} de cette classe. La
+	 * méthode {@link BrokerRegistrationCVM#execute()} exécute tous les scénarios synchrones et
+	 * stocke leurs résultats dans {@link #results}.
 	 *
 	 * @throws Exception si le démarrage de la CVM échoue.
 	 */
 	@BeforeClass
-	public static void runFixture() throws Exception
-	{
+	public static void runFixture() throws Exception {
 		BrokerRegistrationCVM cvm = new BrokerRegistrationCVM();
 		// 4 seconds is enough for the synchronous scenario in execute().
 		cvm.startStandardLifeCycle(4000L);
@@ -248,8 +233,7 @@ public class BrokerRegistrationTest
 	// Helper
 	// -------------------------------------------------------------------------
 
-	private static void info(String s)
-	{
+	private static void info(String s) {
 		System.out.println("[BrokerRegistrationTest] " + s);
 	}
 
@@ -257,82 +241,98 @@ public class BrokerRegistrationTest
 	// @Test methods — check stored results
 	// -------------------------------------------------------------------------
 
-	/** La fixture BCM a démarré et résolu le {@link Broker} et les deux {@link StubReceiverComponent}. */
+	/**
+	 * La fixture BCM a démarré et résolu le {@link Broker} et les deux {@link
+	 * StubReceiverComponent}.
+	 */
 	@Test
-	public void testFixtureSetupSucceeded()
-	{
+	public void testFixtureSetupSucceeded() {
 		info("Fixture must have resolved Broker and both StubReceiverComponents.");
 		assertNull("Fixture setup failed", results.get("fixture_setup_failed"));
 	}
 
-	/** {@code register(uri, FREE)} retourne une URI non vide ; {@code registered(uri)} vaut {@code true} ensuite. */
+	/**
+	 * {@code register(uri, FREE)} retourne une URI non vide ; {@code registered(uri)} vaut {@code
+	 * true} ensuite.
+	 */
 	@Test
-	public void testRegisterFreeReturnsPublishingPortAndIsRegistered()
-	{
+	public void testRegisterFreeReturnsPublishingPortAndIsRegistered() {
 		info("register(uri, FREE) returns a URI; registered(uri) is true afterward.");
 		assertNull("T1 unexpected error", results.get("T1_error"));
 		String uri = (String) results.get("T1_returnedUri");
 		assertNotNull("T1: returned URI must not be null", uri);
 		assertFalse("T1: returned URI must not be empty", uri.isEmpty());
-		assertTrue("T1: registered(uri) must be true",
-			(Boolean) results.get("T1_registered"));
+		assertTrue("T1: registered(uri) must be true", (Boolean) results.get("T1_registered"));
 	}
 
 	/** Enregistrer deux fois la même URI doit lever {@link AlreadyRegisteredException}. */
 	@Test
-	public void testRegisterDuplicateThrowsAlreadyRegisteredException()
-	{
+	public void testRegisterDuplicateThrowsAlreadyRegisteredException() {
 		info("Registering the same URI twice must throw AlreadyRegisteredException.");
-		assertEquals("T2 must throw AlreadyRegisteredException",
-			AlreadyRegisteredException.class.getSimpleName(),
-			results.get("T2_result"));
+		assertEquals(
+				"T2 must throw AlreadyRegisteredException",
+				AlreadyRegisteredException.class.getSimpleName(),
+				results.get("T2_result"));
 	}
 
-	/** {@code register(uri, STANDARD)} retourne l'URI du port privilégié, distincte de celle retournée pour FREE. */
+	/**
+	 * {@code register(uri, STANDARD)} retourne l'URI du port privilégié, distincte de celle
+	 * retournée pour FREE.
+	 */
 	@Test
-	public void testRegisterStandardReturnsPrivilegedPortUri()
-	{
+	public void testRegisterStandardReturnsPrivilegedPortUri() {
 		info("register(uri, STANDARD) returns privileged URI (different from FREE URI).");
 		assertNull("T3 unexpected error", results.get("T3_error"));
 		String uri = (String) results.get("T3_returnedUri");
 		assertNotNull("T3: returned URI must not be null", uri);
 		assertFalse("T3: returned URI must not be empty", uri.isEmpty());
-		assertTrue("T3: STANDARD URI must differ from FREE URI",
-			(Boolean) results.get("T3_differentFromFree"));
+		assertTrue(
+				"T3: STANDARD URI must differ from FREE URI",
+				(Boolean) results.get("T3_differentFromFree"));
 	}
 
-	/** {@code registered(unknownUri, rc)} doit lever {@link UnknownClientException} (contrat C.1). */
+	/**
+	 * {@code registered(unknownUri, rc)} doit lever {@link UnknownClientException} (contrat C.1).
+	 */
 	@Test
-	public void testRegisteredWithClassThrowsUnknownClientExceptionForUnknownUri()
-	{
+	public void testRegisteredWithClassThrowsUnknownClientExceptionForUnknownUri() {
 		info("registered(unknownUri, rc) must throw UnknownClientException (C.1 contract).");
-		assertEquals("T4 must throw UnknownClientException",
-			UnknownClientException.class.getSimpleName(),
-			results.get("T4_result"));
+		assertEquals(
+				"T4 must throw UnknownClientException",
+				UnknownClientException.class.getSimpleName(),
+				results.get("T4_result"));
 	}
 
-	/** {@code registered(uri, FREE)} vaut {@code true} après une inscription FREE ; {@code registered(uri, STANDARD)} vaut {@code false}. */
+	/**
+	 * {@code registered(uri, FREE)} vaut {@code true} après une inscription FREE ; {@code
+	 * registered(uri, STANDARD)} vaut {@code false}.
+	 */
 	@Test
-	public void testRegisteredWithClassMatchAndMismatch()
-	{
-		info("registered(uri, FREE) true; registered(uri, STANDARD) false after FREE registration.");
+	public void testRegisteredWithClassMatchAndMismatch() {
+		info(
+				"registered(uri, FREE) true; registered(uri, STANDARD) false after FREE"
+					+ " registration.");
 		assertNull("T5 unexpected error", results.get("T5_error"));
-		assertTrue("T5: registered(uri, FREE) must be true",
-			(Boolean) results.get("T5_matchFree"));
-		assertTrue("T5: registered(uri, STANDARD) must be false",
-			(Boolean) results.get("T5_notMatchStandard"));
+		assertTrue("T5: registered(uri, FREE) must be true", (Boolean) results.get("T5_matchFree"));
+		assertTrue(
+				"T5: registered(uri, STANDARD) must be false",
+				(Boolean) results.get("T5_notMatchStandard"));
 	}
 
-	/** {@code unregister} retire le client ; un second appel doit lever {@link UnknownClientException}. */
+	/**
+	 * {@code unregister} retire le client ; un second appel doit lever {@link
+	 * UnknownClientException}.
+	 */
 	@Test
-	public void testUnregisterRemovesClientAndSecondUnregisterThrows()
-	{
+	public void testUnregisterRemovesClientAndSecondUnregisterThrows() {
 		info("unregister removes client; second call throws UnknownClientException.");
 		assertNull("T6 unexpected error", results.get("T6_error"));
-		assertFalse("T6: registered(uri) must be false after unregister",
-			(Boolean) results.get("T6_registeredAfterUnregister"));
-		assertEquals("T6: second unregister must throw UnknownClientException",
-			UnknownClientException.class.getSimpleName(),
-			results.get("T6_secondUnregister"));
+		assertFalse(
+				"T6: registered(uri) must be false after unregister",
+				(Boolean) results.get("T6_registeredAfterUnregister"));
+		assertEquals(
+				"T6: second unregister must throw UnknownClientException",
+				UnknownClientException.class.getSimpleName(),
+				results.get("T6_secondUnregister"));
 	}
 }

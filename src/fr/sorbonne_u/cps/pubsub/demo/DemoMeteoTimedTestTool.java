@@ -22,17 +22,15 @@ import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Timed integration demo using BCM4Java test tool described in CDC Annexe B
- * (TestScenario + ClocksServer + AcceleratedClock).
+ * Timed integration demo using BCM4Java test tool described in CDC Annexe B (TestScenario +
+ * ClocksServer + AcceleratedClock).
  *
- * This demo replays the meteo scenario (CDC §3.4) but drives the actions
- * (subscriptions, publications) with timed test steps instead of Thread.sleep.
- 
+ * <p>This demo replays the meteo scenario (CDC §3.4) but drives the actions (subscriptions,
+ * publications) with timed test steps instead of Thread.sleep.
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class DemoMeteoTimedTestTool extends AbstractCVM
-{
+public class DemoMeteoTimedTestTool extends AbstractCVM {
 	public static final String WIND_CHANNEL = "channel0";
 	public static final String ALERT_CHANNEL = "channel1";
 
@@ -50,20 +48,17 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 	public static final String STATION_NEAR_RIP_URI = "meteo-station-near";
 	public static final String STATION_FAR_RIP_URI = "meteo-station-far";
 	public static final String OFFICE_RIP_URI = "meteo-office";
+
 	/**
-	 * Construit ce CVM ; la création réelle des composants se produit dans
-	 * {@link #deploy()}.
+	 * Construit ce CVM ; la création réelle des composants se produit dans {@link #deploy()}.
 	 *
 	 * @throws Exception si l'initialisation parent échoue.
 	 */
-
-	public DemoMeteoTimedTestTool() throws Exception
-	{
+	public DemoMeteoTimedTestTool() throws Exception {
 		super();
 	}
 
-	public static TestScenario testScenario() throws Exception
-	{
+	public static TestScenario testScenario() throws Exception {
 		Instant startInstant = Instant.parse(START_INSTANT);
 		Instant endInstant = Instant.parse(END_INSTANT);
 
@@ -79,115 +74,124 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 		Position2D stationFarPos = new Position2D(100.0, 0.0);
 		RegionI concerned = new CircularRegion(turbinePos, 10.0);
 
-		MeteoAlert orange = new MeteoAlert(
-			MeteoAlertI.AlertType.STORM,
-			MeteoAlertI.Level.ORANGE,
-			new RegionI[] { concerned },
-			Instant.now(),
-			Duration.ofMinutes(30));
+		MeteoAlert orange =
+				new MeteoAlert(
+						MeteoAlertI.AlertType.STORM,
+						MeteoAlertI.Level.ORANGE,
+						new RegionI[] {concerned},
+						Instant.now(),
+						Duration.ofMinutes(30));
 
-		MeteoAlert green = new MeteoAlert(
-			MeteoAlertI.AlertType.STORM,
-			MeteoAlertI.Level.GREEN,
-			new RegionI[] { concerned },
-			Instant.now(),
-			Duration.ofMinutes(1));
+		MeteoAlert green =
+				new MeteoAlert(
+						MeteoAlertI.AlertType.STORM,
+						MeteoAlertI.Level.GREEN,
+						new RegionI[] {concerned},
+						Instant.now(),
+						Duration.ofMinutes(1));
 
 		// (beginningMessage, endingMessage, clockURI, startInstant, endInstant, steps)
 		return new TestScenario(
-			"[TimedDemo] BEGIN meteo timed scenario",
-			"[TimedDemo] END meteo timed scenario",
-			CLOCK_URI,
-			startInstant,
-			endInstant,
-			new TestStepI[] {
-				new TestStep(
-					CLOCK_URI,
-					TURBINE_RIP_URI,
-					tSubscribe,
-					owner -> {
-						try {
-							System.out.println("[TimedDemo][STEP] turbine subscribes to wind+alerts");
-							((WindTurbine) owner).subscribeToWindAndAlerts(WIND_CHANNEL, ALERT_CHANNEL);
-							owner.traceMessage("[TimedDemo] turbine subscribed\n");
-						} catch (Exception e) {
-							System.out.println("[TimedDemo] subscribe step failed: " + e);
-						}
-					}),
-
-				new TestStep(
-					CLOCK_URI,
-					STATION_NEAR_RIP_URI,
-					tWindNear,
-					owner -> {
-						try {
-							System.out.println("[TimedDemo][STEP] station-near publishes wind");
-							((WeatherStation) owner).publishWind(WIND_CHANNEL, new WindData(stationNearPos, 5.0, 0.0));
-							owner.traceMessage("[TimedDemo] station near published wind\n");
-						} catch (Exception e) {
-							System.out.println("[TimedDemo] windNear step failed: " + e);
-						}
-					}),
-
-				new TestStep(
-					CLOCK_URI,
-					STATION_FAR_RIP_URI,
-					tWindFar,
-					owner -> {
-						try {
-							System.out.println("[TimedDemo][STEP] station-far publishes wind");
-							((WeatherStation) owner).publishWind(WIND_CHANNEL, new WindData(stationFarPos, 10.0, 0.0));
-							owner.traceMessage("[TimedDemo] station far published wind\n");
-						} catch (Exception e) {
-							System.out.println("[TimedDemo] windFar step failed: " + e);
-						}
-					}),
-
-				new TestStep(
-					CLOCK_URI,
-					OFFICE_RIP_URI,
-					tAlertOrange,
-					owner -> {
-						try {
-							System.out.println("[TimedDemo][STEP] office publishes ORANGE alert");
-							((WeatherOffice) owner).publishAlert(ALERT_CHANNEL, orange);
-							owner.traceMessage("[TimedDemo] office published ORANGE\n");
-						} catch (Exception e) {
-							System.out.println("[TimedDemo] orange step failed: " + e);
-						}
-					}),
-
-				new TestStep(
-					CLOCK_URI,
-					OFFICE_RIP_URI,
-					tAlertGreen,
-					owner -> {
-						try {
-							System.out.println("[TimedDemo][STEP] office publishes GREEN alert");
-							((WeatherOffice) owner).publishAlert(ALERT_CHANNEL, green);
-							owner.traceMessage("[TimedDemo] office published GREEN\n");
-						} catch (Exception e) {
-							System.out.println("[TimedDemo] green step failed: " + e);
-						}
-					})
-			});
+				"[TimedDemo] BEGIN meteo timed scenario",
+				"[TimedDemo] END meteo timed scenario",
+				CLOCK_URI,
+				startInstant,
+				endInstant,
+				new TestStepI[] {
+					new TestStep(
+							CLOCK_URI,
+							TURBINE_RIP_URI,
+							tSubscribe,
+							owner -> {
+								try {
+									System.out.println(
+											"[TimedDemo][STEP] turbine subscribes to wind+alerts");
+									((WindTurbine) owner)
+											.subscribeToWindAndAlerts(WIND_CHANNEL, ALERT_CHANNEL);
+									owner.traceMessage("[TimedDemo] turbine subscribed\n");
+								} catch (Exception e) {
+									System.out.println("[TimedDemo] subscribe step failed: " + e);
+								}
+							}),
+					new TestStep(
+							CLOCK_URI,
+							STATION_NEAR_RIP_URI,
+							tWindNear,
+							owner -> {
+								try {
+									System.out.println(
+											"[TimedDemo][STEP] station-near publishes wind");
+									((WeatherStation) owner)
+											.publishWind(
+													WIND_CHANNEL,
+													new WindData(stationNearPos, 5.0, 0.0));
+									owner.traceMessage("[TimedDemo] station near published wind\n");
+								} catch (Exception e) {
+									System.out.println("[TimedDemo] windNear step failed: " + e);
+								}
+							}),
+					new TestStep(
+							CLOCK_URI,
+							STATION_FAR_RIP_URI,
+							tWindFar,
+							owner -> {
+								try {
+									System.out.println(
+											"[TimedDemo][STEP] station-far publishes wind");
+									((WeatherStation) owner)
+											.publishWind(
+													WIND_CHANNEL,
+													new WindData(stationFarPos, 10.0, 0.0));
+									owner.traceMessage("[TimedDemo] station far published wind\n");
+								} catch (Exception e) {
+									System.out.println("[TimedDemo] windFar step failed: " + e);
+								}
+							}),
+					new TestStep(
+							CLOCK_URI,
+							OFFICE_RIP_URI,
+							tAlertOrange,
+							owner -> {
+								try {
+									System.out.println(
+											"[TimedDemo][STEP] office publishes ORANGE alert");
+									((WeatherOffice) owner).publishAlert(ALERT_CHANNEL, orange);
+									owner.traceMessage("[TimedDemo] office published ORANGE\n");
+								} catch (Exception e) {
+									System.out.println("[TimedDemo] orange step failed: " + e);
+								}
+							}),
+					new TestStep(
+							CLOCK_URI,
+							OFFICE_RIP_URI,
+							tAlertGreen,
+							owner -> {
+								try {
+									System.out.println(
+											"[TimedDemo][STEP] office publishes GREEN alert");
+									((WeatherOffice) owner).publishAlert(ALERT_CHANNEL, green);
+									owner.traceMessage("[TimedDemo] office published GREEN\n");
+								} catch (Exception e) {
+									System.out.println("[TimedDemo] green step failed: " + e);
+								}
+							})
+				});
 	}
+
 	/**
-	 * Crée et publie tous les composants du scénario, puis active le tracing
-	 * sur les participants pertinents.
+	 * Crée et publie tous les composants du scénario, puis active le tracing sur les participants
+	 * pertinents.
 	 *
 	 * @throws Exception si la création / publication d'un composant échoue.
 	 */
-
 	@Override
-	public void deploy() throws Exception
-	{
+	public void deploy() throws Exception {
 		TestScenario.VERBOSE = true;
 		TestScenario.DEBUG = true;
 
 		// Broker
-		AbstractComponent.createComponent(Broker.class.getCanonicalName(),
-			new Object[] { BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8 });
+		AbstractComponent.createComponent(
+				Broker.class.getCanonicalName(), new Object[] {BROKER_URI, 2, 1, 3, 2, 5, 2, 4, 8});
 
 		// Create the accelerated clock server required by the TestScenario tool.
 		TestScenario ts = testScenario();
@@ -195,50 +199,74 @@ public class DemoMeteoTimedTestTool extends AbstractCVM
 		long unixEpochStartTimeInNanos = TimeUnit.MILLISECONDS.toNanos(current + DELAY_TO_START_MS);
 		Instant startInstant = Instant.parse(START_INSTANT);
 		AbstractComponent.createComponent(
-			ClocksServer.class.getCanonicalName(),
-			new Object[] { CLOCK_URI, unixEpochStartTimeInNanos, startInstant, ACCELERATION_FACTOR });
+				ClocksServer.class.getCanonicalName(),
+				new Object[] {
+					CLOCK_URI, unixEpochStartTimeInNanos, startInstant, ACCELERATION_FACTOR
+				});
 
 		Position2D turbinePos = new Position2D(0.0, 0.0);
 		Position2D stationNearPos = new Position2D(1.0, 0.0);
 		Position2D stationFarPos = new Position2D(100.0, 0.0);
 
 		// Participants: they must appear in the scenario through their reflection inbound port URI.
-		System.out.println("[TimedDemo] participants RIP URIs: "
-			+ TURBINE_RIP_URI + ", " + STATION_NEAR_RIP_URI + ", " + STATION_FAR_RIP_URI + ", " + OFFICE_RIP_URI + "\n");
+		System.out.println(
+				"[TimedDemo] participants RIP URIs: "
+						+ TURBINE_RIP_URI
+						+ ", "
+						+ STATION_NEAR_RIP_URI
+						+ ", "
+						+ STATION_FAR_RIP_URI
+						+ ", "
+						+ OFFICE_RIP_URI
+						+ "\n");
 		AbstractComponent.createComponent(
-			WindTurbine.class.getCanonicalName(),
-			new Object[] { TURBINE_RIP_URI, ts, "WT1", turbinePos, 20.0, 5_000L, MeteoAlertI.Level.ORANGE, BROKER_URI });
+				WindTurbine.class.getCanonicalName(),
+				new Object[] {
+					TURBINE_RIP_URI,
+					ts,
+					"WT1",
+					turbinePos,
+					20.0,
+					5_000L,
+					MeteoAlertI.Level.ORANGE,
+					BROKER_URI
+				});
 
 		AbstractComponent.createComponent(
-			WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_NEAR_RIP_URI, ts, "WS1", stationNearPos, BROKER_URI });
+				WeatherStation.class.getCanonicalName(),
+				new Object[] {STATION_NEAR_RIP_URI, ts, "WS1", stationNearPos, BROKER_URI});
 
 		AbstractComponent.createComponent(
-			WeatherStation.class.getCanonicalName(),
-			new Object[] { STATION_FAR_RIP_URI, ts, "WS2", stationFarPos, BROKER_URI });
+				WeatherStation.class.getCanonicalName(),
+				new Object[] {STATION_FAR_RIP_URI, ts, "WS2", stationFarPos, BROKER_URI});
 
 		AbstractComponent.createComponent(
-			WeatherOffice.class.getCanonicalName(),
-			new Object[] { OFFICE_RIP_URI, ts, "WO1", BROKER_URI });
+				WeatherOffice.class.getCanonicalName(),
+				new Object[] {OFFICE_RIP_URI, ts, "WO1", BROKER_URI});
 
-		System.out.println("[TimedDemo] scenario contains turbine? " + ts.entityAppearsIn(TURBINE_RIP_URI));
-		System.out.println("[TimedDemo] scenario contains stationNear? " + ts.entityAppearsIn(STATION_NEAR_RIP_URI));
-		System.out.println("[TimedDemo] scenario contains stationFar? " + ts.entityAppearsIn(STATION_FAR_RIP_URI));
-		System.out.println("[TimedDemo] scenario contains office? " + ts.entityAppearsIn(OFFICE_RIP_URI));
+		System.out.println(
+				"[TimedDemo] scenario contains turbine? " + ts.entityAppearsIn(TURBINE_RIP_URI));
+		System.out.println(
+				"[TimedDemo] scenario contains stationNear? "
+						+ ts.entityAppearsIn(STATION_NEAR_RIP_URI));
+		System.out.println(
+				"[TimedDemo] scenario contains stationFar? "
+						+ ts.entityAppearsIn(STATION_FAR_RIP_URI));
+		System.out.println(
+				"[TimedDemo] scenario contains office? " + ts.entityAppearsIn(OFFICE_RIP_URI));
 
 		super.deploy();
 
 		// No tracing/logging here to avoid opening multiple trace windows during the timed demo.
 	}
+
 	/**
-	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM
-	 * pendant la durée codée en dur, puis termine la JVM.
+	 * Point d'entrée standalone : démarre le cycle de vie centralisé du CVM pendant la durée codée
+	 * en dur, puis termine la JVM.
 	 *
 	 * @param args ignorés.
 	 */
-
-	public static void main(String[] args)
-	{
+	public static void main(String[] args) {
 		try {
 			DemoMeteoTimedTestTool cvm = new DemoMeteoTimedTestTool();
 			cvm.startStandardLifeCycle(30_000L);

@@ -1,36 +1,34 @@
 package fr.sorbonne_u.cps.pubsub.tests;
 
+import static org.junit.Assert.*;
+
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownPropertyException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.messages.Message;
+
 import org.junit.Test;
 
 import java.io.Serializable;
 import java.time.Instant;
 
-import static org.junit.Assert.*;
-
 /**
- * Tests JUnit 4 unitaires pour {@link fr.sorbonne_u.cps.pubsub.messages.Message}
- * (production class under test) — couvre le contrat de
- * {@link fr.sorbonne_u.cps.pubsub.interfaces.MessageI} (CDC §3.1).
+ * Tests JUnit 4 unitaires pour {@link fr.sorbonne_u.cps.pubsub.messages.Message} (production class
+ * under test) — couvre le contrat de {@link fr.sorbonne_u.cps.pubsub.interfaces.MessageI} (CDC
+ * §3.1).
  *
- * <p>
- * Points vérifiés :
- * </p>
+ * <p>Points vérifiés :
+ *
  * <ul>
- * <li>un message porte un payload et un timestamp non nul ;</li>
- * <li>les propriétés respectent le contrat CDC : noms uniques, test d'existence,
- * récupération de valeur ;</li>
- * <li>la suppression de propriétés fonctionne, et toute propriété manquante lève
- * {@link UnknownPropertyException} ;</li>
- * <li>{@code copy()} préserve le timestamp et les propriétés, et autorise une
- * modification de payload uniquement sur la copie.</li>
+ *   <li>un message porte un payload et un timestamp non nul ;
+ *   <li>les propriétés respectent le contrat CDC : noms uniques, test d'existence, récupération de
+ *       valeur ;
+ *   <li>la suppression de propriétés fonctionne, et toute propriété manquante lève {@link
+ *       UnknownPropertyException} ;
+ *   <li>{@code copy()} préserve le timestamp et les propriétés, et autorise une modification de
+ *       payload uniquement sur la copie.
  * </ul>
  *
- * <p>
- * Exécuté par {@code org.junit.runner.JUnitCore}, sans démarrage du CVM BCM.
- * </p>
+ * <p>Exécuté par {@code org.junit.runner.JUnitCore}, sans démarrage du CVM BCM.
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
@@ -42,8 +40,8 @@ public class MessageTest {
 	}
 
 	/**
-	 * Un message construit avec un payload garde ce payload et expose un
-	 * {@code timeStamp} non nul, antérieur ou égal à l'instant courant.
+	 * Un message construit avec un payload garde ce payload et expose un {@code timeStamp} non nul,
+	 * antérieur ou égal à l'instant courant.
 	 */
 	@Test
 	public void testPayloadAndTimestampNotNull() {
@@ -59,8 +57,8 @@ public class MessageTest {
 	}
 
 	/**
-	 * {@code putProperty} ajoute une propriété, {@code propertyExists} et
-	 * {@code getPropertyValue} la retrouvent ensuite.
+	 * {@code putProperty} ajoute une propriété, {@code propertyExists} et {@code getPropertyValue}
+	 * la retrouvent ensuite.
 	 *
 	 * @throws Exception si la lecture de la valeur échoue (ne doit pas se produire).
 	 */
@@ -76,8 +74,7 @@ public class MessageTest {
 	}
 
 	/**
-	 * {@code putProperty} doit refuser un nom de propriété déjà présent
-	 * (précondition CDC §3.1).
+	 * {@code putProperty} doit refuser un nom de propriété déjà présent (précondition CDC §3.1).
 	 */
 	@Test(expected = IllegalArgumentException.class)
 	public void testPutPropertyDuplicateNameThrows() {
@@ -106,8 +103,8 @@ public class MessageTest {
 	}
 
 	/**
-	 * {@code removeProperty} sur une propriété inconnue doit lever
-	 * {@link UnknownPropertyException}.
+	 * {@code removeProperty} sur une propriété inconnue doit lever {@link
+	 * UnknownPropertyException}.
 	 *
 	 * @throws Exception attendue : {@link UnknownPropertyException}.
 	 */
@@ -119,8 +116,8 @@ public class MessageTest {
 	}
 
 	/**
-	 * {@code getPropertyValue} sur une propriété inconnue doit lever
-	 * {@link UnknownPropertyException}.
+	 * {@code getPropertyValue} sur une propriété inconnue doit lever {@link
+	 * UnknownPropertyException}.
 	 *
 	 * @throws Exception attendue : {@link UnknownPropertyException}.
 	 */
@@ -132,8 +129,8 @@ public class MessageTest {
 	}
 
 	/**
-	 * {@code getProperties} doit retourner un tableau défensif : modifier le
-	 * tableau retourné ne doit pas affecter l'état interne du message.
+	 * {@code getProperties} doit retourner un tableau défensif : modifier le tableau retourné ne
+	 * doit pas affecter l'état interne du message.
 	 */
 	@Test
 	public void testGetPropertiesReturnsDefensiveCopy() {
@@ -155,9 +152,8 @@ public class MessageTest {
 	}
 
 	/**
-	 * {@code copy()} préserve timestamp + propriétés et permet une modification
-	 * indépendante du payload sur la copie (référence partagée mais
-	 * {@code setPayload} écrase localement).
+	 * {@code copy()} préserve timestamp + propriétés et permet une modification indépendante du
+	 * payload sur la copie (référence partagée mais {@code setPayload} écrase localement).
 	 *
 	 * @throws Exception si la lecture de la propriété copiée échoue.
 	 */

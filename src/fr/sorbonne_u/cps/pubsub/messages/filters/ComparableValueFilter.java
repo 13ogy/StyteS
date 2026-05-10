@@ -1,38 +1,30 @@
 package fr.sorbonne_u.cps.pubsub.messages.filters;
 
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
+
 import java.io.Serializable;
 import java.util.Objects;
-
-import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
 
 /**
  * Abstract base class for value filters comparing the value against bounds.
  *
- * <p>
- * Choix de conception : on remplace l'enum {@code Operator}
- * + {@code switch} construction with a class hierarchy: each comparison kind
- * is its own concrete subclass. Adding a new comparison only requires adding
- * a new subclass; no existing code (in particular, no {@code switch} clause)
- * needs to be updated. This is the Strategy pattern applied to comparable
- * value matching.
- * </p>
+ * <p>Choix de conception : on remplace l'enum {@code Operator} + {@code switch} construction with a
+ * class hierarchy: each comparison kind is its own concrete subclass. Adding a new comparison only
+ * requires adding a new subclass; no existing code (in particular, no {@code switch} clause) needs
+ * to be updated. This is the Strategy pattern applied to comparable value matching.
  *
- * <p>
- * The static factory methods on this class produce instances of the
- * appropriate concrete subclass and are kept for backward source compatibility
- * with all existing callers (demos, tests, application code).
- * </p>
+ * <p>The static factory methods on this class produce instances of the appropriate concrete
+ * subclass and are kept for backward source compatibility with all existing callers (demos, tests,
+ * application code).
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public abstract class ComparableValueFilter implements ValueFilterI
-{
+public abstract class ComparableValueFilter implements ValueFilterI {
 	private static final long serialVersionUID = 1L;
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	@Override
-	public final boolean match(Serializable value)
-	{
+	public final boolean match(Serializable value) {
 		if (!(value instanceof Comparable)) {
 			return false;
 		}
@@ -56,8 +48,7 @@ public abstract class ComparableValueFilter implements ValueFilterI
 	 * @param lowerBoundInclusive borne inférieure inclusive (non {@code null}).
 	 * @return un filtre acceptant {@code value >= lowerBoundInclusive}.
 	 */
-	public static ComparableValueFilter greaterOrEqual(Comparable<?> lowerBoundInclusive)
-	{
+	public static ComparableValueFilter greaterOrEqual(Comparable<?> lowerBoundInclusive) {
 		return new GreaterOrEqualValueFilter(lowerBoundInclusive);
 	}
 
@@ -65,8 +56,7 @@ public abstract class ComparableValueFilter implements ValueFilterI
 	 * @param upperBoundInclusive borne supérieure inclusive (non {@code null}).
 	 * @return un filtre acceptant {@code value <= upperBoundInclusive}.
 	 */
-	public static ComparableValueFilter lowerOrEqual(Comparable<?> upperBoundInclusive)
-	{
+	public static ComparableValueFilter lowerOrEqual(Comparable<?> upperBoundInclusive) {
 		return new LowerOrEqualValueFilter(upperBoundInclusive);
 	}
 
@@ -76,10 +66,7 @@ public abstract class ComparableValueFilter implements ValueFilterI
 	 * @return un filtre acceptant {@code lowerBoundInclusive <= value <= upperBoundInclusive}.
 	 */
 	public static ComparableValueFilter betweenInclusive(
-		Comparable<?> lowerBoundInclusive,
-		Comparable<?> upperBoundInclusive
-		)
-	{
+			Comparable<?> lowerBoundInclusive, Comparable<?> upperBoundInclusive) {
 		return new BetweenInclusiveValueFilter(lowerBoundInclusive, upperBoundInclusive);
 	}
 
@@ -87,8 +74,7 @@ public abstract class ComparableValueFilter implements ValueFilterI
 	 * @param lowerBoundExclusive borne inférieure exclusive (non {@code null}).
 	 * @return un filtre acceptant {@code value > lowerBoundExclusive}.
 	 */
-	public static ComparableValueFilter strictlyGreater(Comparable<?> lowerBoundExclusive)
-	{
+	public static ComparableValueFilter strictlyGreater(Comparable<?> lowerBoundExclusive) {
 		return new StrictlyGreaterValueFilter(lowerBoundExclusive);
 	}
 
@@ -96,8 +82,7 @@ public abstract class ComparableValueFilter implements ValueFilterI
 	 * @param upperBoundExclusive borne supérieure exclusive (non {@code null}).
 	 * @return un filtre acceptant {@code value < upperBoundExclusive}.
 	 */
-	public static ComparableValueFilter strictlyLower(Comparable<?> upperBoundExclusive)
-	{
+	public static ComparableValueFilter strictlyLower(Comparable<?> upperBoundExclusive) {
 		return new StrictlyLowerValueFilter(upperBoundExclusive);
 	}
 
@@ -105,14 +90,12 @@ public abstract class ComparableValueFilter implements ValueFilterI
 	// Shared helper
 	// -------------------------------------------------------------------------
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	static int compareUnchecked(Comparable<?> a, Comparable<?> b)
-	{
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	static int compareUnchecked(Comparable<?> a, Comparable<?> b) {
 		return ((Comparable) a).compareTo(b);
 	}
 
-	static Comparable<?> requireBound(Comparable<?> bound, String name)
-	{
+	static Comparable<?> requireBound(Comparable<?> bound, String name) {
 		return Objects.requireNonNull(bound, name + " cannot be null.");
 	}
 }

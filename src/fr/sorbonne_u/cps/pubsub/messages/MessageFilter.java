@@ -1,51 +1,45 @@
 package fr.sorbonne_u.cps.pubsub.messages;
 
-import java.util.Arrays;
-import java.util.Objects;
-
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI.PropertyI;
 import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllMessageFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllTimeFilter;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 /**
- * La classe {@code MessageFilter} implémente {@link MessageFilterI} pour filtrer
- * les messages livrés par le système de publication/souscription.
+ * La classe {@code MessageFilter} implémente {@link MessageFilterI} pour filtrer les messages
+ * livrés par le système de publication/souscription.
  *
- * <p>
- * Un message est accepté lorsque :
- * </p>
+ * <p>Un message est accepté lorsque :
+ *
  * <ul>
- * <li>tous les {@link PropertyFilterI} configurés acceptent leur propriété
- * cible (sémantique AND) ;</li>
- * <li>tous les {@link PropertiesFilterI} configurés acceptent leur ensemble de
- * propriétés cibles (sémantique AND) ;</li>
- * <li>le {@link TimeFilterI} configuré accepte l’horodatage du message.</li>
+ *   <li>tous les {@link PropertyFilterI} configurés acceptent leur propriété cible (sémantique AND)
+ *       ;
+ *   <li>tous les {@link PropertiesFilterI} configurés acceptent leur ensemble de propriétés cibles
+ *       (sémantique AND) ;
+ *   <li>le {@link TimeFilterI} configuré accepte l’horodatage du message.
  * </ul>
  *
- * <p>
- * Les propriétés manquantes requises par un filtre ne déclenchent pas
- * d’exception ; elles font simplement retourner {@code false} à
- * {@link #match(MessageI)}.
- * </p>
+ * <p>Les propriétés manquantes requises par un filtre ne déclenchent pas d’exception ; elles font
+ * simplement retourner {@code false} à {@link #match(MessageI)}.
  *
- * <p>
- * En l'absence de contrainte temporelle, elle utilise un filtre joker qui accepte
- * toutes les estampilles.
- * </p>
- *
+ * <p>En l'absence de contrainte temporelle, elle utilise un filtre joker qui accepte toutes les
+ * estampilles.
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class MessageFilter implements MessageFilterI
-{
+public class MessageFilter implements MessageFilterI {
 	private static final long serialVersionUID = 1L;
 
 	/** Property filters applied individually. */
 	protected final PropertyFilterI[] propertyFilters;
+
 	/** Properties filters applied on groups of properties. */
 	protected final PropertiesFilterI[] propertiesFilters;
+
 	/** Time filter (never null). */
 	protected final TimeFilterI timeFilter;
 
@@ -56,7 +50,7 @@ public class MessageFilter implements MessageFilterI
 	/**
 	 * Create a message filter.
 	 *
-	 * <p><strong>Contract</strong></p>
+	 * <p><strong>Contract</strong>
 	 *
 	 * <pre>
 	 * pre {@code propertyFilters != null}
@@ -71,23 +65,21 @@ public class MessageFilter implements MessageFilterI
 	 * @param timeFilter filtre temporel ; peut être null (joker appliqué).
 	 */
 	public MessageFilter(
-		PropertyFilterI[] propertyFilters,
-		PropertiesFilterI[] propertiesFilters,
-		TimeFilterI timeFilter
-		)
-	{
+			PropertyFilterI[] propertyFilters,
+			PropertiesFilterI[] propertiesFilters,
+			TimeFilterI timeFilter) {
 		Objects.requireNonNull(propertyFilters, "propertyFilters cannot be null");
 		Objects.requireNonNull(propertiesFilters, "propertiesFilters cannot be null");
 
 		for (int k = 0; k < propertyFilters.length; k++) {
-			Objects.requireNonNull(propertyFilters[k],
-				"propertyFilters[" + k + "] cannot be null");
+			Objects.requireNonNull(propertyFilters[k], "propertyFilters[" + k + "] cannot be null");
 		}
 		for (int k = 0; k < propertiesFilters.length; k++) {
-			Objects.requireNonNull(propertiesFilters[k],
-				"propertiesFilters[" + k + "] cannot be null");
-			Objects.requireNonNull(propertiesFilters[k].getMultiValuesFilter(),
-				"propertiesFilters[" + k + "].getMultiValuesFilter() cannot be null");
+			Objects.requireNonNull(
+					propertiesFilters[k], "propertiesFilters[" + k + "] cannot be null");
+			Objects.requireNonNull(
+					propertiesFilters[k].getMultiValuesFilter(),
+					"propertiesFilters[" + k + "].getMultiValuesFilter() cannot be null");
 		}
 
 		this.propertyFilters = Arrays.copyOf(propertyFilters, propertyFilters.length);
@@ -98,18 +90,14 @@ public class MessageFilter implements MessageFilterI
 	/**
 	 * Return a singleton message filter that accepts every message.
 	 *
-	 * <p>
-	 * Optimisation : plutôt que construire à chaque appel une
-	 * {@link MessageFilter} with empty arrays — whose {@link #match(MessageI)}
-	 * still allocates and iterates — we return a singleton implementing
-	 * {@link MessageFilterI} directly with a trivial {@code match} that returns
-	 * {@code true}.
-	 * </p>
+	 * <p>Optimisation : plutôt que construire à chaque appel une {@link MessageFilter} with empty
+	 * arrays — whose {@link #match(MessageI)} still allocates and iterates — we return a singleton
+	 * implementing {@link MessageFilterI} directly with a trivial {@code match} that returns {@code
+	 * true}.
 	 *
 	 * @return un filtre acceptant tous les messages.
 	 */
-	public static MessageFilterI acceptAll()
-	{
+	public static MessageFilterI acceptAll() {
 		return AcceptAllMessageFilter.INSTANCE;
 	}
 
@@ -118,26 +106,22 @@ public class MessageFilter implements MessageFilterI
 	// -------------------------------------------------------------------------
 
 	@Override
-	public PropertyFilterI[] getPropertyFilters()
-	{
+	public PropertyFilterI[] getPropertyFilters() {
 		return Arrays.copyOf(this.propertyFilters, this.propertyFilters.length);
 	}
 
 	@Override
-	public PropertiesFilterI[] getPropertiesFilters()
-	{
+	public PropertiesFilterI[] getPropertiesFilters() {
 		return Arrays.copyOf(this.propertiesFilters, this.propertiesFilters.length);
 	}
 
 	@Override
-	public TimeFilterI getTimeFilter()
-	{
+	public TimeFilterI getTimeFilter() {
 		return this.timeFilter;
 	}
 
 	@Override
-	public boolean match(MessageI message)
-	{
+	public boolean match(MessageI message) {
 		if (message == null) {
 			return false;
 		}
@@ -173,8 +157,7 @@ public class MessageFilter implements MessageFilterI
 		return this.timeFilter.match(message.getTimeStamp());
 	}
 
-	private static PropertyI findByName(PropertyI[] props, String name)
-	{
+	private static PropertyI findByName(PropertyI[] props, String name) {
 		for (PropertyI p : props) {
 			if (name.equals(p.getName())) {
 				return p;

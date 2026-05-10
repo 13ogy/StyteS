@@ -7,16 +7,11 @@ import fr.sorbonne_u.cps.pubsub.interfaces.MessageI.PropertyI;
 /**
  * An implementation of {@link PropertyFilterI}.
  *
- * <p>
- * This filter targets a single property name and applies a {@link ValueFilterI}
- * on its value.
- * </p>
- *
+ * <p>This filter targets a single property name and applies a {@link ValueFilterI} on its value.
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class PropertyFilter implements PropertyFilterI
-{
+public class PropertyFilter implements PropertyFilterI {
 	private static final long serialVersionUID = 1L;
 
 	protected final String name;
@@ -29,8 +24,7 @@ public class PropertyFilter implements PropertyFilterI
 	 * @param valueFilter filtre appliqué à la valeur de la propriété (non {@code null}).
 	 * @throws IllegalArgumentException si une précondition n'est pas respectée.
 	 */
-	public PropertyFilter(String name, ValueFilterI valueFilter)
-	{
+	public PropertyFilter(String name, ValueFilterI valueFilter) {
 		if (name == null || name.isEmpty()) {
 			throw new IllegalArgumentException("name cannot be null or empty.");
 		}
@@ -41,29 +35,31 @@ public class PropertyFilter implements PropertyFilterI
 		this.valueFilter = valueFilter;
 	}
 
-	/** @return le nom de la propriété ciblée (jamais {@code null}). */
+	/**
+	 * @return le nom de la propriété ciblée (jamais {@code null}).
+	 */
 	@Override
-	public String getName()
-	{
+	public String getName() {
 		return this.name;
 	}
 
-	/** @return le filtre de valeur sous-jacent (jamais {@code null}). */
+	/**
+	 * @return le filtre de valeur sous-jacent (jamais {@code null}).
+	 */
 	@Override
-	public ValueFilterI getValueFilter()
-	{
+	public ValueFilterI getValueFilter() {
 		return this.valueFilter;
 	}
 
 	/**
 	 * @param property propriété candidate.
-	 * @return {@code true} ssi {@code property != null}, son nom correspond
-	 * à {@link #getName()} et sa valeur satisfait {@link #getValueFilter()}.
+	 * @return {@code true} ssi {@code property != null}, son nom correspond à {@link #getName()} et
+	 *     sa valeur satisfait {@link #getValueFilter()}.
 	 */
 	@Override
-	public boolean match(PropertyI property)
-	{
-		return property != null && this.name.equals(property.getName()) &&
-				this.valueFilter.match(property.getValue());
+	public boolean match(PropertyI property) {
+		return property != null
+				&& this.name.equals(property.getName())
+				&& this.valueFilter.match(property.getValue());
 	}
 }

@@ -1,12 +1,8 @@
 package fr.sorbonne_u.cps.pubsub.base.components;
 
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import fr.sorbonne_u.components.AbstractComponent;
+import fr.sorbonne_u.components.annotations.OfferedInterfaces;
+import fr.sorbonne_u.components.annotations.RequiredInterfaces;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.cps.pubsub.base.connectors.ReceivingConnector;
@@ -39,154 +35,136 @@ import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllMessageFilter;
 
-import fr.sorbonne_u.components.annotations.OfferedInterfaces;
-import fr.sorbonne_u.components.annotations.RequiredInterfaces;
-
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 
 /**
- * Composant {@code Broker} — cœur du système de publication/souscription
- * conforme au CDC (chapitres 3 et 4).
+ * Composant {@code Broker} — cœur du système de publication/souscription conforme au CDC (chapitres
+ * 3 et 4).
  *
- * <p>
- * Le broker centralise l'enregistrement des clients, la gestion des canaux
- * (libres et privilégiés), la souscription filtrée et la publication
- * asynchrone. En mode fédéré, il propage également chaque mutation
- * d'état (register, publish, createChannel, …) à ses voisins via le
+ * <p>Le broker centralise l'enregistrement des clients, la gestion des canaux (libres et
+ * privilégiés), la souscription filtrée et la publication asynchrone. En mode fédéré, il propage
+ * également chaque mutation d'état (register, publish, createChannel, …) à ses voisins via le
  * protocole gossip dont il implémente {@link GossipImplementationI}.
- * </p>
  *
  * <h2>Interfaces composantes (CIs)</h2>
+ *
  * <ul>
- * <li>Offertes : {@link RegistrationCI}, {@link PublishingCI},
- * {@link PrivilegedClientCI}, {@link GossipReceiverCI}.</li>
- * <li>Requises : {@link ReceivingCI} (vers les clients abonnés),
- * {@link GossipSenderCI} (vers les voisins fédérés).</li>
+ *   <li>Offertes : {@link RegistrationCI}, {@link PublishingCI}, {@link PrivilegedClientCI}, {@link
+ *       GossipReceiverCI}.
+ *   <li>Requises : {@link ReceivingCI} (vers les clients abonnés), {@link GossipSenderCI} (vers les
+ *       voisins fédérés).
  * </ul>
  *
  * <h2>Fonctionnalités</h2>
+ *
  * <ul>
- * <li><strong>Enregistrement</strong> : classes de service
- * {@code FREE}, {@code STANDARD}, {@code PREMIUM}.</li>
- * <li><strong>Canaux libres</strong> : pré-créés {@code channel0..channelN}.</li>
- * <li><strong>Souscriptions filtrées</strong> via
- * {@link MessageFilterI} ; un filtre {@code null} est normalisé en
- * {@link AcceptAllMessageFilter#INSTANCE}.</li>
- * <li><strong>Publication asynchrone</strong> (CDC §3.4 / §4.2) :
- * réception, propagation et livraison sont découplées par trois
- * executor services dédiés.</li>
- * <li><strong>Canaux privilégiés</strong> : créés par les clients
- * STANDARD/PREMIUM, gardés par une regex {@code authorisedUsers}
- * contrôlant l'accès en publication et en souscription.</li>
- * <li><strong>Quotas</strong> : limites de canaux privilégiés par classe
- * (paramètres {@code standardQuota}, {@code premiumQuota}).</li>
- * <li><strong>Gossip</strong> : déduplication atomique
- * ({@link #processedGossipURIs}), filtrage de l'émetteur immédiat
- * (skip-echo) et nettoyage périodique.</li>
+ *   <li><strong>Enregistrement</strong> : classes de service {@code FREE}, {@code STANDARD}, {@code
+ *       PREMIUM}.
+ *   <li><strong>Canaux libres</strong> : pré-créés {@code channel0..channelN}.
+ *   <li><strong>Souscriptions filtrées</strong> via {@link MessageFilterI} ; un filtre {@code null}
+ *       est normalisé en {@link AcceptAllMessageFilter#INSTANCE}.
+ *   <li><strong>Publication asynchrone</strong> (CDC §3.4 / §4.2) : réception, propagation et
+ *       livraison sont découplées par trois executor services dédiés.
+ *   <li><strong>Canaux privilégiés</strong> : créés par les clients STANDARD/PREMIUM, gardés par
+ *       une regex {@code authorisedUsers} contrôlant l'accès en publication et en souscription.
+ *   <li><strong>Quotas</strong> : limites de canaux privilégiés par classe (paramètres {@code
+ *       standardQuota}, {@code premiumQuota}).
+ *   <li><strong>Gossip</strong> : déduplication atomique ({@link #processedGossipURIs}), filtrage
+ *       de l'émetteur immédiat (skip-echo) et nettoyage périodique.
  * </ul>
  *
  * <h2>Concurrence — verrous</h2>
- * <p>
- * Trois {@link ReentrantReadWriteLock} équitables protègent les états
- * partagés (cf. {@code docs/MUTEX.md}) :
- * </p>
+ *
+ * <p>Trois {@link ReentrantReadWriteLock} équitables protègent les états partagés (cf. {@code
+ * docs/MUTEX.md}) :
+ *
  * <ul>
- * <li>{@link #registrationLock} — protège
- * {@code registeredClients}, {@code receptionPortsOUT} et
- * {@code createdPrivilegedChannelsCount} ;</li>
- * <li>{@link #channelsLock} — protège {@code channels} et
- * {@code privilegedChannels} ;</li>
- * <li>{@link #subscriptionsLock} — protège la table imbriquée
- * {@code subscriptions}.</li>
+ *   <li>{@link #registrationLock} — protège {@code registeredClients}, {@code receptionPortsOUT} et
+ *       {@code createdPrivilegedChannelsCount} ;
+ *   <li>{@link #channelsLock} — protège {@code channels} et {@code privilegedChannels} ;
+ *   <li>{@link #subscriptionsLock} — protège la table imbriquée {@code subscriptions}.
  * </ul>
- * <p>
- * <strong>Ordre canonique d'acquisition</strong> :
- * {@code registrationLock → channelsLock → subscriptionsLock}.
- * Toute acquisition dans un autre ordre constitue un risque d'inter-blocage
- * et est interdite (cf. {@code docs/MUTEX.md} §3).
- * </p>
- * <p>
- * <strong>Règle « pas d'appel distant sous verrou »</strong> :
- * aucun {@code doPortConnection}, {@code doPortDisconnection} ni
- * {@code receive(...)} ne doit s'exécuter alors qu'un de ces verrous est
- * détenu. Voir {@link #register} pour le motif rollback typique.
- * </p>
- * <p>
- * Quelques compteurs sont gérés sans verrou via des
- * {@link ConcurrentHashMap} et opérations atomiques :
- * {@link #createdPrivilegedChannelsCount} ({@code merge}),
- * {@link #inFlightPerChannel} ({@code compute}),
- * {@link #processedGossipURIs} ({@code putIfAbsent}). La carte
- * {@link #inFlightWaiters} fournit un objet par canal sur lequel
- * {@link #destroyChannel} peut bloquer en {@code wait/notify} pendant que
- * {@link #finishInFlight} le réveille.
- * </p>
+ *
+ * <p><strong>Ordre canonique d'acquisition</strong> : {@code registrationLock → channelsLock →
+ * subscriptionsLock}. Toute acquisition dans un autre ordre constitue un risque d'inter-blocage et
+ * est interdite (cf. {@code docs/MUTEX.md} §3).
+ *
+ * <p><strong>Règle « pas d'appel distant sous verrou »</strong> : aucun {@code doPortConnection},
+ * {@code doPortDisconnection} ni {@code receive(...)} ne doit s'exécuter alors qu'un de ces verrous
+ * est détenu. Voir {@link #register} pour le motif rollback typique.
+ *
+ * <p>Quelques compteurs sont gérés sans verrou via des {@link ConcurrentHashMap} et opérations
+ * atomiques : {@link #createdPrivilegedChannelsCount} ({@code merge}), {@link #inFlightPerChannel}
+ * ({@code compute}), {@link #processedGossipURIs} ({@code putIfAbsent}). La carte {@link
+ * #inFlightWaiters} fournit un objet par canal sur lequel {@link #destroyChannel} peut bloquer en
+ * {@code wait/notify} pendant que {@link #finishInFlight} le réveille.
  *
  * <h2>Pipeline asynchrone — quatre executor services</h2>
- * <p>
- * Voir {@code docs/PIPELINE.md}. Quatre exécuteurs nommés sont créés au
- * démarrage par {@link #init} :
- * </p>
+ *
+ * <p>Voir {@code docs/PIPELINE.md}. Quatre exécuteurs nommés sont créés au démarrage par {@link
+ * #init} :
+ *
  * <ul>
- * <li>{@link #ES_RECEPTION_URI} — désérialise les requêtes RMI hors
- * de la thread de dispatch ;</li>
- * <li>{@link #ES_PROPAGATION_URI} — construit le {@code snapshot} des
- * abonnés et planifie une livraison par cible ;</li>
- * <li>{@link #ES_DELIVERY_URI} — évalue le filtre puis appelle
- * {@code out.receive(channel, message)} pour un seul abonné ;</li>
- * <li>{@link #ES_GOSSIP_URI} — émet et reçoit les messages gossip
- * sans bloquer les autres pipelines.</li>
+ *   <li>{@link #ES_RECEPTION_URI} — désérialise les requêtes RMI hors de la thread de dispatch ;
+ *   <li>{@link #ES_PROPAGATION_URI} — construit le {@code snapshot} des abonnés et planifie une
+ *       livraison par cible ;
+ *   <li>{@link #ES_DELIVERY_URI} — évalue le filtre puis appelle {@code out.receive(channel,
+ *       message)} pour un seul abonné ;
+ *   <li>{@link #ES_GOSSIP_URI} — émet et reçoit les messages gossip sans bloquer les autres
+ *       pipelines.
  * </ul>
- * Les indices retournés par {@link #createNewExecutorService} sont exposés
- * via {@link #getReceptionExecutorIndex()},
- * {@link #getPropagationExecutorIndex()},
- * {@link #getDeliveryExecutorIndex()} et
- * {@link #getGossipExecutorIndex()} pour que les ports inbound puissent
- * dispatcher avec {@code runTask(esIndex, lambda)}.
+ *
+ * Les indices retournés par {@link #createNewExecutorService} sont exposés via {@link
+ * #getReceptionExecutorIndex()}, {@link #getPropagationExecutorIndex()}, {@link
+ * #getDeliveryExecutorIndex()} et {@link #getGossipExecutorIndex()} pour que les ports inbound
+ * puissent dispatcher avec {@code runTask(esIndex, lambda)}.
  *
  * <h2>URIs déterministes des ports inbound</h2>
- * <p>
- * les quatre ports inbound du broker sont publiés sous des URIs
- * dérivées du {@link #getReflectionInboundPortURI()} en y concaténant
- * un suffixe constant, ce qui supprime le risque
- * « last-broker-wins » des champs statiques globaux :
- * </p>
+ *
+ * <p>les quatre ports inbound du broker sont publiés sous des URIs dérivées du {@link
+ * #getReflectionInboundPortURI()} en y concaténant un suffixe constant, ce qui supprime le risque «
+ * last-broker-wins » des champs statiques globaux :
+ *
  * <ul>
- * <li>{@link #REGISTRATION_PORT_URI_SUFFIX} → {@code "<rip>-reg-in"} ;</li>
- * <li>{@link #PUBLISHING_PORT_URI_SUFFIX} → {@code "<rip>-pub-in"} ;</li>
- * <li>{@link #PRIVILEGED_PORT_URI_SUFFIX} → {@code "<rip>-priv-in"} ;</li>
- * <li>{@link #GOSSIP_INBOUND_PORT_URI_SUFFIX} → {@code "<rip>-gossip-in"}.</li>
+ *   <li>{@link #REGISTRATION_PORT_URI_SUFFIX} → {@code "<rip>-reg-in"} ;
+ *   <li>{@link #PUBLISHING_PORT_URI_SUFFIX} → {@code "<rip>-pub-in"} ;
+ *   <li>{@link #PRIVILEGED_PORT_URI_SUFFIX} → {@code "<rip>-priv-in"} ;
+ *   <li>{@link #GOSSIP_INBOUND_PORT_URI_SUFFIX} → {@code "<rip>-gossip-in"}.
  * </ul>
- * Les helpers {@link #registrationPortURIFor(String)},
- * {@link #publishingPortURIFor(String)},
- * {@link #privilegedPortURIFor(String)} et
- * {@link #gossipPortURIFor(String)} factorisent ce calcul côté client.
+ *
+ * Les helpers {@link #registrationPortURIFor(String)}, {@link #publishingPortURIFor(String)},
+ * {@link #privilegedPortURIFor(String)} et {@link #gossipPortURIFor(String)} factorisent ce calcul
+ * côté client.
  *
  * <h2>Invariants principaux</h2>
+ *
  * <ul>
- * <li>Un client est dit enregistré ssi il apparaît à la fois dans
- * {@code registeredClients} et {@code receptionPortsOUT}.</li>
- * <li>{@code createdPrivilegedChannelsCount[uri]} reste toujours
- * dans {@code [0, quota(rc)]}.</li>
- * <li>Pour tout canal présent dans {@code channels}, il existe une
- * entrée dans {@code subscriptions} ; la réciproque tient après le
- * nettoyage post-destruction.</li>
- * <li>Un canal privilégié figure obligatoirement dans
- * {@code privilegedChannels} ET {@code channels}.</li>
- * <li>Aucun appel distant n'est effectué tant qu'un des trois RRWL
- * est détenu.</li>
+ *   <li>Un client est dit enregistré ssi il apparaît à la fois dans {@code registeredClients} et
+ *       {@code receptionPortsOUT}.
+ *   <li>{@code createdPrivilegedChannelsCount[uri]} reste toujours dans {@code [0, quota(rc)]}.
+ *   <li>Pour tout canal présent dans {@code channels}, il existe une entrée dans {@code
+ *       subscriptions} ; la réciproque tient après le nettoyage post-destruction.
+ *   <li>Un canal privilégié figure obligatoirement dans {@code privilegedChannels} ET {@code
+ *       channels}.
+ *   <li>Aucun appel distant n'est effectué tant qu'un des trois RRWL est détenu.
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-@OfferedInterfaces(offered = {
-	RegistrationCI.class, PublishingCI.class, PrivilegedClientCI.class, GossipReceiverCI.class
-})
-@RequiredInterfaces(required = {
-	ReceivingCI.class, GossipSenderCI.class
-})
-public class Broker extends AbstractComponent implements GossipImplementationI
-{
+@OfferedInterfaces(
+		offered = {
+			RegistrationCI.class,
+			PublishingCI.class,
+			PrivilegedClientCI.class,
+			GossipReceiverCI.class
+		})
+@RequiredInterfaces(required = {ReceivingCI.class, GossipSenderCI.class})
+public class Broker extends AbstractComponent implements GossipImplementationI {
 	// -------------------------------------------------------------------------
 	// Executor services URIs (audit 2)
 	// -------------------------------------------------------------------------
@@ -207,9 +185,14 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 
 	// Mode équitable : protège les écritures longues contre la famine.
-	protected final ReentrantReadWriteLock registrationLock = new ReentrantReadWriteLock(true); // registeredClients, receptionPortsOUT, createdPrivilegedChannelsCount
-	protected final ReentrantReadWriteLock channelsLock = new ReentrantReadWriteLock(true); // Channels, privilegedChannels
-	protected final ReentrantReadWriteLock subscriptionsLock = new ReentrantReadWriteLock(true); // subscriptions
+	protected final ReentrantReadWriteLock registrationLock =
+			new ReentrantReadWriteLock(
+					true); // registeredClients, receptionPortsOUT, createdPrivilegedChannelsCount
+	protected final ReentrantReadWriteLock channelsLock =
+			new ReentrantReadWriteLock(true); // Channels, privilegedChannels
+	protected final ReentrantReadWriteLock subscriptionsLock =
+			new ReentrantReadWriteLock(true); // subscriptions
+
 	// Note : processedGossipURIs est désormais un ConcurrentHashMap,
 	// la déduplication se fait sans verrou via putIfAbsent. Aucun gossipLock
 	// résiduel — on évite l'accumulation de verrous inutiles.
@@ -221,17 +204,15 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/**
 	 * Async publish with optional notification (CDC §3.4 + Audit 2).
 	 *
-	 * @throws IllegalArgumentException if any string parameter is null/empty,
-	 * or {@code message} is null. ({@code notificationInbounhdPortURI}
-	 * may be null = no notification.)
+	 * @throws IllegalArgumentException if any string parameter is null/empty, or {@code message} is
+	 *     null. ({@code notificationInbounhdPortURI} may be null = no notification.)
 	 */
 	public void asyncPublishAndNotify(
-		String publisherReceptionPortURI,
-		String channel,
-		MessageI message,
-		String notificationInbounhdPortURI
-		) throws Exception
-	{
+			String publisherReceptionPortURI,
+			String channel,
+			MessageI message,
+			String notificationInbounhdPortURI)
+			throws Exception {
 		requireClient(publisherReceptionPortURI);
 		requireChannel(channel);
 		if (message == null) {
@@ -242,25 +223,24 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		assert channel != null && !channel.isEmpty()
 				: "channel normalised to non-empty after requireChannel";
 		// Audit 2: asynchronous submission.
-		this.submitPublish(publisherReceptionPortURI, channel, message, notificationInbounhdPortURI);
+		this.submitPublish(
+				publisherReceptionPortURI, channel, message, notificationInbounhdPortURI);
 	}
 
 	/**
 	 * Bulk async publish with optional notification.
 	 *
-	 * <p> : shares the single-snapshot bulk path with
-	 * {@link #publish(String, String, ArrayList)}.</p>
+	 * <p>: shares the single-snapshot bulk path with {@link #publish(String, String, ArrayList)}.
 	 *
-	 * @throws IllegalArgumentException if any string parameter is null/empty,
-	 * or {@code messages} is null/empty.
+	 * @throws IllegalArgumentException if any string parameter is null/empty, or {@code messages}
+	 *     is null/empty.
 	 */
 	public void asyncPublishAndNotify(
-		String publisherReceptionPortURI,
-		String channel,
-		ArrayList<MessageI> messages,
-		String notificationInbounhdPortURI
-		) throws Exception
-	{
+			String publisherReceptionPortURI,
+			String channel,
+			ArrayList<MessageI> messages,
+			String notificationInbounhdPortURI)
+			throws Exception {
 		requireClient(publisherReceptionPortURI);
 		requireChannel(channel);
 		if (messages == null || messages.isEmpty()) {
@@ -274,7 +254,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				: "messages normalised to non-empty after explicit check";
 		this.bulkSubmit(publisherReceptionPortURI, channel, messages, notificationInbounhdPortURI);
 	}
-
 
 	// -------------------------------------------------------------------------
 	// Ports
@@ -300,19 +279,19 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 
 	/** Registered clients: receptionPortURI -> registration class. */
 	final Map<String, RegistrationClass> registeredClients = new HashMap<>();
+
 	/** Per-client outbound port to deliver messages. */
 	private final Map<String, BrokerReceptionOutboundPort> receptionPortsOUT = new HashMap<>();
+
 	/** All channels (FREE + privileged). */
 	final Set<String> channels = new HashSet<>();
 
 	/** Privileged channels metadata. */
-	static class PrivilegedChannelInfo
-	{
+	static class PrivilegedChannelInfo {
 		final String ownerReceptionPortURI;
 		Pattern authorisedUsersPattern;
 
-		PrivilegedChannelInfo(String ownerReceptionPortURI, Pattern authorisedUsersPattern)
-		{
+		PrivilegedChannelInfo(String ownerReceptionPortURI, Pattern authorisedUsersPattern) {
 			this.ownerReceptionPortURI = ownerReceptionPortURI;
 			this.authorisedUsersPattern = authorisedUsersPattern;
 		}
@@ -321,29 +300,34 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/** Privileged channels: channel -> info (owner + authorisedUsers regex). */
 	final Map<String, PrivilegedChannelInfo> privilegedChannels = new HashMap<>();
 
-	/** Per-client created privileged channels count. ConcurrentHashMap so
-	 * callers can use atomic compute/merge without holding extra locks. */
+	/**
+	 * Per-client created privileged channels count. ConcurrentHashMap so callers can use atomic
+	 * compute/merge without holding extra locks.
+	 */
 	final java.util.concurrent.ConcurrentHashMap<String, Integer> createdPrivilegedChannelsCount =
 			new java.util.concurrent.ConcurrentHashMap<>();
 
 	/** Channel quotas */
 	private int standardQuota;
+
 	private int premiumQuota;
 	private int nbFreeChannels;
 
 	/** Subscriptions: channel -> (client receptionPortURI -> filter). */
 	final Map<String, Map<String, MessageFilterI>> subscriptions = new HashMap<>();
 
-	/** Number of messages currently in-flight per channel. ConcurrentHashMap
-	 * so beginInFlight/finishInFlight use atomic compute() rather than
-	 * synchronized blocks. */
+	/**
+	 * Number of messages currently in-flight per channel. ConcurrentHashMap so
+	 * beginInFlight/finishInFlight use atomic compute() rather than synchronized blocks.
+	 */
 	final java.util.concurrent.ConcurrentHashMap<String, Integer> inFlightPerChannel =
 			new java.util.concurrent.ConcurrentHashMap<>();
 
-	/** C.8-find-3: per-channel mutex used by destroyChannel to wait for
-	 * in-flight delivery to drain without busy-polling. The corresponding
-	 * finishInFlight call notifies any waiter when the count transitions
-	 * from > 0 to 0. */
+	/**
+	 * C.8-find-3: per-channel mutex used by destroyChannel to wait for in-flight delivery to drain
+	 * without busy-polling. The corresponding finishInFlight call notifies any waiter when the
+	 * count transitions from > 0 to 0.
+	 */
 	private final java.util.concurrent.ConcurrentHashMap<String, Object> inFlightWaiters =
 			new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -352,34 +336,33 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Outbound gossip ports keyed by the neighbour's reflection inbound
-	 * port URI (i.e. the value carried in {@code GossipMessageI.getEmitterURI()}).
+	 * Outbound gossip ports keyed by the neighbour's reflection inbound port URI (i.e. the value
+	 * carried in {@code GossipMessageI.getEmitterURI()}).
 	 *
-	 * <p>This map exists so that {@link #update(GossipMessageI[])} can identify
-	 * which sender corresponds to the broker that just delivered a message and
-	 * <strong>skip it</strong> when re-emitting (skip-echo). Renvoyer a
-	 * gossip back to its immediate sender is wasteful: dedup will catch it,
-	 * but only after a full round-trip RMI call. Skipping at the source
-	 * removes the wasted work.</p>
+	 * <p>This map exists so that {@link #update(GossipMessageI[])} can identify which sender
+	 * corresponds to the broker that just delivered a message and <strong>skip it</strong> when
+	 * re-emitting (skip-echo). Renvoyer a gossip back to its immediate sender is wasteful: dedup
+	 * will catch it, but only after a full round-trip RMI call. Skipping at the source removes the
+	 * wasted work.
 	 */
 	private final Map<String, GossipSenderOutboundPort> sendersByNeighbour = new HashMap<>();
+
 	/** Neighboring brokers' URIs. */
 	private List<String> gossipURIs;
+
 	public static final String GOSSIP_INBOUND_PORT_URI_SUFFIX = "-gossip-in";
 
 	/**
-	 * Messages from other brokers that are already processed (ignored if
-	 * received again, periodically GC'd by {@link #cleanupGossipMemory()}).
+	 * Messages from other brokers that are already processed (ignored if received again,
+	 * periodically GC'd by {@link #cleanupGossipMemory()}).
 	 *
-	 * <p>{@link ConcurrentHashMap} so that {@link #update(GossipMessageI[])}
-	 * can dedup with a single atomic {@code putIfAbsent} call instead of
-	 * lock + check + put. La précédente
-	 * lock-based dedup had a window where two threads could both observe
-	 * "not processed" and both proceed to forward the same message.</p>
+	 * <p>{@link ConcurrentHashMap} so that {@link #update(GossipMessageI[])} can dedup with a
+	 * single atomic {@code putIfAbsent} call instead of lock + check + put. La précédente
+	 * lock-based dedup had a window where two threads could both observe "not processed" and both
+	 * proceed to forward the same message.
 	 */
 	private final java.util.concurrent.ConcurrentMap<String, Instant> processedGossipURIs =
 			new java.util.concurrent.ConcurrentHashMap<>();
-
 
 	// -------------------------------------------------------------------------
 	// Constructors
@@ -395,8 +378,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// last-broker-wins hazard of the previous static field.
 
 	/**
-	 * Constructeur sans voisins gossip (broker isolé) ni URI de réflexion
-	 * explicite — pratique pour les démos centralisées d'un seul broker.
+	 * Constructeur sans voisins gossip (broker isolé) ni URI de réflexion explicite — pratique pour
+	 * les démos centralisées d'un seul broker.
 	 *
 	 * @param nbThreads nombre de threads ordinaires alloués au composant.
 	 * @param nbSchedulableThreads nombre de threads ordonnançables.
@@ -408,91 +391,140 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * @param nbDeliveryThreads threads alloués à l'executor de livraison.
 	 * @throws Exception erreur de publication des ports.
 	 */
-	protected Broker(int nbThreads, int nbSchedulableThreads,
-					 int nbFreeChannels, int standardQuota, int premiumQuota,
-					 int nbReceptionThreads, int nbPropagationThreads,
-					 int nbDeliveryThreads) throws Exception {
-		this(nbThreads, nbSchedulableThreads, nbFreeChannels,
-				standardQuota, premiumQuota, nbReceptionThreads,
-				nbPropagationThreads, nbDeliveryThreads,
+	protected Broker(
+			int nbThreads,
+			int nbSchedulableThreads,
+			int nbFreeChannels,
+			int standardQuota,
+			int premiumQuota,
+			int nbReceptionThreads,
+			int nbPropagationThreads,
+			int nbDeliveryThreads)
+			throws Exception {
+		this(
+				nbThreads,
+				nbSchedulableThreads,
+				nbFreeChannels,
+				standardQuota,
+				premiumQuota,
+				nbReceptionThreads,
+				nbPropagationThreads,
+				nbDeliveryThreads,
 				new ArrayList<>()); // pas de voisins
 	}
 
 	/**
 	 * Constructeur avec voisins gossip mais sans URI de réflexion explicite.
 	 *
-	 * @param neighborsGossipURIs liste des URIs des ports gossip inbound des
-	 * voisins fédérés (peut être vide).
+	 * @param neighborsGossipURIs liste des URIs des ports gossip inbound des voisins fédérés (peut
+	 *     être vide).
 	 */
-	protected Broker(int nbThreads, int nbSchedulableThreads,
-					 int nbFreeChannels, int standardQuota, int premiumQuota,
-					 int nbReceptionThreads, int nbPropagationThreads,
-					 int nbDeliveryThreads,
-					 List<String> neighborsGossipURIs) throws Exception
-	{
+	protected Broker(
+			int nbThreads,
+			int nbSchedulableThreads,
+			int nbFreeChannels,
+			int standardQuota,
+			int premiumQuota,
+			int nbReceptionThreads,
+			int nbPropagationThreads,
+			int nbDeliveryThreads,
+			List<String> neighborsGossipURIs)
+			throws Exception {
 		super(nbThreads, nbSchedulableThreads);
-		this.init(nbFreeChannels, standardQuota, premiumQuota,
-				nbReceptionThreads, nbPropagationThreads, nbDeliveryThreads,
+		this.init(
+				nbFreeChannels,
+				standardQuota,
+				premiumQuota,
+				nbReceptionThreads,
+				nbPropagationThreads,
+				nbDeliveryThreads,
 				neighborsGossipURIs);
 	}
 
 	/**
-	 * Constructeur avec URI de réflexion explicite (cas distribué multi-JVM)
-	 * et sans voisins gossip.
+	 * Constructeur avec URI de réflexion explicite (cas distribué multi-JVM) et sans voisins
+	 * gossip.
 	 *
 	 * @param reflexionPort URI du port inbound de réflexion à publier.
 	 */
-	protected Broker(String reflexionPort,
-					 int nbThreads, int nbSchedulableThreads,
-					 int nbFreeChannels, int standardQuota, int premiumQuota,
-					 int nbReceptionThreads, int nbPropagationThreads,
-					 int nbDeliveryThreads) throws Exception {
-		this(reflexionPort,
-				nbThreads, nbSchedulableThreads, nbFreeChannels,
-				standardQuota, premiumQuota, nbReceptionThreads,
-				nbPropagationThreads, nbDeliveryThreads,
+	protected Broker(
+			String reflexionPort,
+			int nbThreads,
+			int nbSchedulableThreads,
+			int nbFreeChannels,
+			int standardQuota,
+			int premiumQuota,
+			int nbReceptionThreads,
+			int nbPropagationThreads,
+			int nbDeliveryThreads)
+			throws Exception {
+		this(
+				reflexionPort,
+				nbThreads,
+				nbSchedulableThreads,
+				nbFreeChannels,
+				standardQuota,
+				premiumQuota,
+				nbReceptionThreads,
+				nbPropagationThreads,
+				nbDeliveryThreads,
 				new ArrayList<>()); // pas de voisins
 	}
 
 	/**
-	 * Constructeur complet (URI de réflexion explicite + voisins gossip).
-	 * C'est la forme utilisée en mode fédéré distribué.
+	 * Constructeur complet (URI de réflexion explicite + voisins gossip). C'est la forme utilisée
+	 * en mode fédéré distribué.
 	 *
 	 * @param reflexionPort URI du port inbound de réflexion.
 	 * @param neighborsGossipURIs URIs gossip inbound des brokers voisins.
 	 */
-	protected Broker(String reflexionPort,
-					 int nbThreads, int nbSchedulableThreads,
-					 int nbFreeChannels, int standardQuota, int premiumQuota,
-					 int nbReceptionThreads, int nbPropagationThreads,
-					 int nbDeliveryThreads,
-					 List<String> neighborsGossipURIs) throws Exception
-	{
+	protected Broker(
+			String reflexionPort,
+			int nbThreads,
+			int nbSchedulableThreads,
+			int nbFreeChannels,
+			int standardQuota,
+			int premiumQuota,
+			int nbReceptionThreads,
+			int nbPropagationThreads,
+			int nbDeliveryThreads,
+			List<String> neighborsGossipURIs)
+			throws Exception {
 		super(reflexionPort, nbThreads, nbSchedulableThreads);
-		this.init(nbFreeChannels, standardQuota, premiumQuota,
-				nbReceptionThreads, nbPropagationThreads, nbDeliveryThreads,
+		this.init(
+				nbFreeChannels,
+				standardQuota,
+				premiumQuota,
+				nbReceptionThreads,
+				nbPropagationThreads,
+				nbDeliveryThreads,
 				neighborsGossipURIs);
 	}
 
 	/**
-	 * Common initialisation shared by every constructor:
-	 * creates the executor services, the FREE channels, and publishes the
-	 * four broker inbound ports under URIs deterministically derived from
-	 * {@link #getReflectionInboundPortURI()}.
+	 * Common initialisation shared by every constructor: creates the executor services, the FREE
+	 * channels, and publishes the four broker inbound ports under URIs deterministically derived
+	 * from {@link #getReflectionInboundPortURI()}.
 	 *
-	 * <p>Must be called immediately after {@code super(...)} so that
-	 * {@code getReflectionInboundPortURI()} returns the correct value
-	 * (whether a URI was provided to the super constructor or generated
-	 * by it).</p>
+	 * <p>Must be called immediately after {@code super(...)} so that {@code
+	 * getReflectionInboundPortURI()} returns the correct value (whether a URI was provided to the
+	 * super constructor or generated by it).
 	 */
-	private void init(int nbFreeChannels, int standardQuota, int premiumQuota,
-					 int nbReceptionThreads, int nbPropagationThreads,
-					 int nbDeliveryThreads,
-					 List<String> neighborsGossipURIs) throws Exception
-	{
-		this.esReceptionIndex = this.createNewExecutorService(ES_RECEPTION_URI, nbReceptionThreads, false);
-		this.esPropagationIndex = this.createNewExecutorService(ES_PROPAGATION_URI, nbPropagationThreads, false);
-		this.esDeliveryIndex = this.createNewExecutorService(ES_DELIVERY_URI, nbDeliveryThreads, false);
+	private void init(
+			int nbFreeChannels,
+			int standardQuota,
+			int premiumQuota,
+			int nbReceptionThreads,
+			int nbPropagationThreads,
+			int nbDeliveryThreads,
+			List<String> neighborsGossipURIs)
+			throws Exception {
+		this.esReceptionIndex =
+				this.createNewExecutorService(ES_RECEPTION_URI, nbReceptionThreads, false);
+		this.esPropagationIndex =
+				this.createNewExecutorService(ES_PROPAGATION_URI, nbPropagationThreads, false);
+		this.esDeliveryIndex =
+				this.createNewExecutorService(ES_DELIVERY_URI, nbDeliveryThreads, false);
 		this.esGossipIndex = this.createNewExecutorService(ES_GOSSIP_URI, 4, false);
 
 		this.nbFreeChannels = nbFreeChannels;
@@ -511,12 +543,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				new BrokerRegistrationInboundPort(registrationPortURIFor(rip), this);
 		this.registrationPortIN.publishPort();
 
-		this.publishingPortIN =
-				new BrokerPublishingInboundPort(publishingPortURIFor(rip), this);
+		this.publishingPortIN = new BrokerPublishingInboundPort(publishingPortURIFor(rip), this);
 		this.publishingPortIN.publishPort();
 
-		this.privilegedPortIN =
-				new BrokerPrivilegedInboundPort(privilegedPortURIFor(rip), this);
+		this.privilegedPortIN = new BrokerPrivilegedInboundPort(privilegedPortURIFor(rip), this);
 		this.privilegedPortIN.publishPort();
 
 		this.gossipPortIN =
@@ -526,22 +556,22 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		this.gossipURIs = neighborsGossipURIs;
 	}
 
-
-
 	// -------------------------------------------------------------------------
 	// Internal asynchronous pipeline (audit 2)
 	// -------------------------------------------------------------------------
 
 	/** Quota de canaux privilégiés autorisé pour un client {@code STANDARD}. */
-	public int getStandardQuota(){
+	public int getStandardQuota() {
 		return standardQuota;
 	}
+
 	/** Quota de canaux privilégiés autorisé pour un client {@code PREMIUM}. */
-	public int getPremiumQuota(){
+	public int getPremiumQuota() {
 		return premiumQuota;
 	}
+
 	/** Nombre de canaux libres pré-créés à l'initialisation du broker. */
-	public int getNbFreeChannels(){
+	public int getNbFreeChannels() {
 		return nbFreeChannels;
 	}
 
@@ -555,31 +585,37 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 
 	/** Index of the dedicated reception executor service ({@value #ES_RECEPTION_URI}). */
-	public int getReceptionExecutorIndex() { return this.esReceptionIndex; }
+	public int getReceptionExecutorIndex() {
+		return this.esReceptionIndex;
+	}
 
 	/** Index of the dedicated propagation executor service ({@value #ES_PROPAGATION_URI}). */
-	public int getPropagationExecutorIndex() { return this.esPropagationIndex; }
+	public int getPropagationExecutorIndex() {
+		return this.esPropagationIndex;
+	}
 
 	/** Index of the dedicated delivery executor service ({@value #ES_DELIVERY_URI}). */
-	public int getDeliveryExecutorIndex() { return this.esDeliveryIndex; }
+	public int getDeliveryExecutorIndex() {
+		return this.esDeliveryIndex;
+	}
 
 	/** Index of the dedicated gossip executor service ({@value #ES_GOSSIP_URI}). */
-	public int getGossipExecutorIndex() { return this.esGossipIndex; }
+	public int getGossipExecutorIndex() {
+		return this.esGossipIndex;
+	}
 
 	/**
-	 * Cible de livraison pré-calculée par {@link #snapshotTargets} : associe
-	 * l'URI d'un abonné, son port outbound de livraison et son filtre courant.
-	 * Permet d'évaluer le filtre puis d'appeler {@code receive} sans toucher
-	 * aux structures partagées.
+	 * Cible de livraison pré-calculée par {@link #snapshotTargets} : associe l'URI d'un abonné, son
+	 * port outbound de livraison et son filtre courant. Permet d'évaluer le filtre puis d'appeler
+	 * {@code receive} sans toucher aux structures partagées.
 	 */
-	protected static class DeliveryTarget
-	{
+	protected static class DeliveryTarget {
 		final String subscriberURI;
 		final BrokerReceptionOutboundPort out;
 		final MessageFilterI filter;
 
-		DeliveryTarget(String subscriberURI, BrokerReceptionOutboundPort out, MessageFilterI filter)
-		{
+		DeliveryTarget(
+				String subscriberURI, BrokerReceptionOutboundPort out, MessageFilterI filter) {
 			this.subscriberURI = subscriberURI;
 			this.out = out;
 			this.filter = filter;
@@ -587,58 +623,61 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Soumet la première étape (réception) du pipeline asynchrone sur
-	 * l'executor {@link #esReceptionIndex}. Fire-and-forget : aucun résultat
-	 * n'est renvoyé à l'appelant ; les exceptions sont logguées.
+	 * Soumet la première étape (réception) du pipeline asynchrone sur l'executor {@link
+	 * #esReceptionIndex}. Fire-and-forget : aucun résultat n'est renvoyé à l'appelant ; les
+	 * exceptions sont logguées.
 	 *
 	 * @param publisherReceptionPortURI URI du publieur (clef d'identification).
 	 * @param channel canal cible.
 	 * @param message message à publier.
-	 * @param notificationInboundPortURI URI du port à notifier en fin de
-	 * livraison (peut être {@code null}).
+	 * @param notificationInboundPortURI URI du port à notifier en fin de livraison (peut être
+	 *     {@code null}).
 	 */
 	protected void submitPublish(
-		String publisherReceptionPortURI,
-		String channel,
-		MessageI message,
-		String notificationInboundPortURI
-		)
-	{
+			String publisherReceptionPortURI,
+			String channel,
+			MessageI message,
+			String notificationInboundPortURI) {
 		final Broker self = this;
-		this.runTask(this.esReceptionIndex, o -> {
-			try {
-				((Broker) o).receptionStage(publisherReceptionPortURI, channel, message, notificationInboundPortURI);
-			} catch (Exception e) {
-				// L'étage de réception consigne l'exception et abandonne ce
-				// message ; aucun mécanisme de notification d'arrêt anormal
-				// n'est requis par le CDC.
-				self.logMessage("[Broker] receptionStage exception: " + e + "\n");
-			}
-		});
+		this.runTask(
+				this.esReceptionIndex,
+				o -> {
+					try {
+						((Broker) o)
+								.receptionStage(
+										publisherReceptionPortURI,
+										channel,
+										message,
+										notificationInboundPortURI);
+					} catch (Exception e) {
+						// L'étage de réception consigne l'exception et abandonne ce
+						// message ; aucun mécanisme de notification d'arrêt anormal
+						// n'est requis par le CDC.
+						self.logMessage("[Broker] receptionStage exception: " + e + "\n");
+					}
+				});
 	}
 
 	/**
-	 * Étape de réception du pipeline (cf. {@code docs/PIPELINE.md} §3) :
-	 * incrémente d'abord le compteur {@code in-flight} pour que
-	 * {@link #destroyChannel} puisse observer le message en cours, puis
-	 * vérifie sous verrous {@code registrationLock.read} +
-	 * {@code channelsLock.read} l'autorisation de publier, propage le
-	 * message gossip aux voisins, et enfin soumet l'étape de propagation.
+	 * Étape de réception du pipeline (cf. {@code docs/PIPELINE.md} §3) : incrémente d'abord le
+	 * compteur {@code in-flight} pour que {@link #destroyChannel} puisse observer le message en
+	 * cours, puis vérifie sous verrous {@code registrationLock.read} + {@code channelsLock.read}
+	 * l'autorisation de publier, propage le message gossip aux voisins, et enfin soumet l'étape de
+	 * propagation.
 	 *
-	 * <p><strong>Préconditions de verrou</strong> : aucune (la méthode acquiert
-	 * et relâche elle-même les verrous nécessaires dans l'ordre canonique).</p>
+	 * <p><strong>Préconditions de verrou</strong> : aucune (la méthode acquiert et relâche
+	 * elle-même les verrous nécessaires dans l'ordre canonique).
 	 *
 	 * @throws UnknownClientException si le publieur n'est pas enregistré.
 	 * @throws UnknownChannelException si le canal n'existe pas (ou plus).
 	 * @throws UnauthorisedClientException si le publieur n'est pas autorisé.
 	 */
 	protected void receptionStage(
-		String publisherReceptionPortURI,
-		String channel,
-		MessageI message,
-		String notificationInboundPortURI
-		) throws Exception
-	{
+			String publisherReceptionPortURI,
+			String channel,
+			MessageI message,
+			String notificationInboundPortURI)
+			throws Exception {
 
 		// Incrémenter avant validation : destroyChannel observe ainsi ce
 		// message même si une vérification jette une exception en aval.
@@ -669,56 +708,59 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 
 		// send gossip
-		PublishGossipMessage gossip = new PublishGossipMessage(
-				java.util.UUID.randomUUID().toString(),
-				Instant.now(),
-				this.getReflectionInboundPortURI(),
-				message,
-				channel,
-				publisherReceptionPortURI);
-		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
+		PublishGossipMessage gossip =
+				new PublishGossipMessage(
+						java.util.UUID.randomUUID().toString(),
+						Instant.now(),
+						this.getReflectionInboundPortURI(),
+						message,
+						channel,
+						publisherReceptionPortURI);
+		this.gossipToNeighbours(new GossipMessageI[] {gossip});
 
 		// Submit propagation.
-		this.runTask(this.esPropagationIndex, o -> {
-			try {
-				((Broker) o).propagationStage(channel, message);
-			} catch (Exception e) {
-				this.logMessage("[Broker] propagationStage exception: " + e + "\n");
-				// ensure in-flight bookkeeping is decremented even in error.
-				((Broker) o).finishInFlight(channel);
-			}
-		});
+		this.runTask(
+				this.esPropagationIndex,
+				o -> {
+					try {
+						((Broker) o).propagationStage(channel, message);
+					} catch (Exception e) {
+						this.logMessage("[Broker] propagationStage exception: " + e + "\n");
+						// ensure in-flight bookkeeping is decremented even in error.
+						((Broker) o).finishInFlight(channel);
+					}
+				});
 	}
+
 	/**
-	 * Incrémente atomiquement le compteur de messages en cours de livraison
-	 * pour {@code channel}. Aucun verrou requis ({@link ConcurrentHashMap}).
+	 * Incrémente atomiquement le compteur de messages en cours de livraison pour {@code channel}.
+	 * Aucun verrou requis ({@link ConcurrentHashMap}).
 	 */
-	protected void beginInFlight(String channel)
-	{
+	protected void beginInFlight(String channel) {
 		// CHM.compute is atomic for a given key: no extra lock needed.
 		this.inFlightPerChannel.compute(channel, (k, v) -> v == null ? 1 : v + 1);
 	}
 
 	/**
-	 * Décrémente atomiquement le compteur {@code in-flight}. Si le compteur
-	 * passe de {@code > 0} à {@code 0}, réveille toute thread bloquée dans
-	 * {@link #destroyChannel} via le {@link #inFlightWaiters waiter} associé
-	 *.
+	 * Décrémente atomiquement le compteur {@code in-flight}. Si le compteur passe de {@code > 0} à
+	 * {@code 0}, réveille toute thread bloquée dans {@link #destroyChannel} via le {@link
+	 * #inFlightWaiters waiter} associé .
 	 */
-	protected void finishInFlight(String channel)
-	{
+	protected void finishInFlight(String channel) {
 		// C.8-find-3: capture whether this call drove the count from
 		// > 0 to 0; if so, notify any thread blocked in destroyChannel.
-		final boolean[] reachedZero = new boolean[]{ false };
-		this.inFlightPerChannel.compute(channel, (k, v) -> {
-			if (v == null) return 0;
-			int next = v - 1;
-			if (next <= 0) {
-				reachedZero[0] = (v > 0);
-				return 0;
-			}
-			return next;
-		});
+		final boolean[] reachedZero = new boolean[] {false};
+		this.inFlightPerChannel.compute(
+				channel,
+				(k, v) -> {
+					if (v == null) return 0;
+					int next = v - 1;
+					if (next <= 0) {
+						reachedZero[0] = (v > 0);
+						return 0;
+					}
+					return next;
+				});
 		if (reachedZero[0]) {
 			Object waiter = this.inFlightWaiters.get(channel);
 			if (waiter != null) {
@@ -730,27 +772,23 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Étape de propagation (cf. {@code docs/PIPELINE.md} §3) : construit un
-	 * snapshot des cibles puis enchaîne sur l'étape de livraison. Soumis sur
-	 * l'executor {@link #esPropagationIndex} ; ne tient aucun verrou
-	 * pendant l'appel récursif à {@link #deliverToTargets}.
+	 * Étape de propagation (cf. {@code docs/PIPELINE.md} §3) : construit un snapshot des cibles
+	 * puis enchaîne sur l'étape de livraison. Soumis sur l'executor {@link #esPropagationIndex} ;
+	 * ne tient aucun verrou pendant l'appel récursif à {@link #deliverToTargets}.
 	 */
-	protected void propagationStage(String channel, MessageI message) throws Exception
-	{
+	protected void propagationStage(String channel, MessageI message) throws Exception {
 		List<DeliveryTarget> targets = this.snapshotTargets(channel);
 		this.deliverToTargets(channel, message, targets);
 	}
 
 	/**
-	 * Build a snapshot of the current subscriber set for {@code channel}.
-	 * Throws {@link UnknownChannelException} if the channel was destroyed
-	 * between the publisher check and propagation.
+	 * Build a snapshot of the current subscriber set for {@code channel}. Throws {@link
+	 * UnknownChannelException} if the channel was destroyed between the publisher check and
+	 * propagation.
 	 *
-	 * <p> : factored out so bulk publish can reuse a single
-	 * snapshot for many messages.</p>
+	 * <p>: factored out so bulk publish can reuse a single snapshot for many messages.
 	 */
-	protected List<DeliveryTarget> snapshotTargets(String channel) throws Exception
-	{
+	protected List<DeliveryTarget> snapshotTargets(String channel) throws Exception {
 		List<DeliveryTarget> targets = new ArrayList<>();
 		this.registrationLock.readLock().lock();
 		try {
@@ -778,49 +816,53 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Submit one delivery task per pre-built target, decrementing the
-	 * channel's in-flight counter when the last delivery completes.
+	 * Submit one delivery task per pre-built target, decrementing the channel's in-flight counter
+	 * when the last delivery completes.
 	 */
 	protected void deliverToTargets(
-		String channel,
-		MessageI message,
-		List<DeliveryTarget> targets
-		)
-	{
+			String channel, MessageI message, List<DeliveryTarget> targets) {
 		final int expected = targets.size();
 		if (expected == 0) {
 			this.finishInFlight(channel);
 			return;
 		}
-		final java.util.concurrent.atomic.AtomicInteger remaining = new java.util.concurrent.atomic.AtomicInteger(expected);
+		final java.util.concurrent.atomic.AtomicInteger remaining =
+				new java.util.concurrent.atomic.AtomicInteger(expected);
 		for (DeliveryTarget t : targets) {
-			this.runTask(this.esDeliveryIndex, o -> {
-				try {
-					MessageFilterI f = t.filter;
-					if (f != null && f.match(message)) {
-						t.out.receive(channel, message);
-					}
-				} catch (Exception e) {
-					this.logMessage("[Broker] delivery exception to " + t.subscriberURI + ": " + e + "\n");
-				} finally {
-					if (remaining.decrementAndGet() == 0) {
-						((Broker) o).finishInFlight(channel);
-					}
-				}
-			});
+			this.runTask(
+					this.esDeliveryIndex,
+					o -> {
+						try {
+							MessageFilterI f = t.filter;
+							if (f != null && f.match(message)) {
+								t.out.receive(channel, message);
+							}
+						} catch (Exception e) {
+							this.logMessage(
+									"[Broker] delivery exception to "
+											+ t.subscriberURI
+											+ ": "
+											+ e
+											+ "\n");
+						} finally {
+							if (remaining.decrementAndGet() == 0) {
+								((Broker) o).finishInFlight(channel);
+							}
+						}
+					});
 		}
 	}
 
 	/**
-	 * Verify that {@code publisherReceptionPortURI} is registered, that
-	 * {@code channel} exists, and that the publisher is authorised to
-	 * publish on it. Throws the appropriate business exception otherwise.
+	 * Verify that {@code publisherReceptionPortURI} is registered, that {@code channel} exists, and
+	 * that the publisher is authorised to publish on it. Throws the appropriate business exception
+	 * otherwise.
 	 *
-	 * <p> : extracted from {@link #receptionStage} so bulk publish
-	 * can re-check per message and honour mid-batch revocations.</p>
+	 * <p>: extracted from {@link #receptionStage} so bulk publish can re-check per message and
+	 * honour mid-batch revocations.
 	 */
-	protected void validatePublisherAuthz(String publisherReceptionPortURI, String channel) throws Exception
-	{
+	protected void validatePublisherAuthz(String publisherReceptionPortURI, String channel)
+			throws Exception {
 		this.registrationLock.readLock().lock();
 		try {
 			if (!this.registeredClients.containsKey(publisherReceptionPortURI)) {
@@ -847,11 +889,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Démarrage du composant : crée et connecte un
-	 * {@link GossipSenderOutboundPort} vers chaque voisin gossip configuré
-	 * dans le constructeur. Les ports sont indexés dans
-	 * {@link #sendersByNeighbour} par l'URI de réflexion du voisin afin de
-	 * pouvoir filtrer l'émetteur immédiat dans {@link #update} (skip-echo).
+	 * Démarrage du composant : crée et connecte un {@link GossipSenderOutboundPort} vers chaque
+	 * voisin gossip configuré dans le constructeur. Les ports sont indexés dans {@link
+	 * #sendersByNeighbour} par l'URI de réflexion du voisin afin de pouvoir filtrer l'émetteur
+	 * immédiat dans {@link #update} (skip-echo).
 	 */
 	@Override
 	public void start() throws ComponentStartException {
@@ -869,8 +910,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 						out.getPortURI(),
 						neighbourGossipInURI,
 						GossipConnector.class.getCanonicalName());
-				String neighbourReflectionURI =
-						stripGossipSuffix(neighbourGossipInURI);
+				String neighbourReflectionURI = stripGossipSuffix(neighbourGossipInURI);
 				this.sendersByNeighbour.put(neighbourReflectionURI, out);
 			}
 		} catch (Exception e) {
@@ -879,25 +919,22 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Strip the well-known {@link #GOSSIP_INBOUND_PORT_URI_SUFFIX} suffix
-	 * from a gossip inbound port URI to recover the broker's reflection
-	 * inbound port URI. Returns the input unchanged if the suffix is
-	 * absent (defensive: some demos pass arbitrary URIs).
+	 * Strip the well-known {@link #GOSSIP_INBOUND_PORT_URI_SUFFIX} suffix from a gossip inbound
+	 * port URI to recover the broker's reflection inbound port URI. Returns the input unchanged if
+	 * the suffix is absent (defensive: some demos pass arbitrary URIs).
 	 */
 	private static String stripGossipSuffix(String gossipInboundURI) {
-		if (gossipInboundURI != null
-				&& gossipInboundURI.endsWith(GOSSIP_INBOUND_PORT_URI_SUFFIX)) {
+		if (gossipInboundURI != null && gossipInboundURI.endsWith(GOSSIP_INBOUND_PORT_URI_SUFFIX)) {
 			return gossipInboundURI.substring(
-					0,
-					gossipInboundURI.length() - GOSSIP_INBOUND_PORT_URI_SUFFIX.length());
+					0, gossipInboundURI.length() - GOSSIP_INBOUND_PORT_URI_SUFFIX.length());
 		}
 		return gossipInboundURI;
 	}
 
 	/**
-	 * Boucle d'exécution du composant : planifie un nettoyage périodique de
-	 * la mémoire gossip toutes les 2 minutes (si un thread ordonnançable
-	 * est disponible). Sinon, le nettoyage devient opportuniste.
+	 * Boucle d'exécution du composant : planifie un nettoyage périodique de la mémoire gossip
+	 * toutes les 2 minutes (si un thread ordonnançable est disponible). Sinon, le nettoyage devient
+	 * opportuniste.
 	 */
 	@Override
 	public void execute() throws Exception {
@@ -910,15 +947,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		// de nouveaux messages gossip (cf. update()).
 		if (this.canScheduleTasks()) {
 			this.scheduleTaskAtFixedRate(
-					o -> ((Broker) o).cleanupGossipMemory(),
-					2, 2, TimeUnit.MINUTES);
+					o -> ((Broker) o).cleanupGossipMemory(), 2, 2, TimeUnit.MINUTES);
 		}
 	}
 
 	/**
-	 * Finalisation : déconnecte tous les ports outbound de livraison vers
-	 * les clients ainsi que les ports gossip vers les voisins. Pas de
-	 * destruction ici (laissée à {@link #shutdown()}).
+	 * Finalisation : déconnecte tous les ports outbound de livraison vers les clients ainsi que les
+	 * ports gossip vers les voisins. Pas de destruction ici (laissée à {@link #shutdown()}).
 	 */
 	@Override
 	public void finalise() throws Exception {
@@ -938,8 +973,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Arrêt du composant : dépublie et détruit tous les ports inbound et
-	 * outbound. Synchronisé pour éviter une double-libération.
+	 * Arrêt du composant : dépublie et détruit tous les ports inbound et outbound. Synchronisé pour
+	 * éviter une double-libération.
 	 */
 	@Override
 	public synchronized void shutdown() throws ComponentShutdownException {
@@ -980,19 +1015,18 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e);
 		}
- super.shutdown();
-}
+		super.shutdown();
+	}
+
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Deterministic registration inbound port URI for the broker whose
-	 * reflection inbound port URI is {@code brokerReflectionURI}
-	 *. Replaces the per-JVM static {@code REGISTRATION_PORT_URI}.
+	 * Deterministic registration inbound port URI for the broker whose reflection inbound port URI
+	 * is {@code brokerReflectionURI} . Replaces the per-JVM static {@code REGISTRATION_PORT_URI}.
 	 */
-	public static String registrationPortURIFor(String brokerReflectionURI)
-	{
+	public static String registrationPortURIFor(String brokerReflectionURI) {
 		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
 		return brokerReflectionURI + REGISTRATION_PORT_URI_SUFFIX;
 	}
@@ -1000,21 +1034,17 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/**
 	 * Deterministic publishing inbound port URI for the given broker.
 	 *
-	 * <p>Public visibility is intentional and complementary to
-	 * {@link #registrationPortURIFor(String)} / {@link #gossipPortURIFor(String)}.
-	 * Le souci d'"encapsulation" pourrait être soulevé contre
-	 * the broker exposing port <em>instances</em> via public field accessors
-	 * ({@code Broker.publishingPortIN}/{@code Broker.privilegedPortIN}), not
-	 * against deterministic URI derivation: knowing the URI of a port does
-	 * not grant any permission. Authorisation is enforced server-side at
-	 * each call ({@code requireRegistered(rip)} +
-	 * {@code requireServiceClass(rip, expected)}). Exposing the URI here
-	 * lets each role-specific plugin own its own outbound port
-	 * and connect at {@code initialise()} time, ce qui est l'approche
-	 * §5.2 review explicitly asked for.</p>
+	 * <p>Public visibility is intentional and complementary to {@link
+	 * #registrationPortURIFor(String)} / {@link #gossipPortURIFor(String)}. Le souci
+	 * d'"encapsulation" pourrait être soulevé contre the broker exposing port <em>instances</em>
+	 * via public field accessors ({@code Broker.publishingPortIN}/{@code Broker.privilegedPortIN}),
+	 * not against deterministic URI derivation: knowing the URI of a port does not grant any
+	 * permission. Authorisation is enforced server-side at each call ({@code
+	 * requireRegistered(rip)} + {@code requireServiceClass(rip, expected)}). Exposing the URI here
+	 * lets each role-specific plugin own its own outbound port and connect at {@code initialise()}
+	 * time, ce qui est l'approche §5.2 review explicitly asked for.
 	 */
-	public static String publishingPortURIFor(String brokerReflectionURI)
-	{
+	public static String publishingPortURIFor(String brokerReflectionURI) {
 		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
 		return brokerReflectionURI + PUBLISHING_PORT_URI_SUFFIX;
 	}
@@ -1022,22 +1052,19 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/**
 	 * Deterministic privileged inbound port URI for the given broker.
 	 *
-	 * <p>Public visibility is intentional, see the rationale on
-	 * {@link #publishingPortURIFor(String)}. Authorisation for privileged
-	 * operations (e.g. {@link #createChannel(String, String, String)
-	 * createChannel}) is enforced per-call by the broker via
-	 * {@code requireServiceClass(rip, STANDARD|PREMIUM)}: a FREE client
-	 * cannot escalate by knowing this URI.</p>
+	 * <p>Public visibility is intentional, see the rationale on {@link
+	 * #publishingPortURIFor(String)}. Authorisation for privileged operations (e.g. {@link
+	 * #createChannel(String, String, String) createChannel}) is enforced per-call by the broker via
+	 * {@code requireServiceClass(rip, STANDARD|PREMIUM)}: a FREE client cannot escalate by knowing
+	 * this URI.
 	 */
-	public static String privilegedPortURIFor(String brokerReflectionURI)
-	{
+	public static String privilegedPortURIFor(String brokerReflectionURI) {
 		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
 		return brokerReflectionURI + PRIVILEGED_PORT_URI_SUFFIX;
 	}
 
 	/** Deterministic gossip inbound port URI for the given broker. */
-	public static String gossipPortURIFor(String brokerReflectionURI)
-	{
+	public static String gossipPortURIFor(String brokerReflectionURI) {
 		Objects.requireNonNull(brokerReflectionURI, "brokerReflectionURI");
 		return brokerReflectionURI + GOSSIP_INBOUND_PORT_URI_SUFFIX;
 	}
@@ -1046,32 +1073,31 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// Registration (RegistrationCI)
 	// -------------------------------------------------------------------------
 
-	private boolean registeredLocked(String receptionPortURI){
+	private boolean registeredLocked(String receptionPortURI) {
 		// Internal contract: caller must hold registrationLock (read or write).
 		assert this.registrationLock.getReadHoldCount() > 0
-				|| this.registrationLock.isWriteLockedByCurrentThread()
+						|| this.registrationLock.isWriteLockedByCurrentThread()
 				: "registrationLock (read or write) must be held by current thread";
 		return this.registeredClients.containsKey(receptionPortURI);
 	}
-	boolean channelExistLocked(String channel)
-	{
+
+	boolean channelExistLocked(String channel) {
 		// Internal contract: caller must hold channelsLock (read or write).
 		assert this.channelsLock.getReadHoldCount() > 0
-				|| this.channelsLock.isWriteLockedByCurrentThread()
+						|| this.channelsLock.isWriteLockedByCurrentThread()
 				: "channelsLock (read or write) must be held by current thread";
 		return this.channels.contains(channel);
 	}
 
 	/**
-	 * Vérifie sans bloquer le pipeline si le client identifié par
-	 * {@code receptionPortURI} est actuellement enregistré.
+	 * Vérifie sans bloquer le pipeline si le client identifié par {@code receptionPortURI} est
+	 * actuellement enregistré.
 	 *
 	 * @param receptionPortURI URI du port de réception du client.
 	 * @return {@code true} ssi le client figure dans {@code registeredClients}.
 	 * @throws Exception en cas d'erreur d'acquisition de verrou.
 	 */
-	public boolean registered(String receptionPortURI) throws Exception
-	{
+	public boolean registered(String receptionPortURI) throws Exception {
 
 		this.registrationLock.readLock().lock();
 		try {
@@ -1079,18 +1105,16 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		} finally {
 			this.registrationLock.readLock().unlock();
 		}
-
 	}
 
 	/**
-	 * CDC §3.4 contract: returns true iff the client identified by
-	 * {@code receptionPortURI} is currently registered <strong>and</strong>
-	 * registered under the requested service class {@code rc}.
+	 * CDC §3.4 contract: returns true iff the client identified by {@code receptionPortURI} is
+	 * currently registered <strong>and</strong> registered under the requested service class {@code
+	 * rc}.
 	 *
-	 * <p>If the client is not registered under any class, this method must
-	 * raise {@link UnknownClientException} — silently
-	 * returning {@code false} would hide the difference between
-	 * "registered but in another class" and "not registered at all".</p>
+	 * <p>If the client is not registered under any class, this method must raise {@link
+	 * UnknownClientException} — silently returning {@code false} would hide the difference between
+	 * "registered but in another class" and "not registered at all".
 	 *
 	 * @param receptionPortURI URI of the client's reception port.
 	 * @param rc service class to test.
@@ -1098,10 +1122,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * @throws UnknownClientException if the client is not registered.
 	 * @throws Exception propagated from any I/O failure.
 	 */
-	public boolean registered(String receptionPortURI, RegistrationClass rc) throws Exception
-	{
-		assert receptionPortURI != null && !receptionPortURI.isEmpty() :
-				"receptionPortURI cannot be null or empty";
+	public boolean registered(String receptionPortURI, RegistrationClass rc) throws Exception {
+		assert receptionPortURI != null && !receptionPortURI.isEmpty()
+				: "receptionPortURI cannot be null or empty";
 		assert rc != null : "rc cannot be null";
 
 		this.registrationLock.readLock().lock();
@@ -1114,32 +1137,30 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		} finally {
 			this.registrationLock.readLock().unlock();
 		}
-
 	}
 
 	/**
 	 * Enregistre un nouveau client avec sa classe de service initiale.
 	 *
-	 * <p>Algorithme :</p>
+	 * <p>Algorithme :
+	 *
 	 * <ol>
-	 * <li>Réservation atomique de l'entrée sous {@code registrationLock.write}
-	 * (rejette les doublons concurrents).</li>
-	 * <li>Connexion distante <em>hors verrou</em> (règle « no remote call
-	 * under lock »). Échec ⇒ rollback de l'étape 1.</li>
-	 * <li>Mémorisation du port outbound de livraison sous
-	 * {@code registrationLock.write}.</li>
-	 * <li>Propagation gossip d'un {@link RegisterGossipMessage}.</li>
+	 *   <li>Réservation atomique de l'entrée sous {@code registrationLock.write} (rejette les
+	 *       doublons concurrents).
+	 *   <li>Connexion distante <em>hors verrou</em> (règle « no remote call under lock »). Échec ⇒
+	 *       rollback de l'étape 1.
+	 *   <li>Mémorisation du port outbound de livraison sous {@code registrationLock.write}.
+	 *   <li>Propagation gossip d'un {@link RegisterGossipMessage}.
 	 * </ol>
 	 *
 	 * @param receptionPortURI URI du port de réception du nouveau client.
 	 * @param rc classe de service initiale.
-	 * @return URI du port inbound broker à utiliser pour publier
-	 * (publishing pour FREE, privileged sinon).
+	 * @return URI du port inbound broker à utiliser pour publier (publishing pour FREE, privileged
+	 *     sinon).
 	 * @throws AlreadyRegisteredException si l'URI est déjà enregistrée.
 	 * @throws IllegalArgumentException si un paramètre est null/vide.
 	 */
-	public String register(String receptionPortURI, RegistrationClass rc) throws Exception
-	{
+	public String register(String receptionPortURI, RegistrationClass rc) throws Exception {
 		if (receptionPortURI == null || receptionPortURI.isEmpty()) {
 			throw new IllegalArgumentException("receptionPortURI cannot be null or empty.");
 		}
@@ -1168,9 +1189,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		try {
 			out.publishPort();
 			this.doPortConnection(
-			out.getPortURI(),
-			receptionPortURI,
-			ReceivingConnector.class.getCanonicalName());
+					out.getPortURI(),
+					receptionPortURI,
+					ReceivingConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			// Rollback : on retire la réservation pour ne pas laisser un
 			// client "enregistré" mais sans port de livraison.
@@ -1181,8 +1202,14 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			} finally {
 				this.registrationLock.writeLock().unlock();
 			}
-			try { out.unpublishPort(); } catch (Exception ignored) {}
-			try { out.destroyPort(); } catch (Exception ignored) {}
+			try {
+				out.unpublishPort();
+			} catch (Exception ignored) {
+			}
+			try {
+				out.destroyPort();
+			} catch (Exception ignored) {
+			}
 			throw e;
 		}
 
@@ -1199,43 +1226,41 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		assert this.receptionPortsOUT.containsKey(receptionPortURI)
 				: "outbound port must be wired after successful register: " + receptionPortURI;
 
+		RegisterGossipMessage gossip =
+				new RegisterGossipMessage(
+						java.util.UUID.randomUUID().toString(), // URI unique
+						Instant.now(),
+						this.getReflectionInboundPortURI(), // émetteur = ce courtier
+						receptionPortURI, // client qui s'enregistre
+						rc);
 
-		RegisterGossipMessage gossip = new RegisterGossipMessage(
-				java.util.UUID.randomUUID().toString(), // URI unique
-				Instant.now(),
-				this.getReflectionInboundPortURI(), // émetteur = ce courtier
-				receptionPortURI, // client qui s'enregistre
-				rc);
-
-		this.gossipToNeighbours(new GossipMessageI[]{ gossip }); //initiation de la propagation
+		this.gossipToNeighbours(new GossipMessageI[] {gossip}); // initiation de la propagation
 
 		// Retourner l'URI du port entrant adapté à la classe de service.
 		// FREE : seulement publish ; STANDARD/PREMIUM : privileged
 		// (qui hérite de PublishingCI, donc couvre publish également).
 		if (rc == RegistrationClass.FREE) {
 			return publishingPortIN.getPortURI();
-		}else{
+		} else {
 			return privilegedPortIN.getPortURI();
 		}
 	}
 
 	/**
-	 * Modifie la classe de service d'un client déjà enregistré (upgrade
-	 * STANDARD/PREMIUM ou downgrade vers FREE). Lors d'un downgrade vers
-	 * FREE, tous les canaux privilégiés possédés sont détruits et leur
-	 * suppression propagée par gossip.
+	 * Modifie la classe de service d'un client déjà enregistré (upgrade STANDARD/PREMIUM ou
+	 * downgrade vers FREE). Lors d'un downgrade vers FREE, tous les canaux privilégiés possédés
+	 * sont détruits et leur suppression propagée par gossip.
 	 *
-	 * <p> -find-5 : la transition d'état tient en une seule prise de
-	 * {@code registrationLock.write} pour éliminer un TOCTOU avec un
-	 * {@code unregister} concurrent. Aucun appel public n'est effectué sous
-	 * le verrou.</p>
+	 * <p>-find-5 : la transition d'état tient en une seule prise de {@code registrationLock.write}
+	 * pour éliminer un TOCTOU avec un {@code unregister} concurrent. Aucun appel public n'est
+	 * effectué sous le verrou.
 	 *
 	 * @return URI du port inbound broker correspondant à la nouvelle classe.
 	 * @throws UnknownClientException si le client n'est pas enregistré.
 	 * @throws IllegalArgumentException si {@code rc} est {@code null}.
 	 */
-	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc) throws Exception
-	{
+	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc)
+			throws Exception {
 		if (rc == null) {
 			throw new IllegalArgumentException("rc cannot be null.");
 		}
@@ -1261,7 +1286,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			if (rc == RegistrationClass.FREE) {
 				this.channelsLock.readLock().lock();
 				try {
-					for (Map.Entry<String, PrivilegedChannelInfo> e : this.privilegedChannels.entrySet()) {
+					for (Map.Entry<String, PrivilegedChannelInfo> e :
+							this.privilegedChannels.entrySet()) {
 						if (e.getValue().ownerReceptionPortURI.equals(receptionPortURI)) {
 							ownedChannels.add(e.getKey());
 						}
@@ -1276,26 +1302,27 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			this.registrationLock.writeLock().unlock();
 		}
 
-
 		// Allowing service class upgrade/downgrade
 		if (rc == RegistrationClass.FREE) {
 			List<GossipMessageI> gossipMessages = new ArrayList<>();
 			// destroyChannelNow hors lock — elle prend ses propres locks
 			for (String ch : ownedChannels) {
-				this.destroyChannelNow(receptionPortURI, ch, false); //ne pas repropager
-				gossipMessages.add(new DestroyChannelGossipMessage(
-						java.util.UUID.randomUUID().toString(),
-						Instant.now(),
-						this.getReflectionInboundPortURI(),
-						ch,
-						receptionPortURI));
+				this.destroyChannelNow(receptionPortURI, ch, false); // ne pas repropager
+				gossipMessages.add(
+						new DestroyChannelGossipMessage(
+								java.util.UUID.randomUUID().toString(),
+								Instant.now(),
+								this.getReflectionInboundPortURI(),
+								ch,
+								receptionPortURI));
 			}
-			ModifyServiceClassGossipMessage modificationGossip = new ModifyServiceClassGossipMessage(
-					java.util.UUID.randomUUID().toString(),
-					Instant.now(),
-					this.getReflectionInboundPortURI(),
-					receptionPortURI,
-					rc);
+			ModifyServiceClassGossipMessage modificationGossip =
+					new ModifyServiceClassGossipMessage(
+							java.util.UUID.randomUUID().toString(),
+							Instant.now(),
+							this.getReflectionInboundPortURI(),
+							receptionPortURI,
+							rc);
 			gossipMessages.add(modificationGossip);
 
 			// Final quota cleanup, with re-validation: a concurrent
@@ -1319,9 +1346,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Désenregistre un client : détruit tous ses canaux privilégiés, retire
-	 * ses souscriptions, son entrée registre et son port outbound de
-	 * livraison, puis propage la suppression via gossip.
+	 * Désenregistre un client : détruit tous ses canaux privilégiés, retire ses souscriptions, son
+	 * entrée registre et son port outbound de livraison, puis propage la suppression via gossip.
 	 *
 	 * @throws UnknownClientException si le client n'est pas enregistré.
 	 */
@@ -1351,18 +1377,20 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 		for (String ch : ownedChannels) {
 			this.destroyChannelNow(receptionPortURI, ch, false); // ne pas repropager
-			gossipMessages.add(new DestroyChannelGossipMessage(
-					java.util.UUID.randomUUID().toString(),
-					Instant.now(),
-					this.getReflectionInboundPortURI(),
-					ch,
-					receptionPortURI));
+			gossipMessages.add(
+					new DestroyChannelGossipMessage(
+							java.util.UUID.randomUUID().toString(),
+							Instant.now(),
+							this.getReflectionInboundPortURI(),
+							ch,
+							receptionPortURI));
 		}
-		UnregisterGossipMessage gossip = new UnregisterGossipMessage(
-				java.util.UUID.randomUUID().toString(),
-				Instant.now(),
-				this.getReflectionInboundPortURI(),
-				receptionPortURI);
+		UnregisterGossipMessage gossip =
+				new UnregisterGossipMessage(
+						java.util.UUID.randomUUID().toString(),
+						Instant.now(),
+						this.getReflectionInboundPortURI(),
+						receptionPortURI);
 
 		gossipMessages.add(gossip);
 
@@ -1388,20 +1416,31 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		}
 		// Post-mutation invariants: client gone from every relevant map.
 		assert !this.registeredClients.containsKey(receptionPortURI)
-				: "client must be removed from registeredClients after unregister: " + receptionPortURI;
+				: "client must be removed from registeredClients after unregister: "
+						+ receptionPortURI;
 		assert !this.receptionPortsOUT.containsKey(receptionPortURI)
-				: "client must be removed from receptionPortsOUT after unregister: " + receptionPortURI;
+				: "client must be removed from receptionPortsOUT after unregister: "
+						+ receptionPortURI;
 		assert !this.createdPrivilegedChannelsCount.containsKey(receptionPortURI)
-				: "client must be removed from createdPrivilegedChannelsCount after unregister: " + receptionPortURI;
+				: "client must be removed from createdPrivilegedChannelsCount after unregister: "
+						+ receptionPortURI;
 		// propager la suppression
 		this.gossipToNeighbours(gossipMessages.toArray(new GossipMessageI[0]));
 
 		// déconnecter hors verrou
 		if (out != null) {
-			try { if (out.connected()) this.doPortDisconnection(out.getPortURI()); }
-			catch (Exception ignored) {}
-			try { out.unpublishPort(); } catch (Exception ignored) {}
-			try { out.destroyPort(); } catch (Exception ignored) {}
+			try {
+				if (out.connected()) this.doPortDisconnection(out.getPortURI());
+			} catch (Exception ignored) {
+			}
+			try {
+				out.unpublishPort();
+			} catch (Exception ignored) {
+			}
+			try {
+				out.destroyPort();
+			} catch (Exception ignored) {
+			}
 		}
 	}
 
@@ -1410,11 +1449,10 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Pre-check used by every channel-guarded method: rejects {@code null} or
-	 * empty {@code channel} arguments before any lock is taken.
+	 * Pre-check used by every channel-guarded method: rejects {@code null} or empty {@code channel}
+	 * arguments before any lock is taken.
 	 *
-	 * @throws IllegalArgumentException if {@code channel} is {@code null}
-	 * or empty.
+	 * @throws IllegalArgumentException if {@code channel} is {@code null} or empty.
 	 */
 	private static void requireChannel(String channel) {
 		if (channel == null || channel.isEmpty()) {
@@ -1423,25 +1461,21 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Pre-check used by every method that identifies a client by its
-	 * reception port URI. Rejects {@code null}/empty before any
-	 * lock is taken.
+	 * Pre-check used by every method that identifies a client by its reception port URI. Rejects
+	 * {@code null}/empty before any lock is taken.
 	 *
-	 * @throws IllegalArgumentException if {@code receptionPortURI} is
-	 * {@code null} or empty.
+	 * @throws IllegalArgumentException if {@code receptionPortURI} is {@code null} or empty.
 	 */
 	private static void requireClient(String receptionPortURI) {
 		if (receptionPortURI == null || receptionPortURI.isEmpty()) {
-			throw new IllegalArgumentException(
-					"receptionPortURI cannot be null or empty.");
+			throw new IllegalArgumentException("receptionPortURI cannot be null or empty.");
 		}
 	}
 
 	/**
-	 * Normalise a {@code null} filter to the canonical accept-all
-	 * singleton. The CDC §3.4 contract allows {@code null}
-	 * to mean "accept every message"; storing the singleton instead of
-	 * {@code null} avoids null checks on the delivery hot path.
+	 * Normalise a {@code null} filter to the canonical accept-all singleton. The CDC §3.4 contract
+	 * allows {@code null} to mean "accept every message"; storing the singleton instead of {@code
+	 * null} avoids null checks on the delivery hot path.
 	 */
 	private static MessageFilterI orAcceptAll(MessageFilterI filter) {
 		return filter == null ? AcceptAllMessageFilter.INSTANCE : filter;
@@ -1452,26 +1486,26 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 *
 	 * @throws IllegalArgumentException if {@code channel} is null/empty.
 	 */
-	public boolean channelExist(String channel) throws Exception
-	{
+	public boolean channelExist(String channel) throws Exception {
 		requireChannel(channel);
 		this.channelsLock.readLock().lock();
 		try {
 			return this.channelExistLocked(channel);
 		} finally {
 			this.channelsLock.readLock().unlock();
-		}	}
+		}
+	}
 
-
-	private boolean channelAuthorisedLocked(String receptionPortURI, String channel) throws Exception{
+	private boolean channelAuthorisedLocked(String receptionPortURI, String channel)
+			throws Exception {
 
 		// Internal contract: both registrationLock AND channelsLock must
 		// be held (read or write) by the current thread.
 		assert this.registrationLock.getReadHoldCount() > 0
-				|| this.registrationLock.isWriteLockedByCurrentThread()
+						|| this.registrationLock.isWriteLockedByCurrentThread()
 				: "registrationLock must be held by current thread";
 		assert this.channelsLock.getReadHoldCount() > 0
-				|| this.channelsLock.isWriteLockedByCurrentThread()
+						|| this.channelsLock.isWriteLockedByCurrentThread()
 				: "channelsLock must be held by current thread";
 		if (!this.registeredLocked(receptionPortURI)) {
 			throw new UnknownClientException(receptionPortURI);
@@ -1493,8 +1527,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			return true;
 		}
 		return info.authorisedUsersPattern.matcher(receptionPortURI).matches();
-
-
 	}
 
 	/**
@@ -1524,8 +1556,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * @throws UnknownClientException if {@code receptionPortURI} is unknown.
 	 * @throws UnknownChannelException if {@code channel} does not exist.
 	 */
-	public boolean subscribed(String receptionPortURI, String channel) throws Exception
-	{
+	public boolean subscribed(String receptionPortURI, String channel) throws Exception {
 		requireClient(receptionPortURI);
 		requireChannel(channel);
 		this.registrationLock.readLock().lock();
@@ -1556,18 +1587,17 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	/**
 	 * Subscribe {@code receptionPortURI} to {@code channel} with {@code filter}.
 	 *
-	 * <p>A {@code null} filter is interpreted as "accept every message" per
-	 * CDC §3.4 and is stored internally as {@link AcceptAllMessageFilter#INSTANCE}
-	 * so the delivery hot path never has to null-check.</p>
+	 * <p>A {@code null} filter is interpreted as "accept every message" per CDC §3.4 and is stored
+	 * internally as {@link AcceptAllMessageFilter#INSTANCE} so the delivery hot path never has to
+	 * null-check.
 	 *
 	 * @throws IllegalArgumentException if a string parameter is null/empty.
 	 * @throws UnknownClientException if the client is not registered.
 	 * @throws UnknownChannelException if the channel does not exist.
-	 * @throws UnauthorisedClientException if the client lacks permission on
-	 * a privileged channel.
+	 * @throws UnauthorisedClientException if the client lacks permission on a privileged channel.
 	 */
-	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter) throws Exception
-	{
+	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter)
+			throws Exception {
 		requireClient(receptionPortURI);
 		requireChannel(channel);
 		final MessageFilterI effective = orAcceptAll(filter);
@@ -1593,7 +1623,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					// Post-mutation invariant: subscription is now visible.
 					assert subs.containsKey(receptionPortURI)
 							: "subscriber must be present after subscribe: "
-							+ receptionPortURI + " on " + channel;
+									+ receptionPortURI
+									+ " on "
+									+ channel;
 					assert subs.get(receptionPortURI) == effective
 							: "stored filter must be the effective (non-null) filter";
 				} finally {
@@ -1614,8 +1646,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * @throws UnknownChannelException if the channel does not exist.
 	 * @throws NotSubscribedChannelException if the client is not subscribed.
 	 */
-	public void unsubscribe(String receptionPortURI, String channel) throws Exception
-	{
+	public void unsubscribe(String receptionPortURI, String channel) throws Exception {
 		requireClient(receptionPortURI);
 		requireChannel(channel);
 		this.registrationLock.readLock().lock();
@@ -1639,7 +1670,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					// Post-mutation invariant: subscription is gone.
 					assert !subs.containsKey(receptionPortURI)
 							: "subscriber must be absent after unsubscribe: "
-							+ receptionPortURI + " on " + channel;
+									+ receptionPortURI
+									+ " on "
+									+ channel;
 				} finally {
 					this.subscriptionsLock.writeLock().unlock();
 				}
@@ -1652,18 +1685,17 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Modify the subscription filter of {@code receptionPortURI} on
-	 * {@code channel}. A {@code null} filter is treated as "accept every
-	 * message" and stored as {@link AcceptAllMessageFilter#INSTANCE}
-	 *.
+	 * Modify the subscription filter of {@code receptionPortURI} on {@code channel}. A {@code null}
+	 * filter is treated as "accept every message" and stored as {@link
+	 * AcceptAllMessageFilter#INSTANCE} .
 	 *
 	 * @throws IllegalArgumentException if a string parameter is null/empty.
 	 * @throws UnknownClientException if the client is not registered.
 	 * @throws UnknownChannelException if the channel does not exist.
 	 * @throws NotSubscribedChannelException if the client is not subscribed.
 	 */
-	public boolean modifyFilter(String receptionPortURI, String channel, MessageFilterI filter) throws Exception
-	{
+	public boolean modifyFilter(String receptionPortURI, String channel, MessageFilterI filter)
+			throws Exception {
 		requireClient(receptionPortURI);
 		requireChannel(channel);
 		final MessageFilterI effective = orAcceptAll(filter);
@@ -1689,7 +1721,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					// Post-mutation invariant: stored filter == new filter.
 					assert subs.get(receptionPortURI) == effective
 							: "stored filter must match the new effective filter for "
-							+ receptionPortURI + " on " + channel;
+									+ receptionPortURI
+									+ " on "
+									+ channel;
 					return true;
 				} finally {
 					this.subscriptionsLock.writeLock().unlock();
@@ -1707,20 +1741,19 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Asynchronous publish (CDC §3.4 / Audit 2). Runs the reception stage on
-	 * the broker's dedicated reception executor; the call is fire-and-forget.
+	 * Asynchronous publish (CDC §3.4 / Audit 2). Runs the reception stage on the broker's dedicated
+	 * reception executor; the call is fire-and-forget.
 	 *
-	 * <p>Pre-checks are surface only ({@code IllegalArgumentException} if any
-	 * argument is null/empty). The business exceptions
-	 * ({@link UnknownClientException}, {@link UnknownChannelException},
-	 * {@link UnauthorisedClientException}) are raised inside the reception
-	 * stage and surfaced via the broker logger (will route them
-	 * through {@code AbnormalTerminationNotificationCI}).</p>
+	 * <p>Pre-checks are surface only ({@code IllegalArgumentException} if any argument is
+	 * null/empty). The business exceptions ({@link UnknownClientException}, {@link
+	 * UnknownChannelException}, {@link UnauthorisedClientException}) are raised inside the
+	 * reception stage and surfaced via the broker logger (will route them through {@code
+	 * AbnormalTerminationNotificationCI}).
 	 *
 	 * @throws IllegalArgumentException if any argument is null/empty.
 	 */
-	public void publish(String publisherReceptionPortURI, String channel, MessageI message) throws Exception
-	{
+	public void publish(String publisherReceptionPortURI, String channel, MessageI message)
+			throws Exception {
 		requireClient(publisherReceptionPortURI);
 		requireChannel(channel);
 		if (message == null) {
@@ -1731,19 +1764,19 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Bulk publish: like {@link #publish(String, String, MessageI)} but for
-	 * a non-empty list of messages.
+	 * Bulk publish: like {@link #publish(String, String, MessageI)} but for a non-empty list of
+	 * messages.
 	 *
-	 * <p> : builds the subscriber snapshot ONCE before iterating
-	 * the messages, so the cost of subscription scanning is paid one
-	 * time per bulk call. Per-message we still re-validate the publisher
-	 * (registered? channel exists? authorised?) so that mid-batch
-	 * revocations take effect.</p>
+	 * <p>: builds the subscriber snapshot ONCE before iterating the messages, so the cost of
+	 * subscription scanning is paid one time per bulk call. Per-message we still re-validate the
+	 * publisher (registered? channel exists? authorised?) so that mid-batch revocations take
+	 * effect.
 	 *
 	 * @throws IllegalArgumentException if any argument is null/empty.
 	 */
-	public void publish(String publisherReceptionPortURI, String channel, ArrayList<MessageI> messages) throws Exception
-	{
+	public void publish(
+			String publisherReceptionPortURI, String channel, ArrayList<MessageI> messages)
+			throws Exception {
 		requireClient(publisherReceptionPortURI);
 		requireChannel(channel);
 		if (messages == null || messages.isEmpty()) {
@@ -1753,61 +1786,65 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Bulk reception path used by {@link #publish(String, String, ArrayList)}
-	 * and the bulk overload of {@link #asyncPublishAndNotify}. Snapshots
-	 * subscribers once, validates the publisher per message and dispatches
-	 * each message through the propagation/delivery executor services.
+	 * Bulk reception path used by {@link #publish(String, String, ArrayList)} and the bulk overload
+	 * of {@link #asyncPublishAndNotify}. Snapshots subscribers once, validates the publisher per
+	 * message and dispatches each message through the propagation/delivery executor services.
 	 */
 	protected void bulkSubmit(
-		String publisherReceptionPortURI,
-		String channel,
-		ArrayList<MessageI> messages,
-		String notificationInboundPortURI
-		)
-	{
+			String publisherReceptionPortURI,
+			String channel,
+			ArrayList<MessageI> messages,
+			String notificationInboundPortURI) {
 		final Broker self = this;
 		final ArrayList<MessageI> snapshotMessages = new ArrayList<>(messages);
-		this.runTask(this.esReceptionIndex, o -> {
-			Broker broker = (Broker) o;
-			List<DeliveryTarget> targets;
-			try {
-				broker.validatePublisherAuthz(publisherReceptionPortURI, channel);
-				targets = broker.snapshotTargets(channel);
-			} catch (Exception e) {
-				self.logMessage("[Broker] bulk publish setup failed: " + e + "\n");
-				return;
-			}
-			for (MessageI m : snapshotMessages) {
-				if (m == null) continue;
-				broker.beginInFlight(channel);
-				try {
-					broker.validatePublisherAuthz(publisherReceptionPortURI, channel);
-				} catch (Exception e) {
-					broker.finishInFlight(channel);
-					self.logMessage(
-							"[Broker] bulk publish skipped message after revocation: "
-							+ e + "\n");
-					continue;
-				}
-				PublishGossipMessage gossip = new PublishGossipMessage(
-						java.util.UUID.randomUUID().toString(),
-						Instant.now(),
-						broker.getReflectionInboundPortURI(),
-						m,
-						channel,
-						publisherReceptionPortURI);
-				broker.gossipToNeighbours(new GossipMessageI[]{ gossip });
-				final MessageI msg = m;
-				broker.runTask(broker.esPropagationIndex, p -> {
+		this.runTask(
+				this.esReceptionIndex,
+				o -> {
+					Broker broker = (Broker) o;
+					List<DeliveryTarget> targets;
 					try {
-						((Broker) p).deliverToTargets(channel, msg, targets);
+						broker.validatePublisherAuthz(publisherReceptionPortURI, channel);
+						targets = broker.snapshotTargets(channel);
 					} catch (Exception e) {
-						self.logMessage("[Broker] bulk delivery exception: " + e + "\n");
-						((Broker) p).finishInFlight(channel);
+						self.logMessage("[Broker] bulk publish setup failed: " + e + "\n");
+						return;
+					}
+					for (MessageI m : snapshotMessages) {
+						if (m == null) continue;
+						broker.beginInFlight(channel);
+						try {
+							broker.validatePublisherAuthz(publisherReceptionPortURI, channel);
+						} catch (Exception e) {
+							broker.finishInFlight(channel);
+							self.logMessage(
+									"[Broker] bulk publish skipped message after revocation: "
+											+ e
+											+ "\n");
+							continue;
+						}
+						PublishGossipMessage gossip =
+								new PublishGossipMessage(
+										java.util.UUID.randomUUID().toString(),
+										Instant.now(),
+										broker.getReflectionInboundPortURI(),
+										m,
+										channel,
+										publisherReceptionPortURI);
+						broker.gossipToNeighbours(new GossipMessageI[] {gossip});
+						final MessageI msg = m;
+						broker.runTask(
+								broker.esPropagationIndex,
+								p -> {
+									try {
+										((Broker) p).deliverToTargets(channel, msg, targets);
+									} catch (Exception e) {
+										self.logMessage(
+												"[Broker] bulk delivery exception: " + e + "\n");
+										((Broker) p).finishInFlight(channel);
+									}
+								});
 					}
 				});
-			}
-		});
 	}
 
 	// -------------------------------------------------------------------------
@@ -1819,8 +1856,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * @throws UnknownClientException if the client is not registered.
 	 * @throws UnknownChannelException if the channel does not exist.
 	 */
-	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws Exception
-	{
+	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws Exception {
 		requireClient(receptionPortURI);
 		requireChannel(channel);
 		this.registrationLock.readLock().lock();
@@ -1841,7 +1877,6 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		} finally {
 			this.registrationLock.readLock().unlock();
 		}
-
 	}
 
 	/**
@@ -1849,14 +1884,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * @throws UnknownClientException if the client is not registered.
 	 */
 	/**
-	 * Indique si l'opération {@link #createChannel} doit être autorisée pour
-	 * {@code receptionPortURI} compte tenu de sa classe et du nombre de
-	 * canaux déjà créés. FREE → toujours {@code true} (interdit de créer).
+	 * Indique si l'opération {@link #createChannel} doit être autorisée pour {@code
+	 * receptionPortURI} compte tenu de sa classe et du nombre de canaux déjà créés. FREE → toujours
+	 * {@code true} (interdit de créer).
 	 *
 	 * @throws UnknownClientException si le client n'est pas enregistré.
 	 */
-	public boolean channelQuotaReached(String receptionPortURI) throws Exception
-	{
+	public boolean channelQuotaReached(String receptionPortURI) throws Exception {
 		requireClient(receptionPortURI);
 		this.registrationLock.readLock().lock();
 		try {
@@ -1867,10 +1901,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	// Pré-requis : registrationLock.read (ou .write) déjà détenu.
-	private boolean channelQuotaReachedLocked(String receptionPortURI) throws Exception
-	{
+	private boolean channelQuotaReachedLocked(String receptionPortURI) throws Exception {
 		assert this.registrationLock.getReadHoldCount() > 0
-				|| this.registrationLock.isWriteLockedByCurrentThread()
+						|| this.registrationLock.isWriteLockedByCurrentThread()
 				: "registrationLock must be held by current thread";
 		if (!this.registeredLocked(receptionPortURI)) {
 			throw new UnknownClientException(receptionPortURI);
@@ -1892,21 +1925,18 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Create a privileged channel owned by {@code receptionPortURI}, with
-	 * an optional {@code autorisedUsers} regex (matched against subscribing
-	 * clients' reception port URIs).
+	 * Create a privileged channel owned by {@code receptionPortURI}, with an optional {@code
+	 * autorisedUsers} regex (matched against subscribing clients' reception port URIs).
 	 *
 	 * @throws IllegalArgumentException if a string parameter is null/empty.
 	 * @throws UnknownClientException if the client is not registered.
-	 * @throws UnauthorisedClientException if the client is FREE
-	 * (only STANDARD/PREMIUM may
-	 * create privileged channels).
-	 * @throws ChannelQuotaExceededException if the client already owns
-	 * their quota of channels.
+	 * @throws UnauthorisedClientException if the client is FREE (only STANDARD/PREMIUM may create
+	 *     privileged channels).
+	 * @throws ChannelQuotaExceededException if the client already owns their quota of channels.
 	 * @throws AlreadyExistingChannelException if {@code channel} already exists.
 	 */
-	public void createChannel(String receptionPortURI, String channel, String autorisedUsers) throws Exception
-	{
+	public void createChannel(String receptionPortURI, String channel, String autorisedUsers)
+			throws Exception {
 		requireClient(receptionPortURI);
 		requireChannel(channel);
 		// Compilation regex hors verrou : section critique courte.
@@ -1937,7 +1967,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				this.subscriptionsLock.writeLock().lock();
 				try {
 					this.channels.add(channel);
-					this.privilegedChannels.put(channel, new PrivilegedChannelInfo(receptionPortURI, p));
+					this.privilegedChannels.put(
+							channel, new PrivilegedChannelInfo(receptionPortURI, p));
 					this.subscriptions.put(channel, new HashMap<>());
 					this.inFlightPerChannel.put(channel, 0);
 					this.createdPrivilegedChannelsCount.merge(receptionPortURI, 1, Integer::sum);
@@ -1945,18 +1976,26 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					assert this.channels.contains(channel)
 							: "channel must be present after createChannel: " + channel;
 					assert this.privilegedChannels.containsKey(channel)
-							: "channel must be in privilegedChannels after createChannel: " + channel;
+							: "channel must be in privilegedChannels after createChannel: "
+									+ channel;
 					assert this.subscriptions.containsKey(channel)
-							: "channel must have a subscriptions map after createChannel: " + channel;
+							: "channel must have a subscriptions map after createChannel: "
+									+ channel;
 					// Quota invariant: the new count must not exceed the
 					// applicable quota for the owner's class.
-					int maxQuota = (rc == RegistrationClass.PREMIUM)
-							? this.premiumQuota : this.standardQuota;
-					int newCount = this.createdPrivilegedChannelsCount
-							.getOrDefault(receptionPortURI, 0);
+					int maxQuota =
+							(rc == RegistrationClass.PREMIUM)
+									? this.premiumQuota
+									: this.standardQuota;
+					int newCount =
+							this.createdPrivilegedChannelsCount.getOrDefault(receptionPortURI, 0);
 					assert newCount > 0 && newCount <= maxQuota
-							: "createdPrivilegedChannelsCount for " + receptionPortURI
-							+ " must be in (0, " + maxQuota + "] after createChannel, got " + newCount;
+							: "createdPrivilegedChannelsCount for "
+									+ receptionPortURI
+									+ " must be in (0, "
+									+ maxQuota
+									+ "] after createChannel, got "
+									+ newCount;
 
 				} finally {
 					this.subscriptionsLock.writeLock().unlock();
@@ -1977,35 +2016,35 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			this.registrationLock.readLock().unlock();
 		}
 
-		CreateChannelGossipMessage gossip = new CreateChannelGossipMessage(
-				java.util.UUID.randomUUID().toString(),
-				Instant.now(),
-				this.getReflectionInboundPortURI(),
-				channel,
-				receptionPortURI,
-				autorisedUsers,
-				rc);
-		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
+		CreateChannelGossipMessage gossip =
+				new CreateChannelGossipMessage(
+						java.util.UUID.randomUUID().toString(),
+						Instant.now(),
+						this.getReflectionInboundPortURI(),
+						channel,
+						receptionPortURI,
+						autorisedUsers,
+						rc);
+		this.gossipToNeighbours(new GossipMessageI[] {gossip});
 	}
 
 	/**
-	 * Replace the {@code authorisedUsers} regex of the privileged channel
-	 * {@code channel} owned by {@code receptionPortURI}. The new regex is
-	 * compiled before any lock is taken so an invalid pattern does not
-	 * disturb broker state.
+	 * Replace the {@code authorisedUsers} regex of the privileged channel {@code channel} owned by
+	 * {@code receptionPortURI}. The new regex is compiled before any lock is taken so an invalid
+	 * pattern does not disturb broker state.
 	 *
 	 * @throws IllegalArgumentException if a parameter is null/empty.
 	 * @throws UnknownClientException if the client is not registered.
 	 * @throws UnknownChannelException if the channel does not exist.
-	 * @throws UnauthorisedClientException if the client does not own
-	 * this privileged channel.
+	 * @throws UnauthorisedClientException if the client does not own this privileged channel.
 	 */
-	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers) throws Exception
-	{
+	public void modifyAuthorisedUsers(
+			String receptionPortURI, String channel, String autorisedUsers) throws Exception {
 		requireClient(receptionPortURI);
 		requireChannel(channel);
 		if (autorisedUsers == null || autorisedUsers.isEmpty()) {
-			throw new IllegalArgumentException("autorisedUsers cannot be null/empty for modifyAuthorisedUsers.");
+			throw new IllegalArgumentException(
+					"autorisedUsers cannot be null/empty for modifyAuthorisedUsers.");
 		}
 
 		Pattern newPattern = Pattern.compile(autorisedUsers);
@@ -2045,31 +2084,29 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		} finally {
 			this.registrationLock.readLock().unlock();
 		}
-		ModifyAuthorisedUsersGossipMessage gossip = new ModifyAuthorisedUsersGossipMessage
-				(java.util.UUID.randomUUID().toString(),
-				Instant.now(),
-				this.getReflectionInboundPortURI(),
-				channel,
-				receptionPortURI,
-				autorisedUsers,
-				rc);
-		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
-
+		ModifyAuthorisedUsersGossipMessage gossip =
+				new ModifyAuthorisedUsersGossipMessage(
+						java.util.UUID.randomUUID().toString(),
+						Instant.now(),
+						this.getReflectionInboundPortURI(),
+						channel,
+						receptionPortURI,
+						autorisedUsers,
+						rc);
+		this.gossipToNeighbours(new GossipMessageI[] {gossip});
 	}
 
 	/**
-	 * Asynchronous channel destruction (CDC §3.4): hides the channel
-	 * immediately so no new publish accepts it, then schedules the
-	 * subscriptions / quotas cleanup for after every in-flight delivery
-	 * has drained.
+	 * Asynchronous channel destruction (CDC §3.4): hides the channel immediately so no new publish
+	 * accepts it, then schedules the subscriptions / quotas cleanup for after every in-flight
+	 * delivery has drained.
 	 *
 	 * @throws IllegalArgumentException if a parameter is null/empty.
 	 * @throws UnknownClientException if the client is not registered.
 	 * @throws UnknownChannelException if the channel does not exist.
 	 * @throws UnauthorisedClientException if the client does not own this channel.
 	 */
-	public void destroyChannel(String receptionPortURI, String channel) throws Exception
-	{
+	public void destroyChannel(String receptionPortURI, String channel) throws Exception {
 		requireClient(receptionPortURI);
 		requireChannel(channel);
 		// Vérification d'autorisation sous verrous lecture, puis attente
@@ -2106,47 +2143,50 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 		assert !this.channels.contains(channel)
 				: "channel must be hidden immediately after destroyChannel: " + channel;
 
-		DestroyChannelGossipMessage gossip = new DestroyChannelGossipMessage(
-				java.util.UUID.randomUUID().toString(),
-				Instant.now(),
-				this.getReflectionInboundPortURI(),
-				channel,
-				receptionPortURI);
-		this.gossipToNeighbours(new GossipMessageI[]{ gossip });
+		DestroyChannelGossipMessage gossip =
+				new DestroyChannelGossipMessage(
+						java.util.UUID.randomUUID().toString(),
+						Instant.now(),
+						this.getReflectionInboundPortURI(),
+						channel,
+						receptionPortURI);
+		this.gossipToNeighbours(new GossipMessageI[] {gossip});
 
-		// le nettoyage se fait en arrière plan après que le client reçoit confimation direct de la destruction
-		this.runTask(this.esDeliveryIndex, o -> {
-			try {
-				// C.8-find-3: wait/notify instead of Thread.sleep busy-poll.
-				// finishInFlight notifies on the per-channel waiter when
-				// the in-flight count transitions to 0; the bounded
-				// wait(50) is a safety net against missed notifications.
-				final Object waiter = ((Broker) o).inFlightWaiters
-						.computeIfAbsent(channel, k -> new Object());
-				while (((Broker) o).inFlightPerChannel
-						.getOrDefault(channel, 0) > 0) {
-					synchronized (waiter) {
-						if (((Broker) o).inFlightPerChannel
-								.getOrDefault(channel, 0) > 0) {
-							waiter.wait(50);
+		// le nettoyage se fait en arrière plan après que le client reçoit confimation direct de la
+		// destruction
+		this.runTask(
+				this.esDeliveryIndex,
+				o -> {
+					try {
+						// C.8-find-3: wait/notify instead of Thread.sleep busy-poll.
+						// finishInFlight notifies on the per-channel waiter when
+						// the in-flight count transitions to 0; the bounded
+						// wait(50) is a safety net against missed notifications.
+						final Object waiter =
+								((Broker) o)
+										.inFlightWaiters.computeIfAbsent(
+												channel, k -> new Object());
+						while (((Broker) o).inFlightPerChannel.getOrDefault(channel, 0) > 0) {
+							synchronized (waiter) {
+								if (((Broker) o).inFlightPerChannel.getOrDefault(channel, 0) > 0) {
+									waiter.wait(50);
+								}
+							}
 						}
+						((Broker) o).destroyChannelCleanup(receptionPortURI, channel);
+					} catch (Exception e) {
+						((Broker) o)
+								.logMessage("[Broker] destroyChannel cleanup failed: " + e + "\n");
+					} finally {
+						((Broker) o).inFlightWaiters.remove(channel);
 					}
-				}
-				((Broker) o).destroyChannelCleanup(receptionPortURI, channel);
-			} catch (Exception e) {
-				((Broker) o).logMessage(
-						"[Broker] destroyChannel cleanup failed: " + e + "\n");
-			} finally {
-				((Broker) o).inFlightWaiters.remove(channel);
-			}
-		});
+				});
 	}
 
 	// Appelée par destroyChannel après l'attente in-flight
-	// Détruit ce qui reste après que channels.remove() a déjà été fait (abonnements des utilisateurs)
-	private void destroyChannelCleanup(String receptionPortURI, String channel)
-			throws Exception
-	{
+	// Détruit ce qui reste après que channels.remove() a déjà été fait (abonnements des
+	// utilisateurs)
+	private void destroyChannelCleanup(String receptionPortURI, String channel) throws Exception {
 		this.registrationLock.writeLock().lock();
 		try {
 			this.channelsLock.writeLock().lock();
@@ -2164,7 +2204,9 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				// after the owner already downgraded to FREE (entry absent
 				// = merge would otherwise re-create a -1 entry).
 				this.createdPrivilegedChannelsCount.merge(
-						receptionPortURI, -1, (a, b) -> {
+						receptionPortURI,
+						-1,
+						(a, b) -> {
 							int next = a + b;
 							return next < 0 ? 0 : next;
 						});
@@ -2173,14 +2215,18 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				assert !this.subscriptions.containsKey(channel)
 						: "subscriptions must be wiped after destroyChannelCleanup: " + channel;
 				assert !this.privilegedChannels.containsKey(channel)
-						: "privilegedChannels must be wiped after destroyChannelCleanup: " + channel;
+						: "privilegedChannels must be wiped after destroyChannelCleanup: "
+								+ channel;
 				assert !this.inFlightPerChannel.containsKey(channel)
-						: "inFlightPerChannel must be wiped after destroyChannelCleanup: " + channel;
-				int currentCount = this.createdPrivilegedChannelsCount
-						.getOrDefault(receptionPortURI, 0);
+						: "inFlightPerChannel must be wiped after destroyChannelCleanup: "
+								+ channel;
+				int currentCount =
+						this.createdPrivilegedChannelsCount.getOrDefault(receptionPortURI, 0);
 				assert currentCount >= 0
 						: "createdPrivilegedChannelsCount must stay non-negative for "
-						+ receptionPortURI + ", got " + currentCount;
+								+ receptionPortURI
+								+ ", got "
+								+ currentCount;
 			} finally {
 				this.channelsLock.writeLock().unlock();
 			}
@@ -2190,8 +2236,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Synchronous channel destruction (CDC §3.4): all state for the channel
-	 * is wiped under the broker's locks, regardless of in-flight messages.
+	 * Synchronous channel destruction (CDC §3.4): all state for the channel is wiped under the
+	 * broker's locks, regardless of in-flight messages.
 	 *
 	 * @param propagate if true, broadcast a destroy gossip to neighbours.
 	 * @throws IllegalArgumentException if a parameter is null/empty.
@@ -2199,7 +2245,8 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	 * @throws UnknownChannelException if the channel does not exist.
 	 * @throws UnauthorisedClientException if the client does not own this channel.
 	 */
-	public void destroyChannelNow(String receptionPortURI, String channel, boolean propagate) throws Exception {
+	public void destroyChannelNow(String receptionPortURI, String channel, boolean propagate)
+			throws Exception {
 		requireClient(receptionPortURI);
 		requireChannel(channel);
 		this.registrationLock.writeLock().lock();
@@ -2229,10 +2276,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				this.channels.remove(channel);
 				this.privilegedChannels.remove(channel);
 				this.inFlightPerChannel.remove(channel);
-				this.createdPrivilegedChannelsCount.merge(receptionPortURI, -1, (a, b) -> {
-					int next = a + b;
-					return next < 0 ? 0 : next;
-				});
+				this.createdPrivilegedChannelsCount.merge(
+						receptionPortURI,
+						-1,
+						(a, b) -> {
+							int next = a + b;
+							return next < 0 ? 0 : next;
+						});
 				// Post-mutation invariants: channel state fully wiped and
 				// the owner's quota counter remains non-negative.
 				assert !this.channels.contains(channel)
@@ -2241,11 +2291,13 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 						: "channel must be removed from privilegedChannels: " + channel;
 				assert !this.inFlightPerChannel.containsKey(channel)
 						: "channel must be removed from inFlightPerChannel: " + channel;
-				int currentCount = this.createdPrivilegedChannelsCount
-						.getOrDefault(receptionPortURI, 0);
+				int currentCount =
+						this.createdPrivilegedChannelsCount.getOrDefault(receptionPortURI, 0);
 				assert currentCount >= 0
 						: "createdPrivilegedChannelsCount must stay non-negative for "
-						+ receptionPortURI + ", got " + currentCount;
+								+ receptionPortURI
+								+ ", got "
+								+ currentCount;
 			} finally {
 				this.channelsLock.writeLock().unlock();
 			}
@@ -2253,55 +2305,50 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			this.registrationLock.writeLock().unlock();
 		}
 		if (propagate) {
-			DestroyChannelGossipMessage gossip = new DestroyChannelGossipMessage(
-					java.util.UUID.randomUUID().toString(),
-					Instant.now(),
-					this.getReflectionInboundPortURI(),
-					channel,
-					receptionPortURI);
-			this.gossipToNeighbours(new GossipMessageI[]{gossip});
+			DestroyChannelGossipMessage gossip =
+					new DestroyChannelGossipMessage(
+							java.util.UUID.randomUUID().toString(),
+							Instant.now(),
+							this.getReflectionInboundPortURI(),
+							channel,
+							receptionPortURI);
+			this.gossipToNeighbours(new GossipMessageI[] {gossip});
 		}
 	}
+
 	/**
-	 * Surcharge appelée par défaut depuis l'API publique :
-	 * {@code destroyChannelNow(uri, channel)} équivaut à
-	 * {@code destroyChannelNow(uri, channel, true)} (propagation gossip
-	 * activée). La surcharge à 3 paramètres est exposée pour permettre aux
-	 * gestionnaires gossip locaux d'éviter une re-propagation infinie.
+	 * Surcharge appelée par défaut depuis l'API publique : {@code destroyChannelNow(uri, channel)}
+	 * équivaut à {@code destroyChannelNow(uri, channel, true)} (propagation gossip activée). La
+	 * surcharge à 3 paramètres est exposée pour permettre aux gestionnaires gossip locaux d'éviter
+	 * une re-propagation infinie.
 	 */
-	public void destroyChannelNow(String receptionPortURI, String channel)
-			throws Exception
-	{
+	public void destroyChannelNow(String receptionPortURI, String channel) throws Exception {
 		this.destroyChannelNow(receptionPortURI, channel, true);
 	}
-
-
 
 	// -------------------------------------------------------------------------
 	// Gossip methodes
 	// -------------------------------------------------------------------------
 	/**
-	 * Réception d'un lot de messages gossip d'un voisin
-	 * (cf. {@code docs/GOSSIP.md}).
+	 * Réception d'un lot de messages gossip d'un voisin (cf. {@code docs/GOSSIP.md}).
 	 *
-	 * <p>Pour chaque message :</p>
+	 * <p>Pour chaque message :
+	 *
 	 * <ol>
-	 * <li>Déduplication atomique via {@link #markAsProcessed(GossipMessageI)}
-	 * (CHM {@code putIfAbsent}, sans verrou — propagation lock-free).</li>
-	 * <li>Application locale via le pattern <em>Visitor</em> :
-	 * {@code ((AbstractGossipMessage) msg).accept(handler)} dispatche vers
-	 * {@link BrokerGossipHandler#visit} typé (remplace les chaînes
-	 * {@code instanceof} pour bénéficier du dispatch dynamique).</li>
-	 * <li>Réémission filtrée vers tous les voisins <strong>sauf l'émetteur
-	 * immédiat</strong> (skip-echo) — chaque envoi est
-	 * dispatché sur l'ES gossip pour ne pas bloquer l'appelant RMI.</li>
+	 *   <li>Déduplication atomique via {@link #markAsProcessed(GossipMessageI)} (CHM {@code
+	 *       putIfAbsent}, sans verrou — propagation lock-free).
+	 *   <li>Application locale via le pattern <em>Visitor</em> : {@code ((AbstractGossipMessage)
+	 *       msg).accept(handler)} dispatche vers {@link BrokerGossipHandler#visit} typé (remplace
+	 *       les chaînes {@code instanceof} pour bénéficier du dispatch dynamique).
+	 *   <li>Réémission filtrée vers tous les voisins <strong>sauf l'émetteur immédiat</strong>
+	 *       (skip-echo) — chaque envoi est dispatché sur l'ES gossip pour ne pas bloquer l'appelant
+	 *       RMI.
 	 * </ol>
 	 *
-	 * <p><strong>Pré : </strong>tous les messages gossip applicatifs étendent
-	 * {@link AbstractGossipMessage} qui implémente
-	 * {@link EmitterAwareGossipMessageI}. Un message tiers sans visitor est
-	 * journalisé puis ignoré localement, mais reste relayé pour ne pas casser
-	 * la fédération en cas d'extension future.</p>
+	 * <p><strong>Pré : </strong>tous les messages gossip applicatifs étendent {@link
+	 * AbstractGossipMessage} qui implémente {@link EmitterAwareGossipMessageI}. Un message tiers
+	 * sans visitor est journalisé puis ignoré localement, mais reste relayé pour ne pas casser la
+	 * fédération en cas d'extension future.
 	 */
 	@Override
 	public void update(GossipMessageI[] fromSender) {
@@ -2314,7 +2361,7 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 			}
 			assert this.processedGossipURIs.containsKey(msg.gossipMessageURI())
 					: "gossip URI must be memoised after markAsProcessed: "
-					+ msg.gossipMessageURI();
+							+ msg.gossipMessageURI();
 
 			// 2. Skip-echo : mémoriser l'émetteur immédiat AVANT toute réécriture.
 			// Tous nos messages applicatifs étendent AbstractGossipMessage
@@ -2330,20 +2377,26 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 				try {
 					((AbstractGossipMessage) msg).accept(handler);
 				} catch (Exception e) {
-					this.logMessage("[Broker] gossip handler failed for "
-							+ msg.getClass().getSimpleName() + ": " + e + "\n");
+					this.logMessage(
+							"[Broker] gossip handler failed for "
+									+ msg.getClass().getSimpleName()
+									+ ": "
+									+ e
+									+ "\n");
 				}
 			} else {
-				this.logMessage("[Broker] unhandled gossip type (no visitor): "
-						+ msg.getClass().getName() + "\n");
+				this.logMessage(
+						"[Broker] unhandled gossip type (no visitor): "
+								+ msg.getClass().getName()
+								+ "\n");
 			}
 
 			// 4. Réémission aux voisins, en sautant l'émetteur immédiat.
 			// On réécrit l'émetteur courant à la nôtre.
 			final GossipMessageI forwarded =
 					msg.copyWithNewEmitterURI(this.getReflectionInboundPortURI());
-			for (Map.Entry<String, GossipSenderOutboundPort> e
-					: this.sendersByNeighbour.entrySet()) {
+			for (Map.Entry<String, GossipSenderOutboundPort> e :
+					this.sendersByNeighbour.entrySet()) {
 				final String neighbourReflectionURI = e.getKey();
 				final GossipSenderOutboundPort sender = e.getValue();
 				// Skip-echo : ne pas renvoyer au broker qui vient de nous transmettre.
@@ -2352,25 +2405,27 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 					continue;
 				}
 				try {
-					this.runTask(this.esGossipIndex, owner -> {
-						try {
-							sender.send(new GossipMessageI[] { forwarded });
-						} catch (Exception ex) {
-							((Broker) owner).logMessage(
-									"[Broker] gossip forward failed: " + ex + "\n");
-						}
-					});
+					this.runTask(
+							this.esGossipIndex,
+							owner -> {
+								try {
+									sender.send(new GossipMessageI[] {forwarded});
+								} catch (Exception ex) {
+									((Broker) owner)
+											.logMessage(
+													"[Broker] gossip forward failed: " + ex + "\n");
+								}
+							});
 				} catch (Exception ex) {
-					this.logMessage("[Broker] gossip forward submit failed: "
-							+ ex + "\n");
+					this.logMessage("[Broker] gossip forward submit failed: " + ex + "\n");
 				}
 			}
 		}
 	}
 
 	/**
-	 * Implémentation de {@link GossipReceiverCI#receive} : délègue à
-	 * {@link #update} (point d'entrée RMI vers la logique gossip).
+	 * Implémentation de {@link GossipReceiverCI#receive} : délègue à {@link #update} (point
+	 * d'entrée RMI vers la logique gossip).
 	 */
 	@Override
 	public void receive(GossipMessageI[] gossipMessages) throws Exception {
@@ -2378,48 +2433,46 @@ public class Broker extends AbstractComponent implements GossipImplementationI
 	}
 
 	/**
-	 * Diffuser un lot de messages gossip à <strong>tous</strong> les voisins
-	 * (utilisé pour les messages générés localement, donc sans émetteur
-	 * immédiat à exclure). Pour les retransmissions à partir de {@code update},
-	 * voir le filtrage explicite dans {@link #update(GossipMessageI[])}
+	 * Diffuser un lot de messages gossip à <strong>tous</strong> les voisins (utilisé pour les
+	 * messages générés localement, donc sans émetteur immédiat à exclure). Pour les retransmissions
+	 * à partir de {@code update}, voir le filtrage explicite dans {@link #update(GossipMessageI[])}
 	 * (skip-echo).
 	 */
 	public void gossipToNeighbours(GossipMessageI[] messages) {
 		for (GossipSenderOutboundPort sender : this.sendersByNeighbour.values()) {
-			this.runTask(this.esGossipIndex, o -> {
-				try {
-					sender.send(messages);
-				} catch (Exception e) {
-					((Broker) o).logMessage(
-							"[Broker] gossip send failed: " + e + "\n");
-				}
-			});
+			this.runTask(
+					this.esGossipIndex,
+					o -> {
+						try {
+							sender.send(messages);
+						} catch (Exception e) {
+							((Broker) o).logMessage("[Broker] gossip send failed: " + e + "\n");
+						}
+					});
 		}
-	}
-	/**
-	 * Déduplication atomique d'un message gossip via {@link #processedGossipURIs}
-	 * . Aucun verrou nécessaire :
-	 * {@link java.util.concurrent.ConcurrentHashMap#putIfAbsent putIfAbsent}
-	 * fournit la garantie atomique « première-occurrence ».
-	 *
-	 * @param msg le message gossip à déduper.
-	 * @return {@code true} si c'est la première fois qu'on voit cette URI
-	 * (donc à traiter), {@code false} s'il a déjà été traité.
-	 */
-	boolean markAsProcessed(GossipMessageI msg) {
-		return this.processedGossipURIs.putIfAbsent(
-				msg.gossipMessageURI(), msg.timestamp()) == null;
 	}
 
 	/**
-	 * Nettoyage périodique de la mémoire gossip : supprime les URIs
-	 * mémorisées il y a plus de 120 secondes. Sans verrou (cf. F.5).
+	 * Déduplication atomique d'un message gossip via {@link #processedGossipURIs} . Aucun verrou
+	 * nécessaire : {@link java.util.concurrent.ConcurrentHashMap#putIfAbsent putIfAbsent} fournit
+	 * la garantie atomique « première-occurrence ».
+	 *
+	 * @param msg le message gossip à déduper.
+	 * @return {@code true} si c'est la première fois qu'on voit cette URI (donc à traiter), {@code
+	 *     false} s'il a déjà été traité.
+	 */
+	boolean markAsProcessed(GossipMessageI msg) {
+		return this.processedGossipURIs.putIfAbsent(msg.gossipMessageURI(), msg.timestamp())
+				== null;
+	}
+
+	/**
+	 * Nettoyage périodique de la mémoire gossip : supprime les URIs mémorisées il y a plus de 120
+	 * secondes. Sans verrou (cf. F.5).
 	 */
 	private void cleanupGossipMemory() {
 		Instant threshold = Instant.now().minusSeconds(120);
 		// ConcurrentHashMap : nettoyage sans verrou (cf. F.5).
-		this.processedGossipURIs.entrySet()
-				.removeIf(e -> e.getValue().isBefore(threshold));
+		this.processedGossipURIs.entrySet().removeIf(e -> e.getValue().isBefore(threshold));
 	}
-
 }

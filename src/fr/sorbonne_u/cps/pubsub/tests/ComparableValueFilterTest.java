@@ -1,5 +1,7 @@
 package fr.sorbonne_u.cps.pubsub.tests;
 
+import static org.junit.Assert.*;
+
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
 import fr.sorbonne_u.cps.pubsub.messages.filters.BetweenInclusiveValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.ComparableValueFilter;
@@ -7,43 +9,37 @@ import fr.sorbonne_u.cps.pubsub.messages.filters.GreaterOrEqualValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.LowerOrEqualValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.StrictlyGreaterValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.StrictlyLowerValueFilter;
-import org.junit.Test;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 /**
  * Unit tests for the {@link ComparableValueFilter} hierarchy (CDC §3.2).
  *
- * <p>
- * The single-operator {@code ComparableValueFilter} was refactored into a
- * class hierarchy:
- * </p>
+ * <p>The single-operator {@code ComparableValueFilter} was refactored into a class hierarchy:
+ *
  * <ul>
- * <li>{@link GreaterOrEqualValueFilter}</li>
- * <li>{@link LowerOrEqualValueFilter}</li>
- * <li>{@link BetweenInclusiveValueFilter}</li>
- * <li>{@link StrictlyGreaterValueFilter}</li>
- * <li>{@link StrictlyLowerValueFilter}</li>
+ *   <li>{@link GreaterOrEqualValueFilter}
+ *   <li>{@link LowerOrEqualValueFilter}
+ *   <li>{@link BetweenInclusiveValueFilter}
+ *   <li>{@link StrictlyGreaterValueFilter}
+ *   <li>{@link StrictlyLowerValueFilter}
  * </ul>
  *
- * <p>
- * What is being tested:
- * </p>
+ * <p>What is being tested:
+ *
  * <ul>
- * <li>Boundary, above-boundary, and below-boundary cases with Integer values.</li>
- * <li>Factory methods return the correct concrete class.</li>
- * <li>BetweenInclusive with inverted bounds (lower &gt; upper) does NOT throw
- * (constructor is lenient) but matches nothing.</li>
- * <li>match returns false on null.</li>
- * <li>match returns false on non-Comparable input.</li>
+ *   <li>Boundary, above-boundary, and below-boundary cases with Integer values.
+ *   <li>Factory methods return the correct concrete class.
+ *   <li>BetweenInclusive with inverted bounds (lower &gt; upper) does NOT throw (constructor is
+ *       lenient) but matches nothing.
+ *   <li>match returns false on null.
+ *   <li>match returns false on non-Comparable input.
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class ComparableValueFilterTest
-{
-	private static void info(String s)
-	{
+public class ComparableValueFilterTest {
+	private static void info(String s) {
 		System.out.println("[ComparableValueFilterTest] " + s);
 	}
 
@@ -53,8 +49,7 @@ public class ComparableValueFilterTest
 
 	/** {@link GreaterOrEqualValueFilter} : à la borne, accepte (≥). */
 	@Test
-	public void testGreaterOrEqualAtBoundary()
-	{
+	public void testGreaterOrEqualAtBoundary() {
 		info("GreaterOrEqualValueFilter: at boundary returns true.");
 		ValueFilterI f = new GreaterOrEqualValueFilter(10);
 		assertTrue(f.match(10));
@@ -62,8 +57,7 @@ public class ComparableValueFilterTest
 
 	/** {@link GreaterOrEqualValueFilter} : au-dessus de la borne, accepte. */
 	@Test
-	public void testGreaterOrEqualAboveBoundary()
-	{
+	public void testGreaterOrEqualAboveBoundary() {
 		info("GreaterOrEqualValueFilter: above boundary returns true.");
 		ValueFilterI f = new GreaterOrEqualValueFilter(10);
 		assertTrue(f.match(11));
@@ -72,8 +66,7 @@ public class ComparableValueFilterTest
 
 	/** {@link GreaterOrEqualValueFilter} : en-dessous de la borne, rejette. */
 	@Test
-	public void testGreaterOrEqualBelowBoundary()
-	{
+	public void testGreaterOrEqualBelowBoundary() {
 		info("GreaterOrEqualValueFilter: below boundary returns false.");
 		ValueFilterI f = new GreaterOrEqualValueFilter(10);
 		assertFalse(f.match(9));
@@ -86,8 +79,7 @@ public class ComparableValueFilterTest
 
 	/** {@link LowerOrEqualValueFilter} : à la borne, accepte (≤). */
 	@Test
-	public void testLowerOrEqualAtBoundary()
-	{
+	public void testLowerOrEqualAtBoundary() {
 		info("LowerOrEqualValueFilter: at boundary returns true.");
 		ValueFilterI f = new LowerOrEqualValueFilter(10);
 		assertTrue(f.match(10));
@@ -95,8 +87,7 @@ public class ComparableValueFilterTest
 
 	/** {@link LowerOrEqualValueFilter} : en-dessous de la borne, accepte. */
 	@Test
-	public void testLowerOrEqualBelowBoundary()
-	{
+	public void testLowerOrEqualBelowBoundary() {
 		info("LowerOrEqualValueFilter: below boundary returns true.");
 		ValueFilterI f = new LowerOrEqualValueFilter(10);
 		assertTrue(f.match(9));
@@ -105,8 +96,7 @@ public class ComparableValueFilterTest
 
 	/** {@link LowerOrEqualValueFilter} : au-dessus de la borne, rejette. */
 	@Test
-	public void testLowerOrEqualAboveBoundary()
-	{
+	public void testLowerOrEqualAboveBoundary() {
 		info("LowerOrEqualValueFilter: above boundary returns false.");
 		ValueFilterI f = new LowerOrEqualValueFilter(10);
 		assertFalse(f.match(11));
@@ -119,8 +109,7 @@ public class ComparableValueFilterTest
 
 	/** {@link BetweenInclusiveValueFilter} : à la borne basse, accepte. */
 	@Test
-	public void testBetweenInclusiveLowerBoundary()
-	{
+	public void testBetweenInclusiveLowerBoundary() {
 		info("BetweenInclusiveValueFilter: at lower boundary returns true.");
 		ValueFilterI f = new BetweenInclusiveValueFilter(10, 20);
 		assertTrue(f.match(10));
@@ -128,8 +117,7 @@ public class ComparableValueFilterTest
 
 	/** {@link BetweenInclusiveValueFilter} : à la borne haute, accepte. */
 	@Test
-	public void testBetweenInclusiveUpperBoundary()
-	{
+	public void testBetweenInclusiveUpperBoundary() {
 		info("BetweenInclusiveValueFilter: at upper boundary returns true.");
 		ValueFilterI f = new BetweenInclusiveValueFilter(10, 20);
 		assertTrue(f.match(20));
@@ -137,8 +125,7 @@ public class ComparableValueFilterTest
 
 	/** {@link BetweenInclusiveValueFilter} : valeur strictement à l'intérieur, accepte. */
 	@Test
-	public void testBetweenInclusiveInRange()
-	{
+	public void testBetweenInclusiveInRange() {
 		info("BetweenInclusiveValueFilter: in range returns true.");
 		ValueFilterI f = new BetweenInclusiveValueFilter(10, 20);
 		assertTrue(f.match(15));
@@ -146,19 +133,22 @@ public class ComparableValueFilterTest
 
 	/** {@link BetweenInclusiveValueFilter} : hors intervalle, rejette. */
 	@Test
-	public void testBetweenInclusiveOutOfRange()
-	{
+	public void testBetweenInclusiveOutOfRange() {
 		info("BetweenInclusiveValueFilter: out of range returns false.");
 		ValueFilterI f = new BetweenInclusiveValueFilter(10, 20);
 		assertFalse(f.match(9));
 		assertFalse(f.match(21));
 	}
 
-	/** {@link BetweenInclusiveValueFilter} avec bornes inversées (lower &gt; upper) ne lève pas, mais ne matche aucune valeur. */
+	/**
+	 * {@link BetweenInclusiveValueFilter} avec bornes inversées (lower &gt; upper) ne lève pas,
+	 * mais ne matche aucune valeur.
+	 */
 	@Test
-	public void testBetweenInclusiveInvertedBoundsNoThrow()
-	{
-		info("BetweenInclusiveValueFilter: inverted bounds [10,5] do NOT throw; match returns false for all values.");
+	public void testBetweenInclusiveInvertedBoundsNoThrow() {
+		info(
+				"BetweenInclusiveValueFilter: inverted bounds [10,5] do NOT throw; match returns"
+					+ " false for all values.");
 		// Constructor does NOT validate lower <= upper (by design, based on reading the source).
 		BetweenInclusiveValueFilter f = new BetweenInclusiveValueFilter(10, 5);
 		// No integer x can satisfy x >= 10 AND x <= 5 simultaneously.
@@ -173,8 +163,7 @@ public class ComparableValueFilterTest
 
 	/** {@link StrictlyGreaterValueFilter} : à la borne, rejette (strict). */
 	@Test
-	public void testStrictlyGreaterAtBoundary()
-	{
+	public void testStrictlyGreaterAtBoundary() {
 		info("StrictlyGreaterValueFilter: at boundary returns false.");
 		ValueFilterI f = new StrictlyGreaterValueFilter(10);
 		assertFalse(f.match(10));
@@ -182,8 +171,7 @@ public class ComparableValueFilterTest
 
 	/** {@link StrictlyGreaterValueFilter} : au-dessus, accepte. */
 	@Test
-	public void testStrictlyGreaterAboveBoundary()
-	{
+	public void testStrictlyGreaterAboveBoundary() {
 		info("StrictlyGreaterValueFilter: above boundary returns true.");
 		ValueFilterI f = new StrictlyGreaterValueFilter(10);
 		assertTrue(f.match(11));
@@ -191,8 +179,7 @@ public class ComparableValueFilterTest
 
 	/** {@link StrictlyGreaterValueFilter} : en-dessous, rejette. */
 	@Test
-	public void testStrictlyGreaterBelowBoundary()
-	{
+	public void testStrictlyGreaterBelowBoundary() {
 		info("StrictlyGreaterValueFilter: below boundary returns false.");
 		ValueFilterI f = new StrictlyGreaterValueFilter(10);
 		assertFalse(f.match(9));
@@ -204,8 +191,7 @@ public class ComparableValueFilterTest
 
 	/** {@link StrictlyLowerValueFilter} : à la borne, rejette (strict). */
 	@Test
-	public void testStrictlyLowerAtBoundary()
-	{
+	public void testStrictlyLowerAtBoundary() {
 		info("StrictlyLowerValueFilter: at boundary returns false.");
 		ValueFilterI f = new StrictlyLowerValueFilter(10);
 		assertFalse(f.match(10));
@@ -213,8 +199,7 @@ public class ComparableValueFilterTest
 
 	/** {@link StrictlyLowerValueFilter} : en-dessous, accepte. */
 	@Test
-	public void testStrictlyLowerBelowBoundary()
-	{
+	public void testStrictlyLowerBelowBoundary() {
 		info("StrictlyLowerValueFilter: below boundary returns true.");
 		ValueFilterI f = new StrictlyLowerValueFilter(10);
 		assertTrue(f.match(9));
@@ -222,8 +207,7 @@ public class ComparableValueFilterTest
 
 	/** {@link StrictlyLowerValueFilter} : au-dessus, rejette. */
 	@Test
-	public void testStrictlyLowerAboveBoundary()
-	{
+	public void testStrictlyLowerAboveBoundary() {
 		info("StrictlyLowerValueFilter: above boundary returns false.");
 		ValueFilterI f = new StrictlyLowerValueFilter(10);
 		assertFalse(f.match(11));
@@ -233,50 +217,60 @@ public class ComparableValueFilterTest
 	// Factory methods
 	// -------------------------------------------------------------------------
 
-	/** Fabrique {@link ComparableValueFilter#greaterOrEqual} retourne une instance de {@link GreaterOrEqualValueFilter}. */
+	/**
+	 * Fabrique {@link ComparableValueFilter#greaterOrEqual} retourne une instance de {@link
+	 * GreaterOrEqualValueFilter}.
+	 */
 	@Test
-	public void testFactoryGreaterOrEqual()
-	{
+	public void testFactoryGreaterOrEqual() {
 		info("ComparableValueFilter.greaterOrEqual factory returns GreaterOrEqualValueFilter.");
 		ComparableValueFilter f = ComparableValueFilter.greaterOrEqual(5);
 		assertNotNull(f);
 		assertSame(GreaterOrEqualValueFilter.class, f.getClass());
 	}
 
-	/** Fabrique {@link ComparableValueFilter#lowerOrEqual} retourne une instance de {@link LowerOrEqualValueFilter}. */
+	/**
+	 * Fabrique {@link ComparableValueFilter#lowerOrEqual} retourne une instance de {@link
+	 * LowerOrEqualValueFilter}.
+	 */
 	@Test
-	public void testFactoryLowerOrEqual()
-	{
+	public void testFactoryLowerOrEqual() {
 		info("ComparableValueFilter.lowerOrEqual factory returns LowerOrEqualValueFilter.");
 		ComparableValueFilter f = ComparableValueFilter.lowerOrEqual(5);
 		assertNotNull(f);
 		assertSame(LowerOrEqualValueFilter.class, f.getClass());
 	}
 
-	/** Fabrique {@link ComparableValueFilter#betweenInclusive} retourne une instance de {@link BetweenInclusiveValueFilter}. */
+	/**
+	 * Fabrique {@link ComparableValueFilter#betweenInclusive} retourne une instance de {@link
+	 * BetweenInclusiveValueFilter}.
+	 */
 	@Test
-	public void testFactoryBetweenInclusive()
-	{
+	public void testFactoryBetweenInclusive() {
 		info("ComparableValueFilter.betweenInclusive factory returns BetweenInclusiveValueFilter.");
 		ComparableValueFilter f = ComparableValueFilter.betweenInclusive(1, 10);
 		assertNotNull(f);
 		assertSame(BetweenInclusiveValueFilter.class, f.getClass());
 	}
 
-	/** Fabrique {@link ComparableValueFilter#strictlyGreater} retourne une instance de {@link StrictlyGreaterValueFilter}. */
+	/**
+	 * Fabrique {@link ComparableValueFilter#strictlyGreater} retourne une instance de {@link
+	 * StrictlyGreaterValueFilter}.
+	 */
 	@Test
-	public void testFactoryStrictlyGreater()
-	{
+	public void testFactoryStrictlyGreater() {
 		info("ComparableValueFilter.strictlyGreater factory returns StrictlyGreaterValueFilter.");
 		ComparableValueFilter f = ComparableValueFilter.strictlyGreater(5);
 		assertNotNull(f);
 		assertSame(StrictlyGreaterValueFilter.class, f.getClass());
 	}
 
-	/** Fabrique {@link ComparableValueFilter#strictlyLower} retourne une instance de {@link StrictlyLowerValueFilter}. */
+	/**
+	 * Fabrique {@link ComparableValueFilter#strictlyLower} retourne une instance de {@link
+	 * StrictlyLowerValueFilter}.
+	 */
 	@Test
-	public void testFactoryStrictlyLower()
-	{
+	public void testFactoryStrictlyLower() {
 		info("ComparableValueFilter.strictlyLower factory returns StrictlyLowerValueFilter.");
 		ComparableValueFilter f = ComparableValueFilter.strictlyLower(5);
 		assertNotNull(f);
@@ -287,10 +281,12 @@ public class ComparableValueFilterTest
 	// Null and non-Comparable inputs
 	// -------------------------------------------------------------------------
 
-	/** {@code match(null)} retourne {@code false} pour toutes les sous-classes (null n'est pas Comparable). */
+	/**
+	 * {@code match(null)} retourne {@code false} pour toutes les sous-classes (null n'est pas
+	 * Comparable).
+	 */
 	@Test
-	public void testMatchReturnsFalseOnNull()
-	{
+	public void testMatchReturnsFalseOnNull() {
 		info("match(null) returns false for all subclasses (null is not Comparable).");
 		assertFalse(ComparableValueFilter.greaterOrEqual(0).match(null));
 		assertFalse(ComparableValueFilter.lowerOrEqual(0).match(null));
@@ -299,10 +295,12 @@ public class ComparableValueFilterTest
 		assertFalse(ComparableValueFilter.strictlyLower(10).match(null));
 	}
 
-	/** {@code match} sur un {@code Serializable} non-{@code Comparable} retourne {@code false} (garde {@code instanceof}). */
+	/**
+	 * {@code match} sur un {@code Serializable} non-{@code Comparable} retourne {@code false}
+	 * (garde {@code instanceof}).
+	 */
 	@Test
-	public void testMatchReturnsFalseOnNonComparable()
-	{
+	public void testMatchReturnsFalseOnNonComparable() {
 		info("match on a non-Comparable Serializable returns false (instanceof guard).");
 		// A plain Object[] is Serializable but not Comparable.
 		java.io.Serializable nonComparable = new java.io.Serializable() {};
@@ -315,8 +313,7 @@ public class ComparableValueFilterTest
 
 	/** Les constructeurs rejettent une borne {@code null} avec {@link NullPointerException}. */
 	@Test(expected = NullPointerException.class)
-	public void testNullBoundThrowsNPE()
-	{
+	public void testNullBoundThrowsNPE() {
 		info("Constructors reject null bound with NullPointerException.");
 		new GreaterOrEqualValueFilter(null);
 	}

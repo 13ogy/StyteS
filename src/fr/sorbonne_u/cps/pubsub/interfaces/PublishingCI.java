@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.interfaces;
 // modify and redistribute granted by the license, users are provided only
 // with a limited warranty and the software's author, the holder of the
 // economic rights, and the successive licensors have only limited
-// liability. 
+// liability.
 //
 // In this respect, the user's attention is drawn to the risks associated
 // with loading, using, modifying and/or developing or reproducing the
@@ -26,47 +26,45 @@ package fr.sorbonne_u.cps.pubsub.interfaces;
 // therefore means that it is reserved for developers and experienced
 // professionals having in-depth computer knowledge. Users are therefore
 // encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and, more generally, to use and operate it in the 
-// same conditions as regards security. 
+// requirements in conditions enabling the security of their systems and/or
+// data to be ensured and, more generally, to use and operate it in the
+// same conditions as regards security.
 //
 // The fact that you are presently reading this means that you have had
 // knowledge of the CeCILL-C license and that you accept its terms.
 
 import fr.sorbonne_u.components.interfaces.OfferedCI;
 import fr.sorbonne_u.components.interfaces.RequiredCI;
+
 import java.util.ArrayList;
 
 // -----------------------------------------------------------------------------
 /**
- * The component interface <code>PublishingCI</code> is offered by the
- * publication/subscription system to allow users to publish heir messages.
+ * The component interface <code>PublishingCI</code> is offered by the publication/subscription
+ * system to allow users to publish heir messages.
  *
- * <p><strong>Description</strong></p>
- * 
- * <p><strong>Invariants</strong></p>
- * 
+ * <p><strong>Description</strong>
+ *
+ * <p><strong>Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p>Created on : 2026-01-20</p>
- * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ *
+ * <p>Created on : 2026-01-20
+ *
+ * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  */
-public interface		PublishingCI
-extends		OfferedCI,
-			RequiredCI
-{
+public interface PublishingCI extends OfferedCI, RequiredCI {
 	// -------------------------------------------------------------------------
 	// Signature and default methods
 	// -------------------------------------------------------------------------
 
 	/**
 	 * asynchronously publish {@code message} on {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * pre	{@code channel != null && !channel.isEmpty()}
@@ -74,22 +72,19 @@ extends		OfferedCI,
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI	URI of the inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel			name of the channel on which {@code message} must be published.
-	 * @param message			message to be published to {@code channel}.
-	 * @throws Exception		<i>to do</i>.
+	 * @param receptionPortURI URI of the inbound port offering the component interface {@code
+	 *     ReceivingCI}.
+	 * @param channel name of the channel on which {@code message} must be published.
+	 * @param message message to be published to {@code channel}.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public void			publish(
-		String receptionPortURI,
-		String channel,
-		MessageI message
-		) throws Exception;
+	public void publish(String receptionPortURI, String channel, MessageI message) throws Exception;
 
 	/**
 	 * asynchronously publish all of the {@code messages} on {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * pre	{@code channel != null && !channel.isEmpty()}
@@ -98,23 +93,21 @@ extends		OfferedCI,
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI	URI of the inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel			name of the channel on which {@code message} must be published.
-	 * @param messages			list of messages to be published on {@code channel}.
-	 * @throws Exception		<i>to do</i>.
+	 * @param receptionPortURI URI of the inbound port offering the component interface {@code
+	 *     ReceivingCI}.
+	 * @param channel name of the channel on which {@code message} must be published.
+	 * @param messages list of messages to be published on {@code channel}.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public void			publish(
-		String receptionPortURI,
-		String channel,
-		ArrayList<MessageI> messages
-		) throws Exception;
+	public void publish(String receptionPortURI, String channel, ArrayList<MessageI> messages)
+			throws Exception;
 
 	/**
-	 * asynchronously publish {@code message} on {@code channel} and notify the
-	 * client component if an abnormal termination condition occurred.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * asynchronously publish {@code message} on {@code channel} and notify the client component if
+	 * an abnormal termination condition occurred.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * pre	{@code channel != null && !channel.isEmpty()}
@@ -122,26 +115,27 @@ extends		OfferedCI,
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI				URI of the inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel						name of the channel on which {@code message} must be published.
-	 * @param message						message to be published to {@code channel}.
-	 * @param notificationInbounhdPortURI	URI of an inbound port offering {@code AbnormalTerminationNotificationCI}.
-	 * @throws Exception					<i>to do</i>.
+	 * @param receptionPortURI URI of the inbound port offering the component interface {@code
+	 *     ReceivingCI}.
+	 * @param channel name of the channel on which {@code message} must be published.
+	 * @param message message to be published to {@code channel}.
+	 * @param notificationInbounhdPortURI URI of an inbound port offering {@code
+	 *     AbnormalTerminationNotificationCI}.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public void			asyncPublishAndNotify(
-		String receptionPortURI,
-		String channel,
-		MessageI message,
-		String notificationInbounhdPortURI
-		) throws Exception;
+	public void asyncPublishAndNotify(
+			String receptionPortURI,
+			String channel,
+			MessageI message,
+			String notificationInbounhdPortURI)
+			throws Exception;
 
 	/**
-	 * asynchronously publish all of the {@code messages} on {@code channel}
-	 * and notify the client component if an abnormal termination condition
-	 * occurred.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * asynchronously publish all of the {@code messages} on {@code channel} and notify the client
+	 * component if an abnormal termination condition occurred.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code receptionPortURI != null && !receptionPortURI.isEmpty()}
 	 * pre	{@code channel != null && !channel.isEmpty()}
@@ -150,17 +144,19 @@ extends		OfferedCI,
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param receptionPortURI				URI of the inbound port offering the component interface {@code ReceivingCI}.
-	 * @param channel						name of the channel on which {@code message} must be published.
-	 * @param messages						list of messages to be published on {@code channel}.
-	 * @param notificationInbounhdPortURI	URI of an inbound port offering {@code AbnormalTerminationNotificationCI}.
-	 * @throws Exception					<i>to do</i>.
+	 * @param receptionPortURI URI of the inbound port offering the component interface {@code
+	 *     ReceivingCI}.
+	 * @param channel name of the channel on which {@code message} must be published.
+	 * @param messages list of messages to be published on {@code channel}.
+	 * @param notificationInbounhdPortURI URI of an inbound port offering {@code
+	 *     AbnormalTerminationNotificationCI}.
+	 * @throws Exception <i>to do</i>.
 	 */
-	public void			asyncPublishAndNotify(
-		String receptionPortURI,
-		String channel,
-		ArrayList<MessageI> messages,
-		String notificationInbounhdPortURI
-		) throws Exception;
+	public void asyncPublishAndNotify(
+			String receptionPortURI,
+			String channel,
+			ArrayList<MessageI> messages,
+			String notificationInbounhdPortURI)
+			throws Exception;
 }
 // -----------------------------------------------------------------------------

@@ -1,5 +1,7 @@
 package fr.sorbonne_u.cps.pubsub.tests;
 
+import static org.junit.Assert.*;
+
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.messages.Message;
@@ -13,37 +15,32 @@ import fr.sorbonne_u.cps.pubsub.messages.filters.ComparableValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.EqualsValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.PropertiesFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.PropertyFilter;
+
 import org.junit.Test;
 
 import java.io.Serializable;
 import java.time.Instant;
 
-import static org.junit.Assert.*;
-
 /**
- * Tests JUnit 4 unitaires pour le sous-système de filtres (CDC §3.2) ; couvre
- * les classes du package {@code fr.sorbonne_u.cps.pubsub.messages.filters}
- * ainsi que {@link MessageFilter} (productions classes under test).
+ * Tests JUnit 4 unitaires pour le sous-système de filtres (CDC §3.2) ; couvre les classes du
+ * package {@code fr.sorbonne_u.cps.pubsub.messages.filters} ainsi que {@link MessageFilter}
+ * (productions classes under test).
  *
- * <p>
- * Points vérifiés :
- * </p>
+ * <p>Points vérifiés :
+ *
  * <ul>
- * <li>filtres de valeur :
- * <ul>
- * <li>{@link EqualsValueFilter} : égalité stricte ;</li>
- * <li>{@link ComparableValueFilter} : comparaisons sur Comparable
- * (GE, LE, BETWEEN) ;</li>
- * <li>{@link AcceptAllValueFilter} : accepte toujours.</li>
- * </ul>
- * </li>
- * <li>{@link PropertyFilter} : applique un {@code ValueFilterI} sur une
- * {@link MessageI.PropertyI} (pas sur un message entier) ;</li>
- * <li>{@link PropertiesFilter} : applique un {@code MultiValuesFilterI} sur
- * plusieurs propriétés (contraintes croisées) ;</li>
- * <li>filtres temporels : accept-all + intervalles inclusifs ;</li>
- * <li>{@link MessageFilter} : match global sur un message complet
- * (propriétés + temps).</li>
+ *   <li>filtres de valeur :
+ *       <ul>
+ *         <li>{@link EqualsValueFilter} : égalité stricte ;
+ *         <li>{@link ComparableValueFilter} : comparaisons sur Comparable (GE, LE, BETWEEN) ;
+ *         <li>{@link AcceptAllValueFilter} : accepte toujours.
+ *       </ul>
+ *   <li>{@link PropertyFilter} : applique un {@code ValueFilterI} sur une {@link
+ *       MessageI.PropertyI} (pas sur un message entier) ;
+ *   <li>{@link PropertiesFilter} : applique un {@code MultiValuesFilterI} sur plusieurs propriétés
+ *       (contraintes croisées) ;
+ *   <li>filtres temporels : accept-all + intervalles inclusifs ;
+ *   <li>{@link MessageFilter} : match global sur un message complet (propriétés + temps).
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
@@ -56,8 +53,8 @@ public class MessageFilterTest {
 	}
 
 	/**
-	 * {@link EqualsValueFilter} accepte uniquement la valeur exactement égale
-	 * (au sens de {@code Object.equals}) à la valeur attendue ; rejette {@code null}.
+	 * {@link EqualsValueFilter} accepte uniquement la valeur exactement égale (au sens de {@code
+	 * Object.equals}) à la valeur attendue ; rejette {@code null}.
 	 */
 	@Test
 	public void testEqualsValueFilter() {
@@ -70,8 +67,8 @@ public class MessageFilterTest {
 	}
 
 	/**
-	 * {@link ComparableValueFilter} et ses sous-classes effectuent des comparaisons
-	 * cohérentes sur des valeurs {@code Comparable} (Integer ici).
+	 * {@link ComparableValueFilter} et ses sous-classes effectuent des comparaisons cohérentes sur
+	 * des valeurs {@code Comparable} (Integer ici).
 	 */
 	@Test
 	public void testComparableValueFilterNumbersAsComparable() {
@@ -95,10 +92,7 @@ public class MessageFilterTest {
 		assertFalse(between.match(21));
 	}
 
-	/**
-	 * {@link AcceptAllValueFilter} accepte n'importe quelle valeur, y compris
-	 * {@code null}.
-	 */
+	/** {@link AcceptAllValueFilter} accepte n'importe quelle valeur, y compris {@code null}. */
 	@Test
 	public void testAcceptAllValueFilter() {
 		info("AcceptAllValueFilter always matches (including null).");
@@ -109,8 +103,8 @@ public class MessageFilterTest {
 	}
 
 	/**
-	 * {@link PropertyFilter#match} retourne {@code true} ssi le nom de propriété
-	 * correspond à celui du filtre ET que le value filter accepte la valeur.
+	 * {@link PropertyFilter#match} retourne {@code true} ssi le nom de propriété correspond à celui
+	 * du filtre ET que le value filter accepte la valeur.
 	 */
 	@Test
 	public void testPropertyFilterPositiveAndNegative() {
@@ -121,7 +115,7 @@ public class MessageFilterTest {
 		MessageI.PropertyI p3 = new Message.Property("otherName", (Serializable) "demo");
 
 		MessageFilterI.PropertyFilterI pf =
-			new PropertyFilter("type", new EqualsValueFilter("demo"));
+				new PropertyFilter("type", new EqualsValueFilter("demo"));
 
 		assertTrue(pf.match(p1));
 		assertFalse(pf.match(p2));
@@ -129,21 +123,27 @@ public class MessageFilterTest {
 	}
 
 	/**
-	 * {@link PropertiesFilter} évalue une contrainte croisée sur plusieurs
-	 * propriétés via un {@code MultiValuesFilterI} fourni par l'appelant.
+	 * {@link PropertiesFilter} évalue une contrainte croisée sur plusieurs propriétés via un {@code
+	 * MultiValuesFilterI} fourni par l'appelant.
 	 */
 	@Test
 	public void testPropertiesFilterCrossConstraintWithCustomMultiValuesFilter() {
-		info("PropertiesFilter applies a MultiValuesFilterI over several properties (cross-constraint).");
+		info(
+				"PropertiesFilter applies a MultiValuesFilterI over several properties"
+					+ " (cross-constraint).");
 
-		MessageFilterI.MultiValuesFilterI mv = new fr.sorbonne_u.cps.pubsub.messages.filters.MultiValuesFilter("type", "stationId") {
-			@Override
-			protected boolean matchValues(Serializable... values) {
-				String type = (String) values[0];
-				String stationId = (String) values[1];
-				return "wind".equals(type) && stationId != null && stationId.startsWith("WS");
-			}
-		};
+		MessageFilterI.MultiValuesFilterI mv =
+				new fr.sorbonne_u.cps.pubsub.messages.filters.MultiValuesFilter(
+						"type", "stationId") {
+					@Override
+					protected boolean matchValues(Serializable... values) {
+						String type = (String) values[0];
+						String stationId = (String) values[1];
+						return "wind".equals(type)
+								&& stationId != null
+								&& stationId.startsWith("WS");
+					}
+				};
 
 		MessageFilterI.PropertiesFilterI pf = new PropertiesFilter(mv);
 
@@ -156,10 +156,9 @@ public class MessageFilterTest {
 	}
 
 	/**
-	 * Les trois filtres temporels concrets ({@link AcceptAllTimeFilter},
-	 * {@link BetweenTimeFilter}, {@link AfterOrAtTimeFilter},
-	 * {@link BeforeOrAtTimeFilter}) implémentent correctement les inclusions
-	 * d'intervalle.
+	 * Les trois filtres temporels concrets ({@link AcceptAllTimeFilter}, {@link BetweenTimeFilter},
+	 * {@link AfterOrAtTimeFilter}, {@link BeforeOrAtTimeFilter}) implémentent correctement les
+	 * inclusions d'intervalle.
 	 */
 	@Test
 	public void testTimeFilters() {
@@ -189,9 +188,8 @@ public class MessageFilterTest {
 	}
 
 	/**
-	 * {@link MessageFilter#match} effectue un AND global sur le message complet :
-	 * propriétés (via {@code PropertyFilterI}) ET fenêtre temporelle (via
-	 * {@code TimeFilterI}).
+	 * {@link MessageFilter#match} effectue un AND global sur le message complet : propriétés (via
+	 * {@code PropertyFilterI}) ET fenêtre temporelle (via {@code TimeFilterI}).
 	 *
 	 * @throws Exception si la construction du message lève (ne doit pas se produire).
 	 */
@@ -203,12 +201,13 @@ public class MessageFilterTest {
 		m.putProperty("type", "demo");
 
 		MessageFilterI.PropertyFilterI pf =
-			new PropertyFilter("type", new EqualsValueFilter("demo"));
+				new PropertyFilter("type", new EqualsValueFilter("demo"));
 
-		MessageFilterI filter = new MessageFilter(
-			new MessageFilterI.PropertyFilterI[] { pf },
-			new MessageFilterI.PropertiesFilterI[0],
-			new AcceptAllTimeFilter());
+		MessageFilterI filter =
+				new MessageFilter(
+						new MessageFilterI.PropertyFilterI[] {pf},
+						new MessageFilterI.PropertiesFilterI[0],
+						new AcceptAllTimeFilter());
 
 		assertTrue(filter.match(m));
 

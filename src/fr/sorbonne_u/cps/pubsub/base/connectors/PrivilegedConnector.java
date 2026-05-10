@@ -1,7 +1,5 @@
 package fr.sorbonne_u.cps.pubsub.base.connectors;
 
-import java.rmi.RemoteException;
-
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyExistingChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.ChannelQuotaExceededException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
@@ -9,33 +7,32 @@ import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
 
+import java.rmi.RemoteException;
+
 /**
- * Connecteur reliant un port outbound client {@link PrivilegedClientCI} au
- * port inbound {@link PrivilegedClientCI} du broker.
+ * Connecteur reliant un port outbound client {@link PrivilegedClientCI} au port inbound {@link
+ * PrivilegedClientCI} du broker.
  *
- * <p><strong>Sens du raccordement</strong> : la référence {@link #offering}
- * pointe vers le port inbound du broker qui offre {@link PrivilegedClientCI}.
- * Les opérations de publication sont héritées de {@link PublishingConnector}
- * : {@link PrivilegedClientCI} étend
- * {@link fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, donc le
- * connecteur privilégié est-un connecteur de publication.</p>
+ * <p><strong>Sens du raccordement</strong> : la référence {@link #offering} pointe vers le port
+ * inbound du broker qui offre {@link PrivilegedClientCI}. Les opérations de publication sont
+ * héritées de {@link PublishingConnector} : {@link PrivilegedClientCI} étend {@link
+ * fr.sorbonne_u.cps.pubsub.interfaces.PublishingCI}, donc le connecteur privilégié est-un
+ * connecteur de publication.
  *
- * <p>
- * les exceptions métier déclarées sur la CI sont propagées
- * telles quelles ; toute autre {@link Exception} technique est encapsulée
- * dans une {@link RemoteException}.
- * </p>
+ * <p>les exceptions métier déclarées sur la CI sont propagées telles quelles ; toute autre {@link
+ * Exception} technique est encapsulée dans une {@link RemoteException}.
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class PrivilegedConnector extends PublishingConnector
-	implements PrivilegedClientCI {
-	/** @see PrivilegedClientCI#hasCreatedChannel(String, String) */
+public class PrivilegedConnector extends PublishingConnector implements PrivilegedClientCI {
+	/**
+	 * @see PrivilegedClientCI#hasCreatedChannel(String, String)
+	 */
 	@Override
-	public boolean hasCreatedChannel(String receptionPortURI, String channel)
-			throws Exception {
+	public boolean hasCreatedChannel(String receptionPortURI, String channel) throws Exception {
 		try {
-			return ((PrivilegedClientCI) this.offering).hasCreatedChannel(receptionPortURI, channel);
+			return ((PrivilegedClientCI) this.offering)
+					.hasCreatedChannel(receptionPortURI, channel);
 		} catch (UnknownClientException e) {
 			throw e;
 		} catch (RemoteException e) {
@@ -45,7 +42,9 @@ public class PrivilegedConnector extends PublishingConnector
 		}
 	}
 
-	/** @see PrivilegedClientCI#channelQuotaReached(String) */
+	/**
+	 * @see PrivilegedClientCI#channelQuotaReached(String)
+	 */
 	@Override
 	public boolean channelQuotaReached(String receptionPortURI) throws Exception {
 		try {
@@ -59,14 +58,19 @@ public class PrivilegedConnector extends PublishingConnector
 		}
 	}
 
-	/** @see PrivilegedClientCI#createChannel(String, String, String) */
+	/**
+	 * @see PrivilegedClientCI#createChannel(String, String, String)
+	 */
 	@Override
 	public void createChannel(String receptionPortURI, String channel, String autorisedUsers)
 			throws Exception {
 		try {
-			((PrivilegedClientCI) this.offering).createChannel(receptionPortURI, channel, autorisedUsers);
-		} catch (UnknownClientException | AlreadyExistingChannelException
-				| ChannelQuotaExceededException | UnauthorisedClientException e) {
+			((PrivilegedClientCI) this.offering)
+					.createChannel(receptionPortURI, channel, autorisedUsers);
+		} catch (UnknownClientException
+				| AlreadyExistingChannelException
+				| ChannelQuotaExceededException
+				| UnauthorisedClientException e) {
 			throw e;
 		} catch (RemoteException e) {
 			throw e;
@@ -75,12 +79,15 @@ public class PrivilegedConnector extends PublishingConnector
 		}
 	}
 
-	/** @see PrivilegedClientCI#modifyAuthorisedUsers(String, String, String) */
+	/**
+	 * @see PrivilegedClientCI#modifyAuthorisedUsers(String, String, String)
+	 */
 	@Override
-	public void modifyAuthorisedUsers(String receptionPortURI, String channel, String autorisedUsers)
-			throws Exception {
+	public void modifyAuthorisedUsers(
+			String receptionPortURI, String channel, String autorisedUsers) throws Exception {
 		try {
-			((PrivilegedClientCI) this.offering).modifyAuthorisedUsers(receptionPortURI, channel, autorisedUsers);
+			((PrivilegedClientCI) this.offering)
+					.modifyAuthorisedUsers(receptionPortURI, channel, autorisedUsers);
 		} catch (RemoteException e) {
 			throw e;
 		} catch (Exception e) {
@@ -88,7 +95,9 @@ public class PrivilegedConnector extends PublishingConnector
 		}
 	}
 
-	/** @see PrivilegedClientCI#destroyChannel(String, String) */
+	/**
+	 * @see PrivilegedClientCI#destroyChannel(String, String)
+	 */
 	@Override
 	public void destroyChannel(String receptionPortURI, String channel) throws Exception {
 		try {
@@ -100,13 +109,14 @@ public class PrivilegedConnector extends PublishingConnector
 		}
 	}
 
-	/** @see PrivilegedClientCI#destroyChannelNow(String, String) */
+	/**
+	 * @see PrivilegedClientCI#destroyChannelNow(String, String)
+	 */
 	@Override
 	public void destroyChannelNow(String receptionPortURI, String channel) throws Exception {
 		try {
 			((PrivilegedClientCI) this.offering).destroyChannelNow(receptionPortURI, channel);
-		} catch (UnknownClientException | UnknownChannelException
-				| UnauthorisedClientException e) {
+		} catch (UnknownClientException | UnknownChannelException | UnauthorisedClientException e) {
 			throw e;
 		} catch (RemoteException e) {
 			throw e;

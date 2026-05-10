@@ -1,5 +1,7 @@
 package fr.sorbonne_u.cps.pubsub.tests;
 
+import static org.junit.Assert.*;
+
 import fr.sorbonne_u.cps.pubsub.application.meteo.MeteoAlertMessageFactory;
 import fr.sorbonne_u.cps.pubsub.application.meteo.MeteoFilters;
 import fr.sorbonne_u.cps.pubsub.application.meteo.MeteoProperties;
@@ -12,36 +14,31 @@ import fr.sorbonne_u.cps.pubsub.meteo.impl.CircularRegion;
 import fr.sorbonne_u.cps.pubsub.meteo.impl.MeteoAlert;
 import fr.sorbonne_u.cps.pubsub.meteo.impl.Position2D;
 import fr.sorbonne_u.cps.pubsub.meteo.impl.WindData;
+
 import org.junit.Test;
 
 import java.time.Duration;
 import java.time.Instant;
 
-import static org.junit.Assert.*;
-
 /**
- * Unit tests for the factory classes and filter helpers:
- * {@link WindMessageFactory}, {@link MeteoAlertMessageFactory},
- * {@link MeteoFilters}, and {@link MeteoProperties} (CDC §3.4).
+ * Unit tests for the factory classes and filter helpers: {@link WindMessageFactory}, {@link
+ * MeteoAlertMessageFactory}, {@link MeteoFilters}, and {@link MeteoProperties} (CDC §3.4).
  *
- * <p>
- * What is being tested:
- * </p>
+ * <p>What is being tested:
+ *
  * <ul>
- * <li>{@code WindMessageFactory.build} sets the expected property keys and values.</li>
- * <li>{@code MeteoAlertMessageFactory.build} sets the expected property keys and values.</li>
- * <li>{@code MeteoFilters.windWithinDistance} matches a wind message inside the radius
- * and rejects one beyond it.</li>
- * <li>{@code MeteoFilters.anyAlert} accepts any alert message and rejects wind messages.</li>
- * <li>{@code MeteoFilters.anyWind} accepts any wind message and rejects alert messages.</li>
+ *   <li>{@code WindMessageFactory.build} sets the expected property keys and values.
+ *   <li>{@code MeteoAlertMessageFactory.build} sets the expected property keys and values.
+ *   <li>{@code MeteoFilters.windWithinDistance} matches a wind message inside the radius and
+ *       rejects one beyond it.
+ *   <li>{@code MeteoFilters.anyAlert} accepts any alert message and rejects wind messages.
+ *   <li>{@code MeteoFilters.anyWind} accepts any wind message and rejects alert messages.
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class MeteoMessageFactoryTest
-{
-	private static void info(String s)
-	{
+public class MeteoMessageFactoryTest {
+	private static void info(String s) {
 		System.out.println("[MeteoMessageFactoryTest] " + s);
 	}
 
@@ -49,21 +46,19 @@ public class MeteoMessageFactoryTest
 	// Helpers
 	// -------------------------------------------------------------------------
 
-	private static WindDataI makeWind(double x, double y, double px, double py)
-	{
+	private static WindDataI makeWind(double x, double y, double px, double py) {
 		return new WindData(new Position2D(px, py), x, y);
 	}
 
-	private static MeteoAlertI makeAlert()
-	{
+	private static MeteoAlertI makeAlert() {
 		return new MeteoAlert(
-			MeteoAlertI.AlertType.STORM,
-			MeteoAlertI.Level.ORANGE,
-			new fr.sorbonne_u.cps.pubsub.meteo.RegionI[] {
-				new CircularRegion(new Position2D(0, 0), 100)
-			},
-			Instant.now(),
-			Duration.ofHours(2));
+				MeteoAlertI.AlertType.STORM,
+				MeteoAlertI.Level.ORANGE,
+				new fr.sorbonne_u.cps.pubsub.meteo.RegionI[] {
+					new CircularRegion(new Position2D(0, 0), 100)
+				},
+				Instant.now(),
+				Duration.ofHours(2));
 	}
 
 	// -------------------------------------------------------------------------
@@ -72,8 +67,7 @@ public class MeteoMessageFactoryTest
 
 	/** {@link WindMessageFactory#build} positionne TYPE, STATION_ID, FORCE, X, Y, PAYLOAD. */
 	@Test
-	public void testWindMessageFactoryProperties() throws Exception
-	{
+	public void testWindMessageFactoryProperties() throws Exception {
 		info("WindMessageFactory.build sets TYPE, STATION_ID, FORCE, X, Y, PAYLOAD.");
 
 		WindDataI wind = makeWind(3.0, 4.0, 10.0, 20.0);
@@ -102,8 +96,7 @@ public class MeteoMessageFactoryTest
 
 	/** {@link WindMessageFactory#build} stocke le {@link WindDataI} comme payload du message. */
 	@Test
-	public void testWindMessageFactoryPayload()
-	{
+	public void testWindMessageFactoryPayload() {
 		info("WindMessageFactory.build stores the WindDataI as the message payload.");
 
 		WindDataI wind = makeWind(1.0, 0.0, 0.0, 0.0);
@@ -114,16 +107,14 @@ public class MeteoMessageFactoryTest
 
 	/** {@link WindMessageFactory#build} rejette un {@code stationId} null. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testWindMessageFactoryNullStationIdThrows()
-	{
+	public void testWindMessageFactoryNullStationIdThrows() {
 		info("WindMessageFactory.build rejects null stationId.");
 		WindMessageFactory.build(null, makeWind(1.0, 0.0, 0.0, 0.0));
 	}
 
 	/** {@link WindMessageFactory#build} rejette un {@code wind} null. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testWindMessageFactoryNullWindThrows()
-	{
+	public void testWindMessageFactoryNullWindThrows() {
 		info("WindMessageFactory.build rejects null wind.");
 		WindMessageFactory.build("WS-3", null);
 	}
@@ -132,10 +123,12 @@ public class MeteoMessageFactoryTest
 	// MeteoAlertMessageFactory
 	// -------------------------------------------------------------------------
 
-	/** {@link MeteoAlertMessageFactory#build} positionne TYPE, OFFICE_ID, LEVEL, ALERT_TYPE, PAYLOAD. */
+	/**
+	 * {@link MeteoAlertMessageFactory#build} positionne TYPE, OFFICE_ID, LEVEL, ALERT_TYPE,
+	 * PAYLOAD.
+	 */
 	@Test
-	public void testAlertMessageFactoryProperties() throws Exception
-	{
+	public void testAlertMessageFactoryProperties() throws Exception {
 		info("MeteoAlertMessageFactory.build sets TYPE, OFFICE_ID, LEVEL, ALERT_TYPE, PAYLOAD.");
 
 		MeteoAlertI alert = makeAlert();
@@ -150,10 +143,13 @@ public class MeteoMessageFactoryTest
 		assertEquals("WO-1", m.getPropertyValue(MeteoProperties.OFFICE_ID));
 		// LEVEL
 		assertTrue(m.propertyExists(MeteoProperties.LEVEL));
-		assertEquals(MeteoAlertI.Level.ORANGE.toString(), m.getPropertyValue(MeteoProperties.LEVEL));
+		assertEquals(
+				MeteoAlertI.Level.ORANGE.toString(), m.getPropertyValue(MeteoProperties.LEVEL));
 		// ALERT_TYPE
 		assertTrue(m.propertyExists(MeteoProperties.ALERT_TYPE));
-		assertEquals(MeteoAlertI.AlertType.STORM.toString(), m.getPropertyValue(MeteoProperties.ALERT_TYPE));
+		assertEquals(
+				MeteoAlertI.AlertType.STORM.toString(),
+				m.getPropertyValue(MeteoProperties.ALERT_TYPE));
 		// PAYLOAD
 		assertTrue(m.propertyExists(MeteoProperties.PAYLOAD));
 		assertSame(alert, m.getPropertyValue(MeteoProperties.PAYLOAD));
@@ -161,16 +157,14 @@ public class MeteoMessageFactoryTest
 
 	/** {@link MeteoAlertMessageFactory#build} rejette un {@code officeId} null. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testAlertMessageFactoryNullOfficeIdThrows()
-	{
+	public void testAlertMessageFactoryNullOfficeIdThrows() {
 		info("MeteoAlertMessageFactory.build rejects null officeId.");
 		MeteoAlertMessageFactory.build(null, makeAlert());
 	}
 
 	/** {@link MeteoAlertMessageFactory#build} rejette un {@code alert} null. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testAlertMessageFactoryNullAlertThrows()
-	{
+	public void testAlertMessageFactoryNullAlertThrows() {
 		info("MeteoAlertMessageFactory.build rejects null alert.");
 		MeteoAlertMessageFactory.build("WO-2", null);
 	}
@@ -181,8 +175,7 @@ public class MeteoMessageFactoryTest
 
 	/** {@link MeteoFilters#windWithinDistance} accepte un message vent dans le rayon donné. */
 	@Test
-	public void testWindWithinDistanceMatchesInsideRadius()
-	{
+	public void testWindWithinDistanceMatchesInsideRadius() {
 		info("MeteoFilters.windWithinDistance: accepts wind message inside the radius.");
 
 		Position2D ref = new Position2D(0.0, 0.0);
@@ -197,8 +190,7 @@ public class MeteoMessageFactoryTest
 
 	/** {@link MeteoFilters#windWithinDistance} rejette un message vent au-delà du rayon. */
 	@Test
-	public void testWindWithinDistanceRejectsBeyondRadius()
-	{
+	public void testWindWithinDistanceRejectsBeyondRadius() {
 		info("MeteoFilters.windWithinDistance: rejects wind message beyond the radius.");
 
 		Position2D ref = new Position2D(0.0, 0.0);
@@ -213,8 +205,7 @@ public class MeteoMessageFactoryTest
 
 	/** {@link MeteoFilters#windWithinDistance} rejette un message d'alerte (mauvais type). */
 	@Test
-	public void testWindWithinDistanceRejectsAlertMessage()
-	{
+	public void testWindWithinDistanceRejectsAlertMessage() {
 		info("MeteoFilters.windWithinDistance: rejects alert messages (wrong type).");
 
 		Position2D ref = new Position2D(0.0, 0.0);
@@ -229,8 +220,7 @@ public class MeteoMessageFactoryTest
 
 	/** {@link MeteoFilters#anyAlert} accepte tout message d'alerte. */
 	@Test
-	public void testAnyAlertMatchesAlertMessage()
-	{
+	public void testAnyAlertMatchesAlertMessage() {
 		info("MeteoFilters.anyAlert: accepts any alert message.");
 
 		MessageFilterI filter = MeteoFilters.anyAlert();
@@ -240,8 +230,7 @@ public class MeteoMessageFactoryTest
 
 	/** {@link MeteoFilters#anyAlert} rejette les messages vent. */
 	@Test
-	public void testAnyAlertRejectsWindMessage()
-	{
+	public void testAnyAlertRejectsWindMessage() {
 		info("MeteoFilters.anyAlert: rejects wind messages.");
 
 		MessageFilterI filter = MeteoFilters.anyAlert();
@@ -251,21 +240,30 @@ public class MeteoMessageFactoryTest
 
 	/** {@link MeteoFilters#anyAlert} accepte les alertes de tous les {@code AlertType}. */
 	@Test
-	public void testAnyAlertMatchesDifferentAlertTypes()
-	{
+	public void testAnyAlertMatchesDifferentAlertTypes() {
 		info("MeteoFilters.anyAlert: accepts alerts of any AlertType.");
 
 		MessageFilterI filter = MeteoFilters.anyAlert();
 
-		MeteoAlertI storm = new MeteoAlert(
-			MeteoAlertI.AlertType.STORM, MeteoAlertI.Level.RED,
-			new fr.sorbonne_u.cps.pubsub.meteo.RegionI[] { new CircularRegion(new Position2D(0,0), 50) },
-			Instant.now(), Duration.ofHours(1));
+		MeteoAlertI storm =
+				new MeteoAlert(
+						MeteoAlertI.AlertType.STORM,
+						MeteoAlertI.Level.RED,
+						new fr.sorbonne_u.cps.pubsub.meteo.RegionI[] {
+							new CircularRegion(new Position2D(0, 0), 50)
+						},
+						Instant.now(),
+						Duration.ofHours(1));
 
-		MeteoAlertI flood = new MeteoAlert(
-			MeteoAlertI.AlertType.FLOODING, MeteoAlertI.Level.GREEN,
-			new fr.sorbonne_u.cps.pubsub.meteo.RegionI[] { new CircularRegion(new Position2D(0,0), 50) },
-			Instant.now(), Duration.ofHours(1));
+		MeteoAlertI flood =
+				new MeteoAlert(
+						MeteoAlertI.AlertType.FLOODING,
+						MeteoAlertI.Level.GREEN,
+						new fr.sorbonne_u.cps.pubsub.meteo.RegionI[] {
+							new CircularRegion(new Position2D(0, 0), 50)
+						},
+						Instant.now(),
+						Duration.ofHours(1));
 
 		assertTrue(filter.match(MeteoAlertMessageFactory.build("WO-A", storm)));
 		assertTrue(filter.match(MeteoAlertMessageFactory.build("WO-B", flood)));
@@ -277,8 +275,7 @@ public class MeteoMessageFactoryTest
 
 	/** {@link MeteoFilters#anyWind} accepte tout message vent. */
 	@Test
-	public void testAnyWindMatchesWindMessage()
-	{
+	public void testAnyWindMatchesWindMessage() {
 		info("MeteoFilters.anyWind: accepts any wind message.");
 
 		MessageFilterI filter = MeteoFilters.anyWind();
@@ -288,8 +285,7 @@ public class MeteoMessageFactoryTest
 
 	/** {@link MeteoFilters#anyWind} rejette les messages d'alerte. */
 	@Test
-	public void testAnyWindRejectsAlertMessage()
-	{
+	public void testAnyWindRejectsAlertMessage() {
 		info("MeteoFilters.anyWind: rejects alert messages.");
 
 		MessageFilterI filter = MeteoFilters.anyWind();

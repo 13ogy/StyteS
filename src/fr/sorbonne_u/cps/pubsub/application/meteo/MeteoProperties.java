@@ -3,26 +3,21 @@ package fr.sorbonne_u.cps.pubsub.application.meteo;
 /**
  * Noms de propriétés centralisés pour les messages de l'application météo.
  *
- * <p>
- * Cette classe collecte en un seul endroit tous les noms de propriétés
- * utilisés par les messages vent et alerte, conformément au principe DRY :
- * un futur renommage ne nécessite qu'une seule édition. Les composants
- * applicatifs ({@link WeatherStation}, {@link WeatherOffice},
- * {@link WindTurbine}) et les démos ne manipulent jamais ces littéraux
- * directement.
- * </p>
+ * <p>Cette classe collecte en un seul endroit tous les noms de propriétés utilisés par les messages
+ * vent et alerte, conformément au principe DRY : un futur renommage ne nécessite qu'une seule
+ * édition. Les composants applicatifs ({@link WeatherStation}, {@link WeatherOffice}, {@link
+ * WindTurbine}) et les démos ne manipulent jamais ces littéraux directement.
  *
- * <p>
- * Chaque constante est également référencée par les fabriques de messages
- * dédiées ({@link WindMessageFactory}, {@link MeteoAlertMessageFactory}) et
- * par les constructeurs de filtres dédiés ({@link MeteoFilters}).
- * </p>
+ * <p>Chaque constante est également référencée par les fabriques de messages dédiées ({@link
+ * WindMessageFactory}, {@link MeteoAlertMessageFactory}) et par les constructeurs de filtres dédiés
+ * ({@link MeteoFilters}).
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public final class MeteoProperties
-{
-	private MeteoProperties() { /* constants only */ }
+public final class MeteoProperties {
+	private MeteoProperties() {
+		/* constants only */
+	}
 
 	// -------------------------------------------------------------------------
 	// Common

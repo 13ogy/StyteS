@@ -1,35 +1,33 @@
 package fr.sorbonne_u.cps.pubsub.tests;
 
+import static org.junit.Assert.*;
+
 import fr.sorbonne_u.cps.pubsub.meteo.RegionI;
 import fr.sorbonne_u.cps.pubsub.meteo.impl.CircularRegion;
 import fr.sorbonne_u.cps.pubsub.meteo.impl.Position2D;
+
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 /**
- * Unit tests for {@link Position2D} covering the {@code distanceTo}
- * and {@code isInside} methods (CDC §3.4).
+ * Unit tests for {@link Position2D} covering the {@code distanceTo} and {@code isInside} methods
+ * (CDC §3.4).
  *
- * <p>
- * What is being tested:
- * </p>
+ * <p>What is being tested:
+ *
  * <ul>
- * <li>{@code distanceTo} computes the correct Euclidean distance.</li>
- * <li>{@code distanceTo(same)} returns 0.</li>
- * <li>{@code distanceTo(null)} returns {@link Double#POSITIVE_INFINITY} (defensive).</li>
- * <li>{@code distanceTo} with an incompatible {@code PositionI} subtype returns infinity.</li>
- * <li>{@code isInside} delegates to {@code RegionI.in(this)} — verified with a lambda stub.</li>
- * <li>{@code isInside(null)} returns false.</li>
- * <li>{@code isInside} with a {@link CircularRegion}: true at center, true at edge, false beyond.</li>
+ *   <li>{@code distanceTo} computes the correct Euclidean distance.
+ *   <li>{@code distanceTo(same)} returns 0.
+ *   <li>{@code distanceTo(null)} returns {@link Double#POSITIVE_INFINITY} (defensive).
+ *   <li>{@code distanceTo} with an incompatible {@code PositionI} subtype returns infinity.
+ *   <li>{@code isInside} delegates to {@code RegionI.in(this)} — verified with a lambda stub.
+ *   <li>{@code isInside(null)} returns false.
+ *   <li>{@code isInside} with a {@link CircularRegion}: true at center, true at edge, false beyond.
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class Position2DTest
-{
-	private static void info(String s)
-	{
+public class Position2DTest {
+	private static void info(String s) {
 		System.out.println("[Position2DTest] " + s);
 	}
 
@@ -41,8 +39,7 @@ public class Position2DTest
 
 	/** {@code distanceTo} sur la même instance retourne 0. */
 	@Test
-	public void testDistanceToSamePoint()
-	{
+	public void testDistanceToSamePoint() {
 		info("distanceTo the same point returns 0.");
 		Position2D p = new Position2D(3.0, 4.0);
 		assertEquals(0.0, p.distanceTo(p), EPS);
@@ -50,8 +47,7 @@ public class Position2DTest
 
 	/** {@code distanceTo} entre deux Position2D de coordonnées égales retourne 0. */
 	@Test
-	public void testDistanceToIdenticalCoordinates()
-	{
+	public void testDistanceToIdenticalCoordinates() {
 		info("distanceTo an equal but distinct Position2D returns 0.");
 		Position2D a = new Position2D(3.0, 4.0);
 		Position2D b = new Position2D(3.0, 4.0);
@@ -60,8 +56,7 @@ public class Position2DTest
 
 	/** {@code distanceTo} respecte la distance euclidienne (cas 3-4-5 → 5). */
 	@Test
-	public void testDistanceToKnownEuclidean()
-	{
+	public void testDistanceToKnownEuclidean() {
 		info("distanceTo computes correct Euclidean distance: 3-4-5 triangle → 5.");
 		Position2D origin = new Position2D(0.0, 0.0);
 		Position2D p = new Position2D(3.0, 4.0);
@@ -71,8 +66,7 @@ public class Position2DTest
 
 	/** {@code distanceTo} cas général : sqrt((Δx)² + (Δy)²). */
 	@Test
-	public void testDistanceToGeneral()
-	{
+	public void testDistanceToGeneral() {
 		info("distanceTo general case: sqrt((2-0)^2 + (2-0)^2) = sqrt(8).");
 		Position2D a = new Position2D(0.0, 0.0);
 		Position2D b = new Position2D(2.0, 2.0);
@@ -81,17 +75,18 @@ public class Position2DTest
 
 	/** {@code distanceTo(null)} retourne {@link Double#POSITIVE_INFINITY} (défensif). */
 	@Test
-	public void testDistanceToNullReturnsInfinity()
-	{
+	public void testDistanceToNullReturnsInfinity() {
 		info("distanceTo(null) returns POSITIVE_INFINITY (null is not a Position2D).");
 		Position2D p = new Position2D(1.0, 1.0);
 		assertEquals(Double.POSITIVE_INFINITY, p.distanceTo(null), EPS);
 	}
 
-	/** {@code distanceTo} sur un {@code PositionI} non Position2D retourne {@link Double#POSITIVE_INFINITY}. */
+	/**
+	 * {@code distanceTo} sur un {@code PositionI} non Position2D retourne {@link
+	 * Double#POSITIVE_INFINITY}.
+	 */
 	@Test
-	public void testDistanceToIncompatibleTypeReturnsInfinity()
-	{
+	public void testDistanceToIncompatibleTypeReturnsInfinity() {
 		info("distanceTo a non-Position2D PositionI returns POSITIVE_INFINITY.");
 		Position2D p = new Position2D(0.0, 0.0);
 		// Anonymous PositionI that is NOT a Position2D.
@@ -105,8 +100,7 @@ public class Position2DTest
 
 	/** {@code isInside(null)} retourne {@code false}. */
 	@Test
-	public void testIsInsideNullRegionReturnsFalse()
-	{
+	public void testIsInsideNullRegionReturnsFalse() {
 		info("isInside(null) returns false.");
 		Position2D p = new Position2D(0.0, 0.0);
 		assertFalse(p.isInside(null));
@@ -114,8 +108,7 @@ public class Position2DTest
 
 	/** {@code isInside} délègue à {@code RegionI.in(this)} (vérifié avec lambdas stubs). */
 	@Test
-	public void testIsInsideDelegatesToRegion()
-	{
+	public void testIsInsideDelegatesToRegion() {
 		info("isInside delegates to RegionI.in(this): lambda stub returning true.");
 		Position2D p = new Position2D(1.0, 2.0);
 		RegionI alwaysTrue = q -> true;
@@ -127,18 +120,18 @@ public class Position2DTest
 
 	/** {@code isInside} sur {@link CircularRegion} : le centre est dedans. */
 	@Test
-	public void testIsInsideCircularRegionAtCenter()
-	{
+	public void testIsInsideCircularRegionAtCenter() {
 		info("isInside CircularRegion: point at center is inside.");
 		Position2D center = new Position2D(0.0, 0.0);
 		CircularRegion region = new CircularRegion(center, 5.0);
 		assertTrue(center.isInside(region));
 	}
 
-	/** {@code isInside} sur {@link CircularRegion} : la borne (rayon exact) est dedans (inclusif). */
+	/**
+	 * {@code isInside} sur {@link CircularRegion} : la borne (rayon exact) est dedans (inclusif).
+	 */
 	@Test
-	public void testIsInsideCircularRegionAtEdge()
-	{
+	public void testIsInsideCircularRegionAtEdge() {
 		info("isInside CircularRegion: point exactly at radius is inside (inclusive boundary).");
 		Position2D center = new Position2D(0.0, 0.0);
 		CircularRegion region = new CircularRegion(center, 5.0);
@@ -148,8 +141,7 @@ public class Position2DTest
 
 	/** {@code isInside} sur {@link CircularRegion} : au-delà du rayon, dehors. */
 	@Test
-	public void testIsInsideCircularRegionBeyondEdge()
-	{
+	public void testIsInsideCircularRegionBeyondEdge() {
 		info("isInside CircularRegion: point beyond radius is outside.");
 		Position2D center = new Position2D(0.0, 0.0);
 		CircularRegion region = new CircularRegion(center, 5.0);
@@ -159,8 +151,7 @@ public class Position2DTest
 
 	/** {@code isInside} sur {@link CircularRegion} non centrée à l'origine. */
 	@Test
-	public void testIsInsideCircularRegionOffCenter()
-	{
+	public void testIsInsideCircularRegionOffCenter() {
 		info("isInside CircularRegion: point inside a non-origin region.");
 		Position2D center = new Position2D(10.0, 10.0);
 		CircularRegion region = new CircularRegion(center, 3.0);

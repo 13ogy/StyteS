@@ -5,8 +5,7 @@ package fr.sorbonne_u.cps.pubsub.messages.filters;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public final class StrictlyGreaterValueFilter extends ComparableValueFilter
-{
+public final class StrictlyGreaterValueFilter extends ComparableValueFilter {
 	private static final long serialVersionUID = 1L;
 
 	private final Comparable<?> bound;
@@ -14,8 +13,7 @@ public final class StrictlyGreaterValueFilter extends ComparableValueFilter
 	/**
 	 * @param bound borne inférieure exclusive (non {@code null}).
 	 */
-	public StrictlyGreaterValueFilter(Comparable<?> bound)
-	{
+	public StrictlyGreaterValueFilter(Comparable<?> bound) {
 		this.bound = requireBound(bound, "bound");
 	}
 
@@ -24,8 +22,7 @@ public final class StrictlyGreaterValueFilter extends ComparableValueFilter
 	 * @return {@code true} ssi {@code value > bound}.
 	 */
 	@Override
-	protected boolean matches(Comparable<?> value)
-	{
+	protected boolean matches(Comparable<?> value) {
 		return compareUnchecked(value, this.bound) > 0;
 	}
 }

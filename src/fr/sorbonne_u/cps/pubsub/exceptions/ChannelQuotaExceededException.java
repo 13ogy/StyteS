@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.exceptions;
 // modify and redistribute granted by the license, users are provided only
 // with a limited warranty and the software's author, the holder of the
 // economic rights, and the successive licensors have only limited
-// liability. 
+// liability.
 //
 // In this respect, the user's attention is drawn to the risks associated
 // with loading, using, modifying and/or developing or reproducing the
@@ -26,9 +26,9 @@ package fr.sorbonne_u.cps.pubsub.exceptions;
 // therefore means that it is reserved for developers and experienced
 // professionals having in-depth computer knowledge. Users are therefore
 // encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and, more generally, to use and operate it in the 
-// same conditions as regards security. 
+// requirements in conditions enabling the security of their systems and/or
+// data to be ensured and, more generally, to use and operate it in the
+// same conditions as regards security.
 //
 // The fact that you are presently reading this means that you have had
 // knowledge of the CeCILL-C license and that you accept its terms.
@@ -37,41 +37,35 @@ import fr.sorbonne_u.components.exceptions.BCMException;
 
 // -----------------------------------------------------------------------------
 /**
- * The class <code>ChannelQuotaExceededException</code> implements the
- * exception thrown when a new channel is created but the user quota has been
- * reached.
+ * The class <code>ChannelQuotaExceededException</code> implements the exception thrown when a new
+ * channel is created but the user quota has been reached.
  *
- * <p><strong>Description</strong></p>
+ * <p><strong>Description</strong>
  *
- * <p>
- * Levée par le courtier dans {@code Broker#createPrivilegedChannel(...)}
- * (CDC §3.3) lorsque le nombre de canaux privilégiés déjà détenus par le
- * client atteint le quota associé à sa classe de service ({@code STANDARD} :
- * {@code Broker.STANDARD_PRIVILEGED_CHANNEL_QUOTA} ; {@code PREMIUM} :
- * {@code Broker.PREMIUM_PRIVILEGED_CHANNEL_QUOTA}). Les clients {@code FREE}
- * ne peuvent pas en créer du tout.
- * </p>
+ * <p>Levée par le courtier dans {@code Broker#createPrivilegedChannel(...)} (CDC §3.3) lorsque le
+ * nombre de canaux privilégiés déjà détenus par le client atteint le quota associé à sa classe de
+ * service ({@code STANDARD} : {@code Broker.STANDARD_PRIVILEGED_CHANNEL_QUOTA} ; {@code PREMIUM} :
+ * {@code Broker.PREMIUM_PRIVILEGED_CHANNEL_QUOTA}). Les clients {@code FREE} ne peuvent pas en
+ * créer du tout.
  *
- * <p><strong>Implementation Invariants</strong></p>
- * 
+ * <p><strong>Implementation Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p><strong>Invariants</strong></p>
- * 
+ *
+ * <p><strong>Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p>Created on : 2026-01-23</p>
- * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ *
+ * <p>Created on : 2026-01-23
+ *
+ * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class			ChannelQuotaExceededException
-extends		BCMException
-{
+public class ChannelQuotaExceededException extends BCMException {
 	// -------------------------------------------------------------------------
 	// Constants and variables
 	// -------------------------------------------------------------------------
@@ -82,35 +76,25 @@ extends		BCMException
 	// Constructors
 	// -------------------------------------------------------------------------
 
-	public				ChannelQuotaExceededException()
-	{
-	}
+	public ChannelQuotaExceededException() {}
 
-	public				ChannelQuotaExceededException(String message)
-	{
+	public ChannelQuotaExceededException(String message) {
 		super(message);
 	}
 
-	public				ChannelQuotaExceededException(Throwable cause)
-	{
+	public ChannelQuotaExceededException(Throwable cause) {
 		super(cause);
 	}
 
-	public				ChannelQuotaExceededException(
-		String message,
-		Throwable cause
-		)
-	{
+	public ChannelQuotaExceededException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
-	public				ChannelQuotaExceededException(
-		String message,
-		Throwable cause,
-		boolean enableSuppression,
-		boolean writableStackTrace
-		)
-	{
+	public ChannelQuotaExceededException(
+			String message,
+			Throwable cause,
+			boolean enableSuppression,
+			boolean writableStackTrace) {
 		super(message, cause, enableSuppression, writableStackTrace);
 	}
 }

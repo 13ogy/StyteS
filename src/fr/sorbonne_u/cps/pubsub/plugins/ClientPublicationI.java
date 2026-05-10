@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 // modify and redistribute granted by the license, users are provided only
 // with a limited warranty and the software's author, the holder of the
 // economic rights, and the successive licensors have only limited
-// liability. 
+// liability.
 //
 // In this respect, the user's attention is drawn to the risks associated
 // with loading, using, modifying and/or developing or reproducing the
@@ -26,106 +26,105 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 // therefore means that it is reserved for developers and experienced
 // professionals having in-depth computer knowledge. Users are therefore
 // encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and, more generally, to use and operate it in the 
-// same conditions as regards security. 
+// requirements in conditions enabling the security of their systems and/or
+// data to be ensured and, more generally, to use and operate it in the
+// same conditions as regards security.
 //
 // The fact that you are presently reading this means that you have had
 // knowledge of the CeCILL-C license and that you accept its terms.
 
-import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
-import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
-import java.util.ArrayList;
 import fr.sorbonne_u.components.PluginI;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnauthorisedClientException;
+import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
+import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+
+import java.util.ArrayList;
 
 // -----------------------------------------------------------------------------
 /**
- * The interface <code>ClientPublicationI</code> declares the signatures of
- * methods that a client publication plug-in must implement.
+ * The interface <code>ClientPublicationI</code> declares the signatures of methods that a client
+ * publication plug-in must implement.
  *
- * <p><strong>Description</strong></p>
- * 
- * <p><strong>Invariants</strong></p>
- * 
+ * <p><strong>Description</strong>
+ *
+ * <p><strong>Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p>Created on : 2026-02-04</p>
- * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ *
+ * <p>Created on : 2026-02-04
+ *
+ * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  */
-public interface		ClientPublicationI
-extends		PluginI
-{
+public interface ClientPublicationI extends PluginI {
 	// -------------------------------------------------------------------------
 	// Signature and default methods
 	// -------------------------------------------------------------------------
 
 	/**
 	 * return true if {@code channel} exists, otherwise false.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code channel != null && !channel.isEmpty()}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param channel	name of a potential channel.
-	 * @return			true if {@code channel} exists, otherwise false.
+	 * @param channel name of a potential channel.
+	 * @return true if {@code channel} exists, otherwise false.
 	 */
-	public boolean		channelExist(String channel);
+	public boolean channelExist(String channel);
 
 	/**
-	 * return true if the use of {@code channel} is authorised for the component,
-	 * otherwise false.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * return true if the use of {@code channel} is authorised for the component, otherwise false.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code channel != null && !channel.isEmpty()}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param channel					name of a potential channel.
-	 * @return							true if the use of {@code channel} is authorised for {@code receptionPortURI}, otherwise false.
-	 * @throws UnknownClientException	when the component is not registered on the publication/subscription system yet.
-	 * @throws UnknownChannelException	when {@code channel} does not exist.
+	 * @param channel name of a potential channel.
+	 * @return true if the use of {@code channel} is authorised for {@code receptionPortURI},
+	 *     otherwise false.
+	 * @throws UnknownClientException when the component is not registered on the
+	 *     publication/subscription system yet.
+	 * @throws UnknownChannelException when {@code channel} does not exist.
 	 */
-	public boolean		channelAuthorised(String channel)
-	throws	UnknownClientException,
-			UnknownChannelException;
+	public boolean channelAuthorised(String channel)
+			throws UnknownClientException, UnknownChannelException;
 
 	/**
 	 * asynchronously publish {@code message} on {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code channel != null && !channel.isEmpty()}
 	 * pre	{@code message != null}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param channel						name of an existing channel.
-	 * @param message						message to be published on {@code channel}.
-	 * @throws UnknownClientException		when the component is not registered on the publication/subscription system yet.
-	 * @throws UnknownChannelException		when {@code channel} does not exist.
-	 * @throws UnauthorisedClientException	when the client is not authorised to publish on {@code channel}.
+	 * @param channel name of an existing channel.
+	 * @param message message to be published on {@code channel}.
+	 * @throws UnknownClientException when the component is not registered on the
+	 *     publication/subscription system yet.
+	 * @throws UnknownChannelException when {@code channel} does not exist.
+	 * @throws UnauthorisedClientException when the client is not authorised to publish on {@code
+	 *     channel}.
 	 */
-	public void			publish(String channel, MessageI message)
-	throws	UnknownClientException,
-			UnknownChannelException,
-			UnauthorisedClientException;
+	public void publish(String channel, MessageI message)
+			throws UnknownClientException, UnknownChannelException, UnauthorisedClientException;
 
 	/**
 	 * asynchronously publish all of the {@code messages} on {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code channel != null && !channel.isEmpty()}
 	 * pre	{@code messages != null && messages.size() > 0}
@@ -133,49 +132,45 @@ extends		PluginI
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param channel						name of the channel on which {@code message} must be published.
-	 * @param messages						list of messages to be published on {@code channel}.
-	 * @throws UnknownClientException		when the component is not registered on the publication/subscription system yet.
-	 * @throws UnknownChannelException		when {@code channel} does not exist.
-	 * @throws UnauthorisedClientException	when the client is not authorised to publish on {@code channel}.
+	 * @param channel name of the channel on which {@code message} must be published.
+	 * @param messages list of messages to be published on {@code channel}.
+	 * @throws UnknownClientException when the component is not registered on the
+	 *     publication/subscription system yet.
+	 * @throws UnknownChannelException when {@code channel} does not exist.
+	 * @throws UnauthorisedClientException when the client is not authorised to publish on {@code
+	 *     channel}.
 	 */
-	public void			publish(String channel, ArrayList<MessageI> messages)
-	throws	UnknownClientException,
-			UnknownChannelException,
-			UnauthorisedClientException;
+	public void publish(String channel, ArrayList<MessageI> messages)
+			throws UnknownClientException, UnknownChannelException, UnauthorisedClientException;
 
 	/**
 	 * asynchronously publish {@code message} on {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code channel != null && !channel.isEmpty()}
 	 * pre	{@code message != null}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * <p><strong>Exception notification</strong></p>
-	 * 
-	 * <p>
-	 * UnknownClientException		when the component is not registered on the publication/subscription system yet.
-	 * UnknownChannelException		when {@code channel} does not exist.
-	 * UnauthorisedClientException	when the client is not authorised to publish on {@code channel}.
-	 * </p>
-	 * 
-	 * @param channel	name of an existing channel.
-	 * @param message	message to be published on {@code channel}.
+	 * <p><strong>Exception notification</strong>
+	 *
+	 * <p>UnknownClientException when the component is not registered on the
+	 * publication/subscription system yet. UnknownChannelException when {@code channel} does not
+	 * exist. UnauthorisedClientException when the client is not authorised to publish on {@code
+	 * channel}.
+	 *
+	 * @param channel name of an existing channel.
+	 * @param message message to be published on {@code channel}.
 	 */
-	public void			asyncPublishAndNotify(
-		String channel,
-		MessageI message
-		);
+	public void asyncPublishAndNotify(String channel, MessageI message);
 
 	/**
 	 * asynchronously publish all of the {@code messages} on {@code channel}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code channel != null && !channel.isEmpty()}
 	 * pre	{@code messages != null && messages.size() > 0}
@@ -183,20 +178,16 @@ extends		PluginI
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * <p><strong>Exception notification</strong></p>
-	 * 
-	 * <p>
-	 * UnknownClientException		when the component is not registered on the publication/subscription system yet.
-	 * UnknownChannelException		when {@code channel} does not exist.
-	 * UnauthorisedClientException	when the client is not authorised to publish on {@code channel}.
-	 * </p>
-	 * 
-	 * @param channel		name of the channel on which {@code message} must be published.
-	 * @param messages		list of messages to be published on {@code channel}.
+	 * <p><strong>Exception notification</strong>
+	 *
+	 * <p>UnknownClientException when the component is not registered on the
+	 * publication/subscription system yet. UnknownChannelException when {@code channel} does not
+	 * exist. UnauthorisedClientException when the client is not authorised to publish on {@code
+	 * channel}.
+	 *
+	 * @param channel name of the channel on which {@code message} must be published.
+	 * @param messages list of messages to be published on {@code channel}.
 	 */
-	public void			asyncPublishAndNotify(
-		String channel,
-		ArrayList<MessageI> messages
-		);
+	public void asyncPublishAndNotify(String channel, ArrayList<MessageI> messages);
 }
 // -----------------------------------------------------------------------------

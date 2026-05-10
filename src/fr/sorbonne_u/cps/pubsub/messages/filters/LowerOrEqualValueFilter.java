@@ -5,8 +5,7 @@ package fr.sorbonne_u.cps.pubsub.messages.filters;
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public final class LowerOrEqualValueFilter extends ComparableValueFilter
-{
+public final class LowerOrEqualValueFilter extends ComparableValueFilter {
 	private static final long serialVersionUID = 1L;
 
 	private final Comparable<?> bound;
@@ -14,8 +13,7 @@ public final class LowerOrEqualValueFilter extends ComparableValueFilter
 	/**
 	 * @param bound borne supérieure inclusive (non {@code null}).
 	 */
-	public LowerOrEqualValueFilter(Comparable<?> bound)
-	{
+	public LowerOrEqualValueFilter(Comparable<?> bound) {
 		this.bound = requireBound(bound, "bound");
 	}
 
@@ -24,8 +22,7 @@ public final class LowerOrEqualValueFilter extends ComparableValueFilter
 	 * @return {@code true} ssi {@code value <= bound}.
 	 */
 	@Override
-	protected boolean matches(Comparable<?> value)
-	{
+	protected boolean matches(Comparable<?> value) {
 		return compareUnchecked(value, this.bound) <= 0;
 	}
 }

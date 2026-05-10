@@ -1,56 +1,51 @@
 package fr.sorbonne_u.cps.pubsub.messages;
 
+import fr.sorbonne_u.cps.pubsub.exceptions.UnknownPropertyException;
+import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Hashtable;
-
-import fr.sorbonne_u.cps.pubsub.exceptions.UnknownPropertyException;
-import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
+import java.util.Map;
 
 /**
- * La classe {@code Message} implémente {@link MessageI} comme représentation
- * concrète des messages échangés via le système de publication/souscription.
+ * La classe {@code Message} implémente {@link MessageI} comme représentation concrète des messages
+ * échangés via le système de publication/souscription.
  *
- * <p>
- * Un message est composé :
- * </p>
+ * <p>Un message est composé :
+ *
  * <ul>
- * <li>d’une charge utile (payload), tout objet {@link Serializable} ;</li>
- * <li>d’un horodatage (date de création) ;</li>
- * <li>d’un ensemble de propriétés nommées (paires nom/valeur).</li>
+ *   <li>d’une charge utile (payload), tout objet {@link Serializable} ;
+ *   <li>d’un horodatage (date de création) ;
+ *   <li>d’un ensemble de propriétés nommées (paires nom/valeur).
  * </ul>
  *
- * <p>
- * Cette implémentation respecte le contrat de {@link MessageI} :
- * </p>
- * <ul>
- * <li>les noms de propriétés sont uniques dans un message ;</li>
- * <li>{@link #copy()} effectue une copie profonde de la structure du message
- * et des propriétés, mais conserve une référence vers le même objet payload.</li>
- * </ul>
+ * <p>Cette implémentation respecte le contrat de {@link MessageI} :
  *
+ * <ul>
+ *   <li>les noms de propriétés sont uniques dans un message ;
+ *   <li>{@link #copy()} effectue une copie profonde de la structure du message et des propriétés,
+ *       mais conserve une référence vers le même objet payload.
+ * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class Message implements MessageI
-{
+public class Message implements MessageI {
 	private static final long serialVersionUID = 1L;
 
 	/** Charge utile transportée par ce message. */
 	private Serializable payload;
+
 	/** Horodatage de création du message (immuable). */
 	private final Instant timeStamp;
+
 	/**
 	 * Propriétés indexées par leur nom.
 	 *
-	 * <p>
-	 * Un {@link Hashtable} est utilisé pour éviter les avertissements de
-	 * sérialisation (il est sérialisable, contrairement à l’interface
-	 * {@link Map}).
-	 * </p>
+	 * <p>Un {@link Hashtable} est utilisé pour éviter les avertissements de sérialisation (il est
+	 * sérialisable, contrairement à l’interface {@link Map}).
 	 */
 	private final Hashtable<String, PropertyI> properties;
 
@@ -61,25 +56,21 @@ public class Message implements MessageI
 	/**
 	 * Implémentation simple et immuable de {@link MessageI.PropertyI}.
 	 *
-	 * <p>
-	 * Created on : 2026-02-08
-	 * </p>
+	 * <p>Created on : 2026-02-08
 	 */
-	public static class Property implements PropertyI
-	{
+	public static class Property implements PropertyI {
 		private static final long serialVersionUID = 1L;
 
 		private final String name;
 		private final Serializable value;
 
-	/**
-	 * Crée une propriété.
-	 *
-	 * @param name nom de la propriété.
-	 * @param value valeur de la propriété.
-	 */
-		public Property(String name, Serializable value)
-		{
+		/**
+		 * Crée une propriété.
+		 *
+		 * @param name nom de la propriété.
+		 * @param value valeur de la propriété.
+		 */
+		public Property(String name, Serializable value) {
 			assert name != null && !name.isEmpty();
 			this.name = name;
 			this.value = value;
@@ -89,8 +80,7 @@ public class Message implements MessageI
 		 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI.PropertyI#getName()
 		 */
 		@Override
-		public String getName()
-		{
+		public String getName() {
 			return this.name;
 		}
 
@@ -98,8 +88,7 @@ public class Message implements MessageI
 		 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI.PropertyI#getValue()
 		 */
 		@Override
-		public Serializable getValue()
-		{
+		public Serializable getValue() {
 			return this.value;
 		}
 	}
@@ -111,7 +100,7 @@ public class Message implements MessageI
 	/**
 	 * Crée un message avec le payload donné et aucune propriété.
 	 *
-	 * <p><strong>Contract</strong></p>
+	 * <p><strong>Contract</strong>
 	 *
 	 * <pre>
 	 * pre {@code true} // pas de précondition.
@@ -120,28 +109,25 @@ public class Message implements MessageI
 	 *
 	 * @param payload charge utile du message.
 	 */
-	public Message(Serializable payload)
-	{
+	public Message(Serializable payload) {
 		this(payload, (Map<String, Serializable>) null);
 	}
 
 	/**
-	 * Internal constructor used to create messages with an explicit timestamp
-	 * (mainly to implement {@link #copy()} as an actual copy, preserving the
-	 * original timestamp).
+	 * Internal constructor used to create messages with an explicit timestamp (mainly to implement
+	 * {@link #copy()} as an actual copy, preserving the original timestamp).
 	 *
 	 * @param payload payload of the message.
 	 * @param timeStamp timestamp of the message (must not be null).
 	 */
-	protected Message(Serializable payload, Instant timeStamp)
-	{
+	protected Message(Serializable payload, Instant timeStamp) {
 		this(payload, (Map<String, Serializable>) null, timeStamp);
 	}
 
 	/**
 	 * Crée un message avec le payload donné et des propriétés initiales.
 	 *
-	 * <p><strong>Contract</strong></p>
+	 * <p><strong>Contract</strong>
 	 *
 	 * <pre>
 	 * pre {@code true} // pas de précondition.
@@ -151,8 +137,7 @@ public class Message implements MessageI
 	 * @param payload charge utile du message.
 	 * @param initialProperties propriétés initiales indexées par nom (peut être null).
 	 */
-	public Message(Serializable payload, Map<String, Serializable> initialProperties)
-	{
+	public Message(Serializable payload, Map<String, Serializable> initialProperties) {
 		this(payload, initialProperties, Instant.now());
 	}
 
@@ -164,11 +149,7 @@ public class Message implements MessageI
 	 * @param timeStamp explicit timestamp (must not be null).
 	 */
 	protected Message(
-		Serializable payload,
-		Map<String, Serializable> initialProperties,
-		Instant timeStamp
-		)
-	{
+			Serializable payload, Map<String, Serializable> initialProperties, Instant timeStamp) {
 		if (timeStamp == null) {
 			throw new IllegalArgumentException("timeStamp cannot be null.");
 		}
@@ -182,12 +163,10 @@ public class Message implements MessageI
 				String name = e.getKey();
 				Serializable value = e.getValue();
 				if (name == null || name.isEmpty()) {
-					throw new IllegalArgumentException(
-						"Property name cannot be null or empty.");
+					throw new IllegalArgumentException("Property name cannot be null or empty.");
 				}
 				if (this.properties.containsKey(name)) {
-					throw new IllegalArgumentException(
-						"Duplicate property name: " + name);
+					throw new IllegalArgumentException("Duplicate property name: " + name);
 				}
 				this.properties.put(name, new Property(name, value));
 			}
@@ -201,16 +180,13 @@ public class Message implements MessageI
 	/**
 	 * Retourne une vue non modifiable de la table interne des propriétés.
 	 *
-	 * <p>
-	 * Cette méthode ne fait pas partie de {@link MessageI} ; elle est fournie
-	 * comme aide pour des implémentations (par exemple des filtres) ayant
-	 * besoin d’un accès rapide aux propriétés par nom.
-	 * </p>
+	 * <p>Cette méthode ne fait pas partie de {@link MessageI} ; elle est fournie comme aide pour
+	 * des implémentations (par exemple des filtres) ayant besoin d’un accès rapide aux propriétés
+	 * par nom.
 	 *
 	 * @return vue non modifiable des propriétés internes.
 	 */
-	public Map<String, PropertyI> getPropertiesMap()
-	{
+	public Map<String, PropertyI> getPropertiesMap() {
 		return Collections.unmodifiableMap(this.properties);
 	}
 
@@ -218,18 +194,17 @@ public class Message implements MessageI
 	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#propertyExists(java.lang.String)
 	 */
 	@Override
-	public boolean propertyExists(String name)
-	{
+	public boolean propertyExists(String name) {
 		assert name != null && !name.isEmpty();
 		return this.properties.containsKey(name);
 	}
 
 	/**
-	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#putProperty(java.lang.String, java.io.Serializable)
+	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#putProperty(java.lang.String,
+	 *     java.io.Serializable)
 	 */
 	@Override
-	public void putProperty(String name, Serializable value)
-	{
+	public void putProperty(String name, Serializable value) {
 		assert name != null && !name.isEmpty();
 
 		if (this.properties.containsKey(name)) {
@@ -243,8 +218,7 @@ public class Message implements MessageI
 	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#removeProperty(java.lang.String)
 	 */
 	@Override
-	public void removeProperty(String name) throws UnknownPropertyException
-	{
+	public void removeProperty(String name) throws UnknownPropertyException {
 		assert name != null && !name.isEmpty();
 
 		if (!this.properties.containsKey(name)) {
@@ -257,8 +231,7 @@ public class Message implements MessageI
 	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#getPropertyValue(java.lang.String)
 	 */
 	@Override
-	public Serializable getPropertyValue(String name) throws UnknownPropertyException
-	{
+	public Serializable getPropertyValue(String name) throws UnknownPropertyException {
 		assert name != null && !name.isEmpty();
 
 		PropertyI p = this.properties.get(name);
@@ -272,8 +245,7 @@ public class Message implements MessageI
 	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#getProperties()
 	 */
 	@Override
-	public PropertyI[] getProperties()
-	{
+	public PropertyI[] getProperties() {
 		PropertyI[] ret = this.properties.values().toArray(new PropertyI[0]);
 		return Arrays.copyOf(ret, ret.length);
 	}
@@ -282,8 +254,7 @@ public class Message implements MessageI
 	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#copy()
 	 */
 	@Override
-	public MessageI copy()
-	{
+	public MessageI copy() {
 		Message copy = new Message(this.payload, this.timeStamp);
 		for (PropertyI p : this.properties.values()) {
 			copy.properties.put(p.getName(), new Property(p.getName(), p.getValue()));
@@ -295,8 +266,7 @@ public class Message implements MessageI
 	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#setPayload(java.io.Serializable)
 	 */
 	@Override
-	public void setPayload(Serializable payload)
-	{
+	public void setPayload(Serializable payload) {
 		this.payload = payload;
 	}
 
@@ -304,8 +274,7 @@ public class Message implements MessageI
 	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#getPayload()
 	 */
 	@Override
-	public Serializable getPayload()
-	{
+	public Serializable getPayload() {
 		return this.payload;
 	}
 
@@ -313,8 +282,7 @@ public class Message implements MessageI
 	 * @see fr.sorbonne_u.cps.pubsub.interfaces.MessageI#getTimeStamp()
 	 */
 	@Override
-	public Instant getTimeStamp()
-	{
+	public Instant getTimeStamp() {
 		return this.timeStamp;
 	}
 }

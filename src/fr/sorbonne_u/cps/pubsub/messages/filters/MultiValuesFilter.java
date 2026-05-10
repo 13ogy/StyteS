@@ -1,22 +1,18 @@
 package fr.sorbonne_u.cps.pubsub.messages.filters;
 
-import java.io.Serializable;
-
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.MultiValuesFilterI;
+
+import java.io.Serializable;
 
 /**
  * Base implementation of {@link MultiValuesFilterI}.
  *
- * <p>
- * The filter targets a fixed set of property names and delegates
- * the cross-constraint logic to subclasses through {@link #matchValues(Serializable...)}.
- * </p>
- *
+ * <p>The filter targets a fixed set of property names and delegates the cross-constraint logic to
+ * subclasses through {@link #matchValues(Serializable...)}.
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public abstract class MultiValuesFilter implements MultiValuesFilterI
-{
+public abstract class MultiValuesFilter implements MultiValuesFilterI {
 	private static final long serialVersionUID = 1L;
 
 	protected final String[] names;
@@ -24,18 +20,18 @@ public abstract class MultiValuesFilter implements MultiValuesFilterI
 	/**
 	 * Crée le filtre.
 	 *
-	 * @param names noms des propriétés ciblées (non {@code null}, longueur {@code >= 2},
-	 * chaque nom non {@code null} ni vide). Une copie défensive est faite.
+	 * @param names noms des propriétés ciblées (non {@code null}, longueur {@code >= 2}, chaque nom
+	 *     non {@code null} ni vide). Une copie défensive est faite.
 	 * @throws IllegalArgumentException si la précondition n'est pas respectée.
 	 */
-	public MultiValuesFilter(String... names)
-	{
+	public MultiValuesFilter(String... names) {
 		if (names == null || names.length < 2) {
 			throw new IllegalArgumentException("names must be non-null and of length >= 2.");
 		}
 		for (String n : names) {
 			if (n == null || n.isEmpty()) {
-				throw new IllegalArgumentException("property names must be non-null and non-empty.");
+				throw new IllegalArgumentException(
+						"property names must be non-null and non-empty.");
 			}
 		}
 		this.names = names.clone();
@@ -45,20 +41,17 @@ public abstract class MultiValuesFilter implements MultiValuesFilterI
 	 * @return une copie défensive des noms de propriétés ciblés (jamais {@code null}).
 	 */
 	@Override
-	public String[] getNames()
-	{
+	public String[] getNames() {
 		return this.names.clone();
 	}
 
 	/**
 	 * @param values valeurs des propriétés (mêmes positions que {@link #getNames()}).
-	 * @return {@code false} si {@code values} est {@code null} ou n'a pas la même
-	 * arité que {@link #getNames()} ; sinon délègue à
-	 * {@link #matchValues(Serializable...)}.
+	 * @return {@code false} si {@code values} est {@code null} ou n'a pas la même arité que {@link
+	 *     #getNames()} ; sinon délègue à {@link #matchValues(Serializable...)}.
 	 */
 	@Override
-	public final boolean match(Serializable... values)
-	{
+	public final boolean match(Serializable... values) {
 		if (values == null || values.length != this.names.length) {
 			return false;
 		}

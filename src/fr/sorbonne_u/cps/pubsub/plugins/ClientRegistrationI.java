@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 // modify and redistribute granted by the license, users are provided only
 // with a limited warranty and the software's author, the holder of the
 // economic rights, and the successive licensors have only limited
-// liability. 
+// liability.
 //
 // In this respect, the user's attention is drawn to the risks associated
 // with loading, using, modifying and/or developing or reproducing the
@@ -26,145 +26,133 @@ package fr.sorbonne_u.cps.pubsub.plugins;
 // therefore means that it is reserved for developers and experienced
 // professionals having in-depth computer knowledge. Users are therefore
 // encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and, more generally, to use and operate it in the 
-// same conditions as regards security. 
+// requirements in conditions enabling the security of their systems and/or
+// data to be ensured and, more generally, to use and operate it in the
+// same conditions as regards security.
 //
 // The fact that you are presently reading this means that you have had
 // knowledge of the CeCILL-C license and that you accept its terms.
 
-import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 import fr.sorbonne_u.components.PluginI;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
+import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI.RegistrationClass;
 
 // -----------------------------------------------------------------------------
 /**
  * The class <code>ClientRegistrationI</code>
  *
- * <p><strong>Description</strong></p>
- * 
- * <p><strong>Invariants</strong></p>
- * 
+ * <p><strong>Description</strong>
+ *
+ * <p><strong>Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p>Created on : 2026-02-04</p>
- * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ *
+ * <p>Created on : 2026-02-04
+ *
+ * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  */
-public interface		ClientRegistrationI
-extends		PluginI
-{
+public interface ClientRegistrationI extends PluginI {
 	// -------------------------------------------------------------------------
 	// Signature and default methods
 	// -------------------------------------------------------------------------
 
 	/**
 	 * return true if the component has already been registered, otherwise false.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @return	true if the component has already been registered, otherwise false.
+	 * @return true if the component has already been registered, otherwise false.
 	 */
-	public boolean		registered();
+	public boolean registered();
 
 	/**
-	 * return true if the component has already been registered with service
-	 * class {@code rc}, otherwise false.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * return true if the component has already been registered with service class {@code rc},
+	 * otherwise false.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code rc != null}
 	 * post	{@code true}	// no postcondition.
 	 * </pre>
 	 *
-	 * @param rc						the registration class.
-	 * @return							true if {@code receptionPortURI} has already been registered with service class {@code rc}, otherwise false.
-	 * @throws UnknownClientException	when the component is not registered yet.
+	 * @param rc the registration class.
+	 * @return true if {@code receptionPortURI} has already been registered with service class
+	 *     {@code rc}, otherwise false.
+	 * @throws UnknownClientException when the component is not registered yet.
 	 */
-	public boolean		registered(RegistrationClass rc)
-	throws	UnknownClientException;
+	public boolean registered(RegistrationClass rc) throws UnknownClientException;
 
 	/**
-	 * register on the publication/subscription system with service
-	 * class {@code rc}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * register on the publication/subscription system with service class {@code rc}.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code rc != null}
 	 * post	{@code registered(rc)}
 	 * </pre>
 	 *
-	 * @param rc							the required registration class.
-	 * @throws AlreadyRegisteredException	when the component is already registered.
+	 * @param rc the required registration class.
+	 * @throws AlreadyRegisteredException when the component is already registered.
 	 */
-	public void			register(RegistrationClass rc)
-	throws AlreadyRegisteredException;
+	public void register(RegistrationClass rc) throws AlreadyRegisteredException;
 
 	/**
-	 * upgrade or degrade the registration to the class {@code rc}, returning
-	 * a new URI of an inbound port offering the component interface
-	 * {@code PublishingCI}.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * upgrade or degrade the registration to the class {@code rc}, returning a new URI of an
+	 * inbound port offering the component interface {@code PublishingCI}.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code rc != null}
 	 * post	{@code registered(rc)}
 	 * </pre>
 	 *
-	 * @param rc							the required registration class.
-	 * @throws UnknownClientException		when the component is not registered yet.
-	 * @throws AlreadyRegisteredException	when the component is already registered with the service class {@code rc}.
+	 * @param rc the required registration class.
+	 * @throws UnknownClientException when the component is not registered yet.
+	 * @throws AlreadyRegisteredException when the component is already registered with the service
+	 *     class {@code rc}.
 	 */
-	public void			modifyServiceClass(RegistrationClass rc)
-	throws	UnknownClientException,
-			AlreadyRegisteredException;
+	public void modifyServiceClass(RegistrationClass rc)
+			throws UnknownClientException, AlreadyRegisteredException;
 
 	/**
 	 * unregister from the publication/subscription system.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code !registered()}
 	 * </pre>
 	 *
-	 * @throws UnknownClientException	when the component is not registered yet.
+	 * @throws UnknownClientException when the component is not registered yet.
 	 */
-	public void			unregister() throws UnknownClientException;
+	public void unregister() throws UnknownClientException;
 
 	/**
-	 * Hook invoked when the client detects that its connection to the broker
-	 * has been lost (e.g. broker JVM crash, network partition, abnormal
-	 * termination from the other side). The default implementation is a
-	 * no-op so existing subclasses are unaffected; new subclasses may
-	 * override it to release per-session state, schedule a reconnection
-	 * attempt, or notify the application.
+	 * Hook invoked when the client detects that its connection to the broker has been lost (e.g.
+	 * broker JVM crash, network partition, abnormal termination from the other side). The default
+	 * implementation is a no-op so existing subclasses are unaffected; new subclasses may override
+	 * it to release per-session state, schedule a reconnection attempt, or notify the application.
 	 *
-	 * <p>
-	 * this is purely a Java-side hook on the
-	 * plugin interface; it does not appear on any BCM
-	 * {@code ComponentInterface} ({@code RegistrationCI},
-	 * {@code ReceivingCI}). The actual broker→client disconnect detection
-	 * is out of scope for this phase — only the API surface is added.
-	 * </p>
+	 * <p>this is purely a Java-side hook on the plugin interface; it does not appear on any BCM
+	 * {@code ComponentInterface} ({@code RegistrationCI}, {@code ReceivingCI}). The actual
+	 * broker→client disconnect detection is out of scope for this phase — only the API surface is
+	 * added.
 	 *
-	 * @param reason	human-readable explanation of the disconnect cause,
-	 *					or {@code null} if unknown.
+	 * @param reason human-readable explanation of the disconnect cause, or {@code null} if unknown.
 	 */
-	public default void	onBrokerDisconnect(String reason)
-	{
+	public default void onBrokerDisconnect(String reason) {
 		// no-op default
 	}
 }

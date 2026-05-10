@@ -1,36 +1,32 @@
 package fr.sorbonne_u.cps.pubsub.base.connectors;
 
-
-import java.rmi.RemoteException;
-
+import fr.sorbonne_u.components.connectors.AbstractConnector;
 import fr.sorbonne_u.cps.pubsub.exceptions.AlreadyRegisteredException;
 import fr.sorbonne_u.cps.pubsub.exceptions.NotSubscribedChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
-
-import fr.sorbonne_u.components.connectors.AbstractConnector;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.RegistrationCI;
 
+import java.rmi.RemoteException;
+
 /**
- * Connecteur reliant un port outbound client {@link RegistrationCI} au
- * port inbound {@link RegistrationCI} du broker.
+ * Connecteur reliant un port outbound client {@link RegistrationCI} au port inbound {@link
+ * RegistrationCI} du broker.
  *
- * <p><strong>Sens du raccordement</strong> : la CI requise par le client
- * (offerte par le broker) est {@link RegistrationCI}. La référence
- * {@link #offering} pointe vers le port inbound du broker.</p>
+ * <p><strong>Sens du raccordement</strong> : la CI requise par le client (offerte par le broker)
+ * est {@link RegistrationCI}. La référence {@link #offering} pointe vers le port inbound du broker.
  *
- * <p>
- * les exceptions métier déclarées sur la CI sont propagées
- * telles quelles ; toute autre {@link Exception} technique est encapsulée
- * dans une {@link RemoteException}.
- * </p>
+ * <p>les exceptions métier déclarées sur la CI sont propagées telles quelles ; toute autre {@link
+ * Exception} technique est encapsulée dans une {@link RemoteException}.
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class RegistrationConnector extends AbstractConnector implements RegistrationCI {
 
-	/** @see RegistrationCI#registered(String) */
+	/**
+	 * @see RegistrationCI#registered(String)
+	 */
 	@Override
 	public boolean registered(String receptionPortURI) throws Exception {
 		try {
@@ -42,7 +38,9 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#registered(String, RegistrationClass) */
+	/**
+	 * @see RegistrationCI#registered(String, RegistrationClass)
+	 */
 	@Override
 	public boolean registered(String receptionPortURI, RegistrationClass rc) throws Exception {
 		try {
@@ -54,7 +52,9 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#register(String, RegistrationClass) */
+	/**
+	 * @see RegistrationCI#register(String, RegistrationClass)
+	 */
 	@Override
 	public String register(String receptionPortURI, RegistrationClass rc) throws Exception {
 		try {
@@ -68,9 +68,12 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#modifyServiceClass(String, RegistrationClass) */
+	/**
+	 * @see RegistrationCI#modifyServiceClass(String, RegistrationClass)
+	 */
 	@Override
-	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc) throws Exception {
+	public String modifyServiceClass(String receptionPortURI, RegistrationClass rc)
+			throws Exception {
 		try {
 			return ((RegistrationCI) this.offering).modifyServiceClass(receptionPortURI, rc);
 		} catch (UnknownClientException | AlreadyRegisteredException e) {
@@ -82,7 +85,9 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#unregister(String) */
+	/**
+	 * @see RegistrationCI#unregister(String)
+	 */
 	@Override
 	public void unregister(String receptionPortURI) throws Exception {
 		try {
@@ -96,7 +101,9 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#channelExist(String) */
+	/**
+	 * @see RegistrationCI#channelExist(String)
+	 */
 	@Override
 	public boolean channelExist(String channel) throws Exception {
 		try {
@@ -108,7 +115,9 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#channelAuthorised(String, String) */
+	/**
+	 * @see RegistrationCI#channelAuthorised(String, String)
+	 */
 	@Override
 	public boolean channelAuthorised(String receptionPortURI, String channel) throws Exception {
 		try {
@@ -122,7 +131,9 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#subscribed(String, String) */
+	/**
+	 * @see RegistrationCI#subscribed(String, String)
+	 */
 	@Override
 	public boolean subscribed(String receptionPortURI, String channel) throws Exception {
 		try {
@@ -136,9 +147,12 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#subscribe(String, String, MessageFilterI) */
+	/**
+	 * @see RegistrationCI#subscribe(String, String, MessageFilterI)
+	 */
 	@Override
-	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter) throws Exception {
+	public void subscribe(String receptionPortURI, String channel, MessageFilterI filter)
+			throws Exception {
 		try {
 			((RegistrationCI) this.offering).subscribe(receptionPortURI, channel, filter);
 		} catch (UnknownClientException | UnknownChannelException e) {
@@ -150,12 +164,16 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#unsubscribe(String, String) */
+	/**
+	 * @see RegistrationCI#unsubscribe(String, String)
+	 */
 	@Override
 	public void unsubscribe(String receptionPortURI, String channel) throws Exception {
 		try {
 			((RegistrationCI) this.offering).unsubscribe(receptionPortURI, channel);
-		} catch (UnknownClientException | UnknownChannelException | NotSubscribedChannelException e) {
+		} catch (UnknownClientException
+				| UnknownChannelException
+				| NotSubscribedChannelException e) {
 			throw e;
 		} catch (RemoteException e) {
 			throw e;
@@ -164,14 +182,17 @@ public class RegistrationConnector extends AbstractConnector implements Registra
 		}
 	}
 
-	/** @see RegistrationCI#modifyFilter(String, String, MessageFilterI) */
+	/**
+	 * @see RegistrationCI#modifyFilter(String, String, MessageFilterI)
+	 */
 	@Override
 	public boolean modifyFilter(String receptionPortURI, String channel, MessageFilterI filter)
-		throws Exception
-	{
+			throws Exception {
 		try {
 			return ((RegistrationCI) this.offering).modifyFilter(receptionPortURI, channel, filter);
-		} catch (UnknownClientException | UnknownChannelException | NotSubscribedChannelException e) {
+		} catch (UnknownClientException
+				| UnknownChannelException
+				| NotSubscribedChannelException e) {
 			throw e;
 		} catch (RemoteException e) {
 			throw e;

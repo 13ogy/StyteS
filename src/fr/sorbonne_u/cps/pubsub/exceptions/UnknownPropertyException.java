@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.exceptions;
 // modify and redistribute granted by the license, users are provided only
 // with a limited warranty and the software's author, the holder of the
 // economic rights, and the successive licensors have only limited
-// liability. 
+// liability.
 //
 // In this respect, the user's attention is drawn to the risks associated
 // with loading, using, modifying and/or developing or reproducing the
@@ -26,9 +26,9 @@ package fr.sorbonne_u.cps.pubsub.exceptions;
 // therefore means that it is reserved for developers and experienced
 // professionals having in-depth computer knowledge. Users are therefore
 // encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and, more generally, to use and operate it in the 
-// same conditions as regards security. 
+// requirements in conditions enabling the security of their systems and/or
+// data to be ensured and, more generally, to use and operate it in the
+// same conditions as regards security.
 //
 // The fact that you are presently reading this means that you have had
 // knowledge of the CeCILL-C license and that you accept its terms.
@@ -37,39 +37,33 @@ import fr.sorbonne_u.components.exceptions.BCMException;
 
 // -----------------------------------------------------------------------------
 /**
- * The class <code>UnknownPropertyException</code> implements the
- * exception thrown when a user tries to get a property that has not been put
- * on a message.
+ * The class <code>UnknownPropertyException</code> implements the exception thrown when a user tries
+ * to get a property that has not been put on a message.
  *
- * <p><strong>Description</strong></p>
+ * <p><strong>Description</strong>
  *
- * <p>
- * Levée par {@link fr.sorbonne_u.cps.pubsub.messages.Message#getPropertyValue(String)}
- * lorsque le nom de propriété demandé n'a pas été défini par
- * {@code putProperty(...)} sur le message courant (CDC §3.5 — contrat des
- * messages).
- * </p>
+ * <p>Levée par {@link fr.sorbonne_u.cps.pubsub.messages.Message#getPropertyValue(String)} lorsque
+ * le nom de propriété demandé n'a pas été défini par {@code putProperty(...)} sur le message
+ * courant (CDC §3.5 — contrat des messages).
  *
- * <p><strong>Implementation Invariants</strong></p>
- * 
+ * <p><strong>Implementation Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p><strong>Invariants</strong></p>
- * 
+ *
+ * <p><strong>Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p>Created on : 2026-01-20</p>
- * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ *
+ * <p>Created on : 2026-01-20
+ *
+ * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class			UnknownPropertyException
-extends		BCMException
-{
+public class UnknownPropertyException extends BCMException {
 	// -------------------------------------------------------------------------
 	// Constants and variables
 	// -------------------------------------------------------------------------
@@ -80,35 +74,25 @@ extends		BCMException
 	// Constructors
 	// -------------------------------------------------------------------------
 
-	public				UnknownPropertyException()
-	{
-	}
+	public UnknownPropertyException() {}
 
-	public				UnknownPropertyException(String message)
-	{
+	public UnknownPropertyException(String message) {
 		super(message);
 	}
 
-	public				UnknownPropertyException(Throwable cause)
-	{
+	public UnknownPropertyException(Throwable cause) {
 		super(cause);
 	}
 
-	public				UnknownPropertyException(
-		String message,
-		Throwable cause
-		)
-	{
+	public UnknownPropertyException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
-	public				UnknownPropertyException(
-		String message,
-		Throwable cause,
-		boolean enableSuppression,
-		boolean writableStackTrace
-		)
-	{
+	public UnknownPropertyException(
+			String message,
+			Throwable cause,
+			boolean enableSuppression,
+			boolean writableStackTrace) {
 		super(message, cause, enableSuppression, writableStackTrace);
 	}
 }

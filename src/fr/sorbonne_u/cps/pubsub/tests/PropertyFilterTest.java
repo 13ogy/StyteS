@@ -1,5 +1,7 @@
 package fr.sorbonne_u.cps.pubsub.tests;
 
+import static org.junit.Assert.*;
+
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.PropertyFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.ValueFilterI;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI.PropertyI;
@@ -7,34 +9,30 @@ import fr.sorbonne_u.cps.pubsub.messages.Message;
 import fr.sorbonne_u.cps.pubsub.messages.filters.AcceptAllValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.EqualsValueFilter;
 import fr.sorbonne_u.cps.pubsub.messages.filters.PropertyFilter;
+
 import org.junit.Test;
 
 import java.io.Serializable;
 
-import static org.junit.Assert.*;
-
 /**
  * Unit tests for {@link PropertyFilter} (CDC §3.2).
  *
- * <p>
- * What is being tested:
- * </p>
+ * <p>What is being tested:
+ *
  * <ul>
- * <li>match returns false when property argument is null.</li>
- * <li>match returns false when the property name does not equal the filter name.</li>
- * <li>match returns true when name matches AND inner valueFilter accepts the value.</li>
- * <li>match returns false when name matches but inner valueFilter rejects the value.</li>
- * <li>Constructor rejects a null name with {@link IllegalArgumentException}.</li>
- * <li>Constructor rejects an empty name with {@link IllegalArgumentException}.</li>
- * <li>Constructor rejects a null valueFilter with {@link IllegalArgumentException}.</li>
+ *   <li>match returns false when property argument is null.
+ *   <li>match returns false when the property name does not equal the filter name.
+ *   <li>match returns true when name matches AND inner valueFilter accepts the value.
+ *   <li>match returns false when name matches but inner valueFilter rejects the value.
+ *   <li>Constructor rejects a null name with {@link IllegalArgumentException}.
+ *   <li>Constructor rejects an empty name with {@link IllegalArgumentException}.
+ *   <li>Constructor rejects a null valueFilter with {@link IllegalArgumentException}.
  * </ul>
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class PropertyFilterTest
-{
-	private static void info(String s)
-	{
+public class PropertyFilterTest {
+	private static void info(String s) {
 		System.out.println("[PropertyFilterTest] " + s);
 	}
 
@@ -44,18 +42,18 @@ public class PropertyFilterTest
 
 	/** {@code match(null)} doit retourner {@code false} indépendamment du value filter interne. */
 	@Test
-	public void testMatchReturnsFalseOnNullProperty()
-	{
+	public void testMatchReturnsFalseOnNullProperty() {
 		info("match(null) must return false regardless of value filter.");
 
 		PropertyFilterI pf = new PropertyFilter("type", new AcceptAllValueFilter());
 		assertFalse(pf.match(null));
 	}
 
-	/** {@code match} renvoie {@code false} si le nom de la propriété ne correspond pas au filtre. */
+	/**
+	 * {@code match} renvoie {@code false} si le nom de la propriété ne correspond pas au filtre.
+	 */
 	@Test
-	public void testMatchReturnsFalseWhenNameDoesNotMatch()
-	{
+	public void testMatchReturnsFalseWhenNameDoesNotMatch() {
 		info("match returns false when property name differs from filter name.");
 
 		PropertyI p = new Message.Property("speed", (Serializable) "fast");
@@ -65,8 +63,7 @@ public class PropertyFilterTest
 
 	/** {@code match} renvoie {@code true} si le nom correspond ET que le value filter accepte. */
 	@Test
-	public void testMatchReturnsTrueWhenNameMatchesAndValueFilterAccepts()
-	{
+	public void testMatchReturnsTrueWhenNameMatchesAndValueFilterAccepts() {
 		info("match returns true when name matches AND valueFilter accepts the value.");
 
 		PropertyI p = new Message.Property("type", (Serializable) "wind");
@@ -74,10 +71,11 @@ public class PropertyFilterTest
 		assertTrue(pf.match(p));
 	}
 
-	/** {@code match} renvoie {@code false} quand le nom correspond mais que le value filter rejette. */
+	/**
+	 * {@code match} renvoie {@code false} quand le nom correspond mais que le value filter rejette.
+	 */
 	@Test
-	public void testMatchReturnsFalseWhenNameMatchesButValueFilterRejects()
-	{
+	public void testMatchReturnsFalseWhenNameMatchesButValueFilterRejects() {
 		info("match returns false when name matches but valueFilter rejects the value.");
 
 		PropertyI p = new Message.Property("type", (Serializable) "rain");
@@ -85,10 +83,12 @@ public class PropertyFilterTest
 		assertFalse(pf.match(p));
 	}
 
-	/** {@link AcceptAllValueFilter} combiné à un nom correspondant accepte toute valeur, même {@code null}. */
+	/**
+	 * {@link AcceptAllValueFilter} combiné à un nom correspondant accepte toute valeur, même {@code
+	 * null}.
+	 */
 	@Test
-	public void testMatchAcceptAllValueFilterAlwaysAcceptsOnNameMatch()
-	{
+	public void testMatchAcceptAllValueFilterAlwaysAcceptsOnNameMatch() {
 		info("AcceptAllValueFilter + name match → always true.");
 
 		PropertyFilterI pf = new PropertyFilter("speed", new AcceptAllValueFilter());
@@ -102,10 +102,11 @@ public class PropertyFilterTest
 	// getters
 	// -------------------------------------------------------------------------
 
-	/** {@code getName()} et {@code getValueFilter()} retournent ce qui a été passé au constructeur. */
+	/**
+	 * {@code getName()} et {@code getValueFilter()} retournent ce qui a été passé au constructeur.
+	 */
 	@Test
-	public void testGetters()
-	{
+	public void testGetters() {
 		info("getName() and getValueFilter() return the values passed to constructor.");
 
 		ValueFilterI vf = new EqualsValueFilter("demo");
@@ -120,24 +121,23 @@ public class PropertyFilterTest
 
 	/** Le constructeur rejette un nom {@code null} avec {@link IllegalArgumentException}. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testConstructorRejectsNullName()
-	{
+	public void testConstructorRejectsNullName() {
 		info("Constructor must reject null name with IllegalArgumentException.");
 		new PropertyFilter(null, new AcceptAllValueFilter());
 	}
 
 	/** Le constructeur rejette un nom vide avec {@link IllegalArgumentException}. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testConstructorRejectsEmptyName()
-	{
+	public void testConstructorRejectsEmptyName() {
 		info("Constructor must reject empty name with IllegalArgumentException.");
 		new PropertyFilter("", new AcceptAllValueFilter());
 	}
 
-	/** Le constructeur rejette un value filter {@code null} avec {@link IllegalArgumentException}. */
+	/**
+	 * Le constructeur rejette un value filter {@code null} avec {@link IllegalArgumentException}.
+	 */
 	@Test(expected = IllegalArgumentException.class)
-	public void testConstructorRejectsNullValueFilter()
-	{
+	public void testConstructorRejectsNullValueFilter() {
 		info("Constructor must reject null valueFilter with IllegalArgumentException.");
 		new PropertyFilter("type", null);
 	}

@@ -1,23 +1,19 @@
 package fr.sorbonne_u.cps.pubsub.messages.filters;
 
-import java.time.Instant;
-
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageFilterI.TimeFilterI;
 
+import java.time.Instant;
+
 /**
- * Implémentation de {@link TimeFilterI} acceptant les estampilles {@code t}
- * telles que {@code t >= lowerBoundInclusive}.
+ * Implémentation de {@link TimeFilterI} acceptant les estampilles {@code t} telles que {@code t >=
+ * lowerBoundInclusive}.
  *
- * <p>
- * Permet à un abonné de ne recevoir que les messages publiés à partir d'un
- * instant donné (CDC §3.5 — filtres temporels).
- * </p>
- *
+ * <p>Permet à un abonné de ne recevoir que les messages publiés à partir d'un instant donné (CDC
+ * §3.5 — filtres temporels).
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class AfterOrAtTimeFilter implements TimeFilterI
-{
+public class AfterOrAtTimeFilter implements TimeFilterI {
 	private static final long serialVersionUID = 1L;
 
 	/** Borne inférieure inclusive. */
@@ -29,8 +25,7 @@ public class AfterOrAtTimeFilter implements TimeFilterI
 	 * @param lowerBoundInclusive borne inférieure inclusive (non {@code null}).
 	 * @throws IllegalArgumentException si {@code lowerBoundInclusive} est {@code null}.
 	 */
-	public AfterOrAtTimeFilter(Instant lowerBoundInclusive)
-	{
+	public AfterOrAtTimeFilter(Instant lowerBoundInclusive) {
 		if (lowerBoundInclusive == null) {
 			throw new IllegalArgumentException("lowerBoundInclusive cannot be null.");
 		}
@@ -39,12 +34,11 @@ public class AfterOrAtTimeFilter implements TimeFilterI
 
 	/**
 	 * @param timestamp horodatage candidat.
-	 * @return {@code true} ssi {@code timestamp != null} et
-	 * {@code timestamp >= lowerBoundInclusive}.
+	 * @return {@code true} ssi {@code timestamp != null} et {@code timestamp >=
+	 *     lowerBoundInclusive}.
 	 */
 	@Override
-	public boolean match(Instant timestamp)
-	{
+	public boolean match(Instant timestamp) {
 		if (timestamp == null) {
 			return false;
 		}

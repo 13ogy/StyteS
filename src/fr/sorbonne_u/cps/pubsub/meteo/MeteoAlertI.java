@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.meteo;
 // modify and redistribute granted by the license, users are provided only
 // with a limited warranty and the software's author, the holder of the
 // economic rights, and the successive licensors have only limited
-// liability. 
+// liability.
 //
 // In this respect, the user's attention is drawn to the risks associated
 // with loading, using, modifying and/or developing or reproducing the
@@ -26,9 +26,9 @@ package fr.sorbonne_u.cps.pubsub.meteo;
 // therefore means that it is reserved for developers and experienced
 // professionals having in-depth computer knowledge. Users are therefore
 // encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and, more generally, to use and operate it in the 
-// same conditions as regards security. 
+// requirements in conditions enabling the security of their systems and/or
+// data to be ensured and, more generally, to use and operate it in the
+// same conditions as regards security.
 //
 // The fact that you are presently reading this means that you have had
 // knowledge of the CeCILL-C license and that you accept its terms.
@@ -39,73 +39,65 @@ import java.time.Instant;
 
 // -----------------------------------------------------------------------------
 /**
- * The interface <code>MeteoAlertI</code> defines the signatures of methods to
- * be implemented by meteo alerts emitted by meteo stations.
+ * The interface <code>MeteoAlertI</code> defines the signatures of methods to be implemented by
+ * meteo alerts emitted by meteo stations.
  *
- * <p><strong>Description</strong></p>
- * 
- * <p><strong>Invariants</strong></p>
- * 
+ * <p><strong>Description</strong>
+ *
+ * <p><strong>Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p>Created on : 2026-01-23</p>
- * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ *
+ * <p>Created on : 2026-01-23
+ *
+ * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  */
-public interface		MeteoAlertI
-extends		Serializable
-{
+public interface MeteoAlertI extends Serializable {
 	// -------------------------------------------------------------------------
 	// Inner types and classes
 	// -------------------------------------------------------------------------
 
 	/**
-	 * The interface <code>LevelI</code> defines the type for levels in meteo
-	 * alerts.
+	 * The interface <code>LevelI</code> defines the type for levels in meteo alerts.
 	 *
-	 * <p><strong>Description</strong></p>
-	 * 
-	 * <p><strong>Invariants</strong></p>
-	 * 
+	 * <p><strong>Description</strong>
+	 *
+	 * <p><strong>Invariants</strong>
+	 *
 	 * <pre>
 	 * invariant	{@code true}	// no more invariant
 	 * </pre>
-	 * 
-	 * <p>Created on : 2026-01-23</p>
-	 * 
-	 * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+	 *
+	 * <p>Created on : 2026-01-23
+	 *
+	 * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
 	 */
-	public interface	LevelI
-	{
-		
-	}
+	public interface LevelI {}
 
 	/**
-	 * The enumeration <code>Level</code> defines the standard levels used in
-	 * meteo alerts.
+	 * The enumeration <code>Level</code> defines the standard levels used in meteo alerts.
 	 *
-	 * <p><strong>Description</strong></p>
-	 * 
-	 * <p><strong>Implementation Invariants</strong></p>
-	 * 
+	 * <p><strong>Description</strong>
+	 *
+	 * <p><strong>Implementation Invariants</strong>
+	 *
 	 * <pre>
 	 * invariant	{@code true}	// no more invariant
 	 * </pre>
-	 * 
-	 * <p><strong>Invariants</strong></p>
-	 * 
+	 *
+	 * <p><strong>Invariants</strong>
+	 *
 	 * <pre>
 	 * invariant	{@code true}	// no more invariant
 	 * </pre>
-	 * 
-	 * <p>Created on : 2026-01-23</p>
-	 * 
-	 * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+	 *
+	 * <p>Created on : 2026-01-23
+	 *
+	 * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
 	 */
-	public static enum	Level implements LevelI
-	{
+	public static enum Level implements LevelI {
 		GREEN,
 		YELLOW,
 		ORANGE,
@@ -116,46 +108,42 @@ extends		Serializable
 	/**
 	 * The interface <code>AlertTypeI</code> defines the type of meteo alerts.
 	 *
-	 * <p><strong>Description</strong></p>
-	 * 
-	 * <p><strong>Invariants</strong></p>
-	 * 
+	 * <p><strong>Description</strong>
+	 *
+	 * <p><strong>Invariants</strong>
+	 *
 	 * <pre>
 	 * invariant	{@code true}	// no more invariant
 	 * </pre>
-	 * 
-	 * <p>Created on : 2026-01-23</p>
-	 * 
-	 * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+	 *
+	 * <p>Created on : 2026-01-23
+	 *
+	 * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
 	 */
-	public interface	AlertTypeI
-	{
-		
-	}
+	public interface AlertTypeI {}
 
 	/**
 	 * The class <code>AlterType</code> defines the standard meteo alerts.
 	 *
-	 * <p><strong>Description</strong></p>
-	 * 
-	 * <p><strong>Implementation Invariants</strong></p>
-	 * 
+	 * <p><strong>Description</strong>
+	 *
+	 * <p><strong>Implementation Invariants</strong>
+	 *
 	 * <pre>
 	 * invariant	{@code true}	// no more invariant
 	 * </pre>
-	 * 
-	 * <p><strong>Invariants</strong></p>
-	 * 
+	 *
+	 * <p><strong>Invariants</strong>
+	 *
 	 * <pre>
 	 * invariant	{@code true}	// no more invariant
 	 * </pre>
-	 * 
-	 * <p>Created on : 2026-01-23</p>
-	 * 
-	 * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+	 *
+	 * <p>Created on : 2026-01-23
+	 *
+	 * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
 	 */
-	public static enum	AlertType implements AlertTypeI
-	{
+	public static enum AlertType implements AlertTypeI {
 		STORM,
 		ICY_STORM,
 		SNOW_STORM,
@@ -170,72 +158,72 @@ extends		Serializable
 
 	/**
 	 * return the alert type of this meteo alert.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code return != null}
 	 * </pre>
 	 *
-	 * @return	the alert type of this meteo alert.
+	 * @return the alert type of this meteo alert.
 	 */
-	public AlertTypeI	getAlertType();
+	public AlertTypeI getAlertType();
 
 	/**
 	 * return the level of the alert.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code return != null}
 	 * </pre>
 	 *
-	 * @return	the level of the alert.
+	 * @return the level of the alert.
 	 */
-	public LevelI		getLevel();
+	public LevelI getLevel();
 
 	/**
 	 * return the regions that are concerned by the alert.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code return != null && return.length > 1}
 	 * </pre>
 	 *
-	 * @return	the regions that are concerned by the alert.
+	 * @return the regions that are concerned by the alert.
 	 */
-	public RegionI[]	getRegions();
+	public RegionI[] getRegions();
 
 	/**
-	 * return	the start time of the alert.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 * return the start time of the alert.
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code return != null}
 	 * </pre>
 	 *
-	 * @return	the start time of the alert.
+	 * @return the start time of the alert.
 	 */
-	public Instant		getStartTime();
+	public Instant getStartTime();
 
 	/**
 	 * return the duration of the alert.
-	 * 
-	 * <p><strong>Contract</strong></p>
-	 * 
+	 *
+	 * <p><strong>Contract</strong>
+	 *
 	 * <pre>
 	 * pre	{@code true}	// no precondition.
 	 * post	{@code return != null}
 	 * </pre>
 	 *
-	 * @return	the duration of the alert.
+	 * @return the duration of the alert.
 	 */
-	public Duration		getDuration();
+	public Duration getDuration();
 }
 // -----------------------------------------------------------------------------

@@ -11,98 +11,114 @@ import java.time.Instant;
  * Message gossip propageant la <strong>modification de classe de service</strong>
  * (FREE/STANDARD/PREMIUM) d'un client à tous les courtiers voisins.
  *
- * <p><strong>Mutation broker répliquée (CDC §3.5)</strong></p>
- * <p>
- * Équivaut, côté broker récepteur, à un appel local
- * {@code modifyServiceClass(clientReceptionPortURI, newRegistrationClass)} :
- * chaque voisin met à jour sa table d'enregistrement locale, ce qui modifie
- * notamment les quotas de canaux privilégiés du client.
- * </p>
+ * <p><strong>Mutation broker répliquée (CDC §3.5)</strong>
  *
- * <p><strong>Garanties anti-loop / skip-echo</strong></p>
+ * <p>Équivaut, côté broker récepteur, à un appel local {@code
+ * modifyServiceClass(clientReceptionPortURI, newRegistrationClass)} : chaque voisin met à jour sa
+ * table d'enregistrement locale, ce qui modifie notamment les quotas de canaux privilégiés du
+ * client.
+ *
+ * <p><strong>Garanties anti-loop / skip-echo</strong>
+ *
  * <ul>
- * <li>Implémente {@link EmitterAwareGossipMessageI} : skip-echo via
- * {@link #getEmitterURI()} (cf. {@code docs/GOSSIP.md} §4).</li>
- * <li>{@link #gossipMessageURI()} unique et immuable, clef de dédup
- * (cf. {@code docs/GOSSIP.md} §3).</li>
+ *   <li>Implémente {@link EmitterAwareGossipMessageI} : skip-echo via {@link #getEmitterURI()} (cf.
+ *       {@code docs/GOSSIP.md} §4).
+ *   <li>{@link #gossipMessageURI()} unique et immuable, clef de dédup (cf. {@code docs/GOSSIP.md}
+ *       §3).
  * </ul>
  *
- * <p>Voir {@code docs/GOSSIP.md} pour la vue d'ensemble du protocole.</p>
+ * <p>Voir {@code docs/GOSSIP.md} pour la vue d'ensemble du protocole.
  *
  * @author Bogdan Styn, Setbel Mélissa
  */
 public class ModifyServiceClassGossipMessage extends AbstractGossipMessage {
 
- private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
- /** URI unique et immuable du message gossip (clef de dédup). */
- private final String gossipMessageURI;
- /** Horodatage de création. */
- private final Instant timestamp;
- /** URI de réflexion du broker qui vient d'émettre cette copie (skip-echo). */
- private final String emitterURI;
+	/** URI unique et immuable du message gossip (clef de dédup). */
+	private final String gossipMessageURI;
 
- /** URI de réception du client dont la classe de service change. */
- private final String clientReceptionPortURI;
- /** Nouvelle classe de service à appliquer côté voisin. */
- private final RegistrationClass newRegistrationClass;
+	/** Horodatage de création. */
+	private final Instant timestamp;
 
- /**
- * Construit un message gossip {@code ModifyServiceClass}.
- *
- * @param gossipMessageURI URI unique du message.
- * @param timestamp horodatage de création.
- * @param emitterURI URI de réflexion du broker émetteur courant.
- * @param clientReceptionPortURI URI de réception du client visé.
- * @param newRegistrationClass nouvelle classe de service (FREE/STANDARD/PREMIUM).
- */
- public ModifyServiceClassGossipMessage(
- String gossipMessageURI,
- Instant timestamp,
- String emitterURI,
- String clientReceptionPortURI,
- RegistrationClass newRegistrationClass)
- {
- this.gossipMessageURI = gossipMessageURI;
- this.timestamp = timestamp;
- this.emitterURI = emitterURI;
- this.clientReceptionPortURI = clientReceptionPortURI;
- this.newRegistrationClass = newRegistrationClass;
- }
+	/** URI de réflexion du broker qui vient d'émettre cette copie (skip-echo). */
+	private final String emitterURI;
 
- /** {@inheritDoc} */
- @Override
- public String gossipMessageURI() { return this.gossipMessageURI; }
+	/** URI de réception du client dont la classe de service change. */
+	private final String clientReceptionPortURI;
 
- /** {@inheritDoc} */
- @Override
- public Instant timestamp() { return this.timestamp; }
+	/** Nouvelle classe de service à appliquer côté voisin. */
+	private final RegistrationClass newRegistrationClass;
 
- /**
- * @param newGossipEmitterURI URI de réflexion du nouvel émetteur courant.
- * @return copie immuable avec {@code emitterURI} mis à jour ; URI gossip conservé.
- */
- @Override
- public GossipMessageI copyWithNewEmitterURI(String newGossipEmitterURI) {
- return new ModifyServiceClassGossipMessage(
- this.gossipMessageURI,
- this.timestamp,
- newGossipEmitterURI,
- this.clientReceptionPortURI,
- this.newRegistrationClass);
- }
+	/**
+	 * Construit un message gossip {@code ModifyServiceClass}.
+	 *
+	 * @param gossipMessageURI URI unique du message.
+	 * @param timestamp horodatage de création.
+	 * @param emitterURI URI de réflexion du broker émetteur courant.
+	 * @param clientReceptionPortURI URI de réception du client visé.
+	 * @param newRegistrationClass nouvelle classe de service (FREE/STANDARD/PREMIUM).
+	 */
+	public ModifyServiceClassGossipMessage(
+			String gossipMessageURI,
+			Instant timestamp,
+			String emitterURI,
+			String clientReceptionPortURI,
+			RegistrationClass newRegistrationClass) {
+		this.gossipMessageURI = gossipMessageURI;
+		this.timestamp = timestamp;
+		this.emitterURI = emitterURI;
+		this.clientReceptionPortURI = clientReceptionPortURI;
+		this.newRegistrationClass = newRegistrationClass;
+	}
 
- /** @return URI de réception du client visé. */
- public String getClientReceptionPortURI() { return this.clientReceptionPortURI; }
- /** @return nouvelle classe de service à appliquer. */
- public RegistrationClass getNewRegistrationClass() { return this.newRegistrationClass; }
- public String getEmitterURI() { return this.emitterURI; }
+	/** {@inheritDoc} */
+	@Override
+	public String gossipMessageURI() {
+		return this.gossipMessageURI;
+	}
 
+	/** {@inheritDoc} */
+	@Override
+	public Instant timestamp() {
+		return this.timestamp;
+	}
 
+	/**
+	 * @param newGossipEmitterURI URI de réflexion du nouvel émetteur courant.
+	 * @return copie immuable avec {@code emitterURI} mis à jour ; URI gossip conservé.
+	 */
+	@Override
+	public GossipMessageI copyWithNewEmitterURI(String newGossipEmitterURI) {
+		return new ModifyServiceClassGossipMessage(
+				this.gossipMessageURI,
+				this.timestamp,
+				newGossipEmitterURI,
+				this.clientReceptionPortURI,
+				this.newRegistrationClass);
+	}
 
- // Visitor pattern
- @Override
- public void accept(GossipMessageVisitor visitor) {
- visitor.visit(this);
- }
+	/**
+	 * @return URI de réception du client visé.
+	 */
+	public String getClientReceptionPortURI() {
+		return this.clientReceptionPortURI;
+	}
+
+	/**
+	 * @return nouvelle classe de service à appliquer.
+	 */
+	public RegistrationClass getNewRegistrationClass() {
+		return this.newRegistrationClass;
+	}
+
+	public String getEmitterURI() {
+		return this.emitterURI;
+	}
+
+	// Visitor pattern
+	@Override
+	public void accept(GossipMessageVisitor visitor) {
+		visitor.visit(this);
+	}
 }

@@ -17,7 +17,7 @@ package fr.sorbonne_u.cps.pubsub.exceptions;
 // modify and redistribute granted by the license, users are provided only
 // with a limited warranty and the software's author, the holder of the
 // economic rights, and the successive licensors have only limited
-// liability. 
+// liability.
 //
 // In this respect, the user's attention is drawn to the risks associated
 // with loading, using, modifying and/or developing or reproducing the
@@ -26,9 +26,9 @@ package fr.sorbonne_u.cps.pubsub.exceptions;
 // therefore means that it is reserved for developers and experienced
 // professionals having in-depth computer knowledge. Users are therefore
 // encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and, more generally, to use and operate it in the 
-// same conditions as regards security. 
+// requirements in conditions enabling the security of their systems and/or
+// data to be ensured and, more generally, to use and operate it in the
+// same conditions as regards security.
 //
 // The fact that you are presently reading this means that you have had
 // knowledge of the CeCILL-C license and that you accept its terms.
@@ -37,39 +37,34 @@ import fr.sorbonne_u.components.exceptions.BCMException;
 
 // -----------------------------------------------------------------------------
 /**
- * The class <code>AlreadyExistingChannelException</code> implements the
- * exception thrown when a new channel is created that already exists.
+ * The class <code>AlreadyExistingChannelException</code> implements the exception thrown when a new
+ * channel is created that already exists.
  *
- * <p><strong>Description</strong></p>
+ * <p><strong>Description</strong>
  *
- * <p>
- * Levée par le courtier ({@code Broker}) lors d'un appel à
- * {@code createPrivilegedChannel(channel, ...)} (CDC §3.3) lorsque
- * {@code channel} existe déjà comme canal libre ou privilégié, ou plus
- * généralement chaque fois qu'une opération exigerait la création d'un canal
- * dont le nom est déjà connu.
- * </p>
+ * <p>Levée par le courtier ({@code Broker}) lors d'un appel à {@code
+ * createPrivilegedChannel(channel, ...)} (CDC §3.3) lorsque {@code channel} existe déjà comme canal
+ * libre ou privilégié, ou plus généralement chaque fois qu'une opération exigerait la création d'un
+ * canal dont le nom est déjà connu.
  *
- * <p><strong>Implementation Invariants</strong></p>
- * 
+ * <p><strong>Implementation Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p><strong>Invariants</strong></p>
- * 
+ *
+ * <p><strong>Invariants</strong>
+ *
  * <pre>
  * invariant	{@code true}	// no more invariant
  * </pre>
- * 
- * <p>Created on : 2026-01-20</p>
- * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ *
+ * <p>Created on : 2026-01-20
+ *
+ * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  * @author Bogdan Styn, Setbel Mélissa
  */
-public class			AlreadyExistingChannelException
-extends		BCMException
-{
+public class AlreadyExistingChannelException extends BCMException {
 	// -------------------------------------------------------------------------
 	// Constants and variables
 	// -------------------------------------------------------------------------
@@ -80,35 +75,25 @@ extends		BCMException
 	// Constructors
 	// -------------------------------------------------------------------------
 
-	public				AlreadyExistingChannelException()
-	{
-	}
+	public AlreadyExistingChannelException() {}
 
-	public				AlreadyExistingChannelException(String message)
-	{
+	public AlreadyExistingChannelException(String message) {
 		super(message);
 	}
 
-	public				AlreadyExistingChannelException(Throwable cause)
-	{
+	public AlreadyExistingChannelException(Throwable cause) {
 		super(cause);
 	}
 
-	public				AlreadyExistingChannelException(
-		String message,
-		Throwable cause
-		)
-	{
+	public AlreadyExistingChannelException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
-	public				AlreadyExistingChannelException(
-		String message,
-		Throwable cause,
-		boolean enableSuppression,
-		boolean writableStackTrace
-		)
-	{
+	public AlreadyExistingChannelException(
+			String message,
+			Throwable cause,
+			boolean enableSuppression,
+			boolean writableStackTrace) {
 		super(message, cause, enableSuppression, writableStackTrace);
 	}
 }
