@@ -1,5 +1,9 @@
 package fr.sorbonne_u.cps.pubsub.demo;
 
+
+import fr.sorbonne_u.cps.pubsub.base.components.PrivilegedClient;
+import fr.sorbonne_u.cps.pubsub.base.components.PublisherClient;
+import fr.sorbonne_u.cps.pubsub.base.components.SubscriberClient;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;

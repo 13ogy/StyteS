@@ -1,5 +1,8 @@
 package fr.sorbonne_u.cps.pubsub.demo;
 
+
+import fr.sorbonne_u.cps.pubsub.base.components.PrivilegedClient;
+import fr.sorbonne_u.cps.pubsub.base.components.SubscriberClient;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.components.cvm.AbstractDistributedCVM;
 import fr.sorbonne_u.components.helpers.CVMDebugModes;

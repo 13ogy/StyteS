@@ -197,7 +197,7 @@ public class WindTurbine extends AbstractComponent
 
 	@Override
 	public synchronized void shutdown() throws fr.sorbonne_u.components.exceptions.ComponentShutdownException {
-		fr.sorbonne_u.cps.pubsub.demo.PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
+		fr.sorbonne_u.cps.pubsub.base.util.PortCleanupUtil.disconnectStillConnectedOutboundPorts(this);
 		super.shutdown();
 	}
 	/*

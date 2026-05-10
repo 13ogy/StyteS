@@ -1,4 +1,4 @@
-package fr.sorbonne_u.cps.pubsub.interfaces;
+package fr.sorbonne_u.cps.pubsub.plugins;
 
 // Copyright Jacques Malenfant, Sorbonne Universite.
 // Jacques.Malenfant@lip6.fr
@@ -42,7 +42,7 @@ import fr.sorbonne_u.components.PluginI;
 
 // -----------------------------------------------------------------------------
 /**
- * The interface <code>PrivilegedClientI</code> declares the method signatures
+ * The interface <code>ClientPrivilegedI</code> declares the method signatures
  * through which a publication/subscription system privileged user manages the
  * its channels.
  *
@@ -58,7 +58,7 @@ import fr.sorbonne_u.components.PluginI;
  * 
  * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  */
-public interface		PrivilegedClientI
+public interface		ClientPrivilegedI
 extends		PluginI
 {
 	// -------------------------------------------------------------------------

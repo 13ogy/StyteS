@@ -1,4 +1,4 @@
-package fr.sorbonne_u.cps.pubsub.demo;
+package fr.sorbonne_u.cps.pubsub.base.util;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.ComponentI;

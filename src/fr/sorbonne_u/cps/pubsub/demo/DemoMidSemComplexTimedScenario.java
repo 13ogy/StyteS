@@ -1,5 +1,8 @@
 package fr.sorbonne_u.cps.pubsub.demo;
 
+
+import fr.sorbonne_u.cps.pubsub.base.components.ScenarioPluginClient;
+import fr.sorbonne_u.cps.pubsub.base.components.ScenarioRunner;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.components.utils.tests.TestScenario;

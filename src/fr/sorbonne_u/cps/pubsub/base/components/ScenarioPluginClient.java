@@ -1,4 +1,4 @@
-package fr.sorbonne_u.cps.pubsub.demo;
+package fr.sorbonne_u.cps.pubsub.base.components;
 
 import fr.sorbonne_u.cps.pubsub.base.components.PluginClient;
 import fr.sorbonne_u.components.annotations.OfferedInterfaces;

@@ -12,7 +12,6 @@ import fr.sorbonne_u.cps.pubsub.exceptions.UnknownChannelException;
 import fr.sorbonne_u.cps.pubsub.exceptions.UnknownClientException;
 import fr.sorbonne_u.cps.pubsub.interfaces.MessageI;
 import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientCI;
-import fr.sorbonne_u.cps.pubsub.interfaces.PrivilegedClientI;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -59,7 +58,7 @@ import java.util.Objects;
  */
 public class		ClientPrivilegedPlugin
 extends		AbstractPlugin
-implements		PrivilegedClientI
+implements		ClientPrivilegedI
 {
 	private static final long serialVersionUID = 1L;
 
@@ -215,7 +214,7 @@ implements		PrivilegedClientI
 	}
 
 	// ------------------------------------------------------------------
-	// PrivilegedClientI
+	// ClientPrivilegedI
 	// ------------------------------------------------------------------
 
 	/**
@@ -258,7 +257,7 @@ implements		PrivilegedClientI
 
 	/**
 	 * Crée un canal privilégié (cf.
-	 * {@link PrivilegedClientI#createChannel(String, String)}).
+	 * {@link ClientPrivilegedI#createChannel(String, String)}).
 	 *
 	 * @param channel			nom du canal à créer.
 	 * @param autorisedUsers	motif regex sélectionnant les URIs
